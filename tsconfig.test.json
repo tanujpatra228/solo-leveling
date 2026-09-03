@@ -1,0 +1,18 @@
+{
+  // Typechecks the Worker's test files, which the composite projects cannot
+  // cover: the cross-check test deliberately imports both the client and the
+  // Worker copy of the licence-key decoder, and a single file cannot belong to
+  // two composite projects at once.
+  //
+  // Not referenced from tsconfig.json, and not composite, so it does not join
+  // the project graph. Run with `pnpm run typecheck:tests`.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "composite": false,
+    "declaration": false,
+    "noEmit": true
+  },
+  "include": ["worker/**/*.test.ts", "worker/identity.ts", "worker/schedule.ts", "src/sync/identity.ts"]
+}

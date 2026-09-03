@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "solo-leveling",
+  "main": "./worker/index.ts",
+
+  // Set to the date this project started. The Workers runtime supports old
+  // compatibility dates indefinitely, so this only needs changing deliberately.
+  // At 2026-08-04 or later, nodejs_compat and nodejs_compat_v2 are enabled by
+  // default, which is what lets the Worker use `web-push` with no extra flag.
+  "compatibility_date": "2026-09-03",
+
+  // Navigation requests are served straight from the asset store without
+  // invoking the Worker script at all. On the free plan that matters: asset
+  // requests are free and unlimited, while Worker invocations are capped at
+  // 100,000 a day.
+  "compatibility_flags": ["assets_navigation_prefers_asset_serving"],
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Any path that is not a file returns index.html with a 200, which is what
+    // a client-side router needs.
+    "not_found_handling": "single-page-application",
+    // Scoped to the API only, and deliberately not to anything that serves the
+    // app shell: once the daily request limit is reached, paths listed here
+    // return 429 instead of falling back to the static asset.
+    "run_worker_first": ["/api/*"]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "solo-leveling",
+      // Filled in by scripts/setup.sh, which creates the database. Not a
+      // secret: it identifies the database but grants nothing on its own.
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ],
+
+  "migrations_dir": "./migrations",
+
+  "triggers": {
+    // Every fifteen minutes. The handler sends only to subscriptions whose
+    // chosen local time falls in the current window, so a single trigger serves
+    // every timezone and each device still gets exactly one push a day.
+    "crons": ["*/15 * * * *"]
+  },
+
+  "observability": {
+    "enabled": true,
+    // Request bodies are never logged anywhere in this Worker; they carry
+    // bodyweight and body-fat readings, which is health data.
+    "head_sampling_rate": 1
+  }
+}

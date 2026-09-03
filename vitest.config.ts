@@ -9,6 +9,6 @@ export default defineConfig({
     // The domain layer is pure, so it needs no DOM. Repository tests opt into
     // fake-indexeddb themselves via an import.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'worker/**/*.test.ts'],
   },
 })

@@ -18,7 +18,9 @@ vapid.json
 
 # cloudflare
 .wrangler/
-worker-configuration.d.ts
+# worker-configuration.d.ts IS committed: CI runs a typecheck and cannot type
+# the Worker without it. It holds binding names and runtime types only, never
+# a secret. Regenerate with `pnpm run cf:types` after changing wrangler.jsonc.
 
 # editor / os
 .DS_Store

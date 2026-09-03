@@ -1,0 +1,30 @@
+# Headers applied by Cloudflare's static asset serving.
+#
+# These live here rather than in the Worker because navigation requests are
+# served directly from the asset store and never reach the Worker script, so a
+# header set in code would not apply to the app shell.
+#
+# The free plan allows 100 rules here, and this uses a handful.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com; font-src 'self'; connect-src 'self' https://api.cloudinary.com; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Cross-Origin-Opener-Policy: same-origin
+  Permissions-Policy: geolocation=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+
+# The shell must not be cached hard, or a deploy takes a day to reach the phone.
+# Workbox handles versioning of everything else.
+/index.html
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# Hashed build output is immutable by construction.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
