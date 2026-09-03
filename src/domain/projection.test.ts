@@ -1,0 +1,251 @@
+import { describe, expect, it } from 'vitest'
+import {
+  emptyProjectionInput,
+  historyForExercise,
+  lastSetsForExercise,
+  projectPlayer,
+  type ProjectionInput,
+} from './projection'
+import { SEED_EXERCISES, SEED_ROUTINES } from '../db/seed'
+import { XP_DAILY_QUEST } from './xp'
+import type { Profile, SessionLog, SetLog } from './types'
+
+const profile: Profile = {
+  id: 'profile',
+  sex: 'male',
+  birthYear: 1996,
+  heightCm: 178,
+  unitPref: 'metric',
+  trainingYears: 3,
+  equipmentAccess: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'pullup_bar', 'bench'],
+  createdAt: 0,
+  awakenedAt: 0,
+}
+
+const TODAY = '2026-03-06'
+
+function baseInput(overrides: Partial<ProjectionInput> = {}): ProjectionInput {
+  return {
+    ...emptyProjectionInput(TODAY, new Date(2026, 2, 6, 12).getTime()),
+    profile,
+    exercises: SEED_EXERCISES,
+    routines: SEED_ROUTINES,
+    ...overrides,
+  }
+}
+
+function session(id: string, dayKey: string, startedAt: number, routineId: string | null = 'friday-legs'): SessionLog {
+  return { id, routineId, startedAt, endedAt: startedAt + 3_600_000, dayKey, bodyweightKg: 80 }
+}
+
+function set(
+  sessionId: string,
+  exerciseId: string,
+  weight: number,
+  reps: number,
+  order: number,
+  completedAt: number,
+  extra: Partial<SetLog> = {},
+): SetLog {
+  return {
+    id: `${sessionId}-${exerciseId}-${order}`,
+    sessionId,
+    exerciseId,
+    order,
+    weight,
+    reps,
+    isWarmup: false,
+    completedAt,
+    ...extra,
+  }
+}
+
+describe('a hunter who has logged nothing', () => {
+  const projection = projectPlayer(baseInput())
+
+  it('is level one with no XP', () => {
+    expect(projection.player.level).toBe(1)
+    expect(projection.player.xp).toBe(0)
+  })
+
+  it('has no derived stats rather than a divide-by-zero', () => {
+    expect(projection.player.derived).toEqual({ STR: 0, VIT: 0, AGI: 0, INT: 0, PER: 0 })
+  })
+
+  it('gets a rank floor from stated training history, flagged as provisional', () => {
+    expect(projection.rank.rank).toBe('D')
+    expect(projection.rank.unavailableReason).toContain('floor')
+  })
+
+  it('reports fatigue as unreadable rather than guessing', () => {
+    expect(projection.fatigue.acwr).toBeNull()
+    expect(projection.player.fatigueMultiplier).toBe(1)
+  })
+
+  it('has one active shadow slot even at zero INT', () => {
+    expect(projection.shadowCap).toBe(1)
+  })
+
+  it('offers no runes to misuse', () => {
+    expect(projection.unlockedRunes).toEqual([])
+  })
+
+  it('points at the first tower floor', () => {
+    expect(projection.nextTowerFloor?.floor).toBe(1)
+  })
+})
+
+describe('a single logged session', () => {
+  const sessions = [session('s1', '2026-03-06', 1000)]
+  const sets = [
+    set('s1', 'barbell-squat', 100, 5, 0, 1000, { rpe: 8 }),
+    set('s1', 'barbell-squat', 100, 5, 1, 1100, { rpe: 8.5 }),
+    set('s1', 'leg-press', 150, 12, 2, 1200, { rpe: 7 }),
+  ]
+  const projection = projectPlayer(baseInput({ sessions, sets }))
+
+  it('counts the tonnage', () => {
+    // 100*5 + 100*5 + 150*12 = 2800
+    expect(projection.totalTonnageKg).toBe(2800)
+  })
+
+  it('earns XP and may level up', () => {
+    expect(projection.player.xp).toBeGreaterThan(0)
+    expect(projection.player.level).toBeGreaterThanOrEqual(1)
+  })
+
+  it('records the best estimated max per exercise', () => {
+    expect(projection.bestE1rmByExercise.get('barbell-squat')).toBeCloseTo(100 * (1 + 5 / 30), 6)
+  })
+
+  it('treats the first performance of a lift as a record', () => {
+    expect(projection.sessionSummaries[0]!.prExerciseIds).toContain('barbell-squat')
+  })
+
+  it('ranks the squat from the published table', () => {
+    const squat = projection.rank.perLift.find((l) => l.lift === 'squat')
+    expect(squat).toBeDefined()
+    expect(squat!.rank).toBeTruthy()
+  })
+
+  it('assigns a gate rank from what was actually performed', () => {
+    expect(projection.sessionSummaries[0]!.gateRank).toBeTruthy()
+  })
+
+  it('counts hard sets, treating a missing RPE as hard', () => {
+    expect(projection.sessionSummaries[0]!.hardSets).toBe(3)
+  })
+})
+
+describe('records are credited on the day they were set', () => {
+  const sessions = [
+    session('s1', '2026-03-01', 1000),
+    session('s2', '2026-03-04', 2000),
+    session('s3', '2026-03-06', 3000),
+  ]
+  const sets = [
+    set('s1', 'barbell-squat', 100, 5, 0, 1000),
+    // Heavier: a record.
+    set('s2', 'barbell-squat', 110, 5, 0, 2000),
+    // Lighter than the previous best: not a record.
+    set('s3', 'barbell-squat', 105, 5, 0, 3000),
+  ]
+  const projection = projectPlayer(baseInput({ sessions, sets }))
+
+  it('credits the record to the middle session, not the last', () => {
+    const byId = new Map(projection.sessionSummaries.map((s) => [s.session.id, s]))
+    expect(byId.get('s1')!.prExerciseIds).toContain('barbell-squat')
+    expect(byId.get('s2')!.prExerciseIds).toContain('barbell-squat')
+    expect(byId.get('s3')!.prExerciseIds).not.toContain('barbell-squat')
+  })
+
+  it('keeps the all-time best, not the most recent', () => {
+    expect(projection.bestE1rmByExercise.get('barbell-squat')).toBeCloseTo(110 * (1 + 5 / 30), 6)
+  })
+})
+
+describe('superseded sets are excluded', () => {
+  const sessions = [session('s1', '2026-03-06', 1000)]
+  const original = set('s1', 'barbell-squat', 200, 5, 0, 1000)
+  const correction: SetLog = {
+    ...set('s1', 'barbell-squat', 100, 5, 1, 1100),
+    id: 'correction',
+    supersedes: original.id,
+  }
+
+  it('uses the correction and ignores what it replaced', () => {
+    const projection = projectPlayer(baseInput({ sessions, sets: [original, correction] }))
+    expect(projection.totalTonnageKg).toBe(500)
+    expect(projection.bestE1rmByExercise.get('barbell-squat')).toBeCloseTo(100 * (1 + 5 / 30), 6)
+  })
+})
+
+describe('completed daily quests pay XP', () => {
+  it('adds the daily quest reward to the total', () => {
+    const withQuests = projectPlayer(
+      baseInput({
+        quests: [
+          { id: 'q1', dayKey: '2026-03-05', type: 'daily', status: 'complete', issuedAt: 0, expiresAt: null, payload: null },
+          { id: 'q2', dayKey: '2026-03-06', type: 'daily', status: 'complete', issuedAt: 0, expiresAt: null, payload: null },
+          { id: 'q3', dayKey: '2026-03-04', type: 'daily', status: 'failed', issuedAt: 0, expiresAt: null, payload: null },
+        ],
+      }),
+    )
+    expect(withQuests.player.xp).toBe(2 * XP_DAILY_QUEST)
+  })
+})
+
+describe('the projection is a pure function of the log', () => {
+  const sessions = [session('s1', '2026-03-06', 1000)]
+  const sets = [set('s1', 'barbell-squat', 100, 5, 0, 1000)]
+
+  it('produces the same result twice', () => {
+    const a = projectPlayer(baseInput({ sessions, sets }))
+    const b = projectPlayer(baseInput({ sessions, sets }))
+    expect(a.player).toEqual(b.player)
+    expect(a.totalTonnageKg).toBe(b.totalTonnageKg)
+  })
+
+  it('does not depend on the order the rows arrive in', () => {
+    const forwards = projectPlayer(baseInput({ sessions, sets }))
+    const backwards = projectPlayer(baseInput({ sessions: [...sessions].reverse(), sets: [...sets].reverse() }))
+    expect(forwards.player).toEqual(backwards.player)
+  })
+})
+
+describe('lastSetsForExercise', () => {
+  const sessions = [session('s1', '2026-03-01', 1000), session('s2', '2026-03-04', 2000)]
+  const sets = [
+    set('s1', 'barbell-squat', 100, 5, 0, 1000),
+    set('s2', 'barbell-squat', 110, 6, 0, 2000),
+    set('s2', 'barbell-squat', 110, 5, 1, 2100),
+  ]
+
+  it('returns the sets from the most recent session containing the exercise', () => {
+    const last = lastSetsForExercise('barbell-squat', sessions, sets)
+    expect(last).toHaveLength(2)
+    expect(last.every((s) => s.sessionId === 's2')).toBe(true)
+  })
+
+  it('returns nothing for an exercise never performed', () => {
+    expect(lastSetsForExercise('pull-ups', sessions, sets)).toEqual([])
+  })
+
+  it('excludes warmups, so a warmup does not become the progression basis', () => {
+    const withWarmup = [...sets, set('s2', 'pull-ups', 0, 3, 2, 2200, { isWarmup: true })]
+    expect(lastSetsForExercise('pull-ups', sessions, withWarmup)).toEqual([])
+  })
+})
+
+describe('historyForExercise', () => {
+  it('returns the estimated max for each hard set, oldest first', () => {
+    const sets = [
+      set('s2', 'barbell-squat', 110, 5, 0, 2000),
+      set('s1', 'barbell-squat', 100, 5, 0, 1000),
+    ]
+    const history = historyForExercise('barbell-squat', sets)
+    expect(history).toHaveLength(2)
+    expect(history[0]!.set.completedAt).toBe(1000)
+    expect(history[1]!.e1rmKg).toBeGreaterThan(history[0]!.e1rmKg)
+  })
+})

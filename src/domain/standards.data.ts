@@ -1,0 +1,338 @@
+/**
+ * GENERATED FILE - do not edit by hand.
+ *
+ * Produced by `scripts/generate-standards.mjs` from
+ * `docs/research/strength-standards-sources.md`. Regenerate rather than editing.
+ *
+ * Source: StrengthLevel.com published strength standards, retrieved 2026-09-03.
+ * Values are one-rep maxes in kilograms indexed by bodyweight in kilograms, and
+ * they INCLUDE the 20 kg barbell. Each row holds the five published thresholds
+ * in ascending order: Beginner, Novice, Intermediate, Advanced, Elite.
+ *
+ * Pull-ups are published in two different units and are kept separate: a
+ * bodyweight-only rep count, and an ADDED-LOAD one-rep max where a negative
+ * value means assistance was required. Neither is a total-system load.
+ *
+ * See NOTES.md for the licensing question and for why these are never blended
+ * with the ExRx tables.
+ */
+
+export type StandardLift = 'squat' | 'bench' | 'ohp' | 'deadlift' | 'incline_bench' | 'pullup'
+
+export type StandardsSex = 'male' | 'female'
+
+/** The five published thresholds, ascending. */
+export type Thresholds = readonly [number, number, number, number, number]
+
+export interface StandardRow {
+  /** Bodyweight in kilograms this row applies to. */
+  readonly bw: number
+  readonly thresholds: Thresholds
+}
+
+export const STANDARD_TIER_NAMES = ['Beginner', 'Novice', 'Intermediate', 'Advanced', 'Elite'] as const
+
+/** One-rep max standards in kg, bar weight included. */
+export const BARBELL_STANDARDS: Record<
+  Exclude<StandardLift, 'pullup'>,
+  Record<StandardsSex, readonly StandardRow[]>
+> = {
+  squat: {
+    male: [
+      { bw: 50, thresholds: [36, 55, 78, 106, 137] },
+      { bw: 55, thresholds: [43, 63, 88, 118, 150] },
+      { bw: 60, thresholds: [49, 71, 98, 129, 162] },
+      { bw: 65, thresholds: [56, 79, 107, 139, 174] },
+      { bw: 70, thresholds: [62, 86, 116, 149, 185] },
+      { bw: 75, thresholds: [69, 94, 124, 159, 196] },
+      { bw: 80, thresholds: [75, 101, 132, 168, 206] },
+      { bw: 85, thresholds: [81, 108, 140, 177, 216] },
+      { bw: 90, thresholds: [87, 115, 148, 186, 226] },
+      { bw: 95, thresholds: [93, 121, 156, 194, 235] },
+      { bw: 100, thresholds: [98, 128, 163, 203, 244] },
+      { bw: 105, thresholds: [104, 134, 170, 211, 253] },
+      { bw: 110, thresholds: [109, 140, 177, 218, 261] },
+      { bw: 115, thresholds: [115, 147, 184, 226, 270] },
+      { bw: 120, thresholds: [120, 152, 191, 233, 278] },
+      { bw: 125, thresholds: [125, 158, 197, 240, 285] },
+      { bw: 130, thresholds: [130, 164, 203, 247, 293] },
+      { bw: 135, thresholds: [135, 169, 209, 254, 300] },
+      { bw: 140, thresholds: [140, 175, 215, 261, 307] },
+    ],
+    female: [
+      { bw: 40, thresholds: [19, 34, 53, 76, 102] },
+      { bw: 45, thresholds: [23, 38, 58, 82, 110] },
+      { bw: 50, thresholds: [26, 42, 63, 88, 116] },
+      { bw: 55, thresholds: [29, 46, 68, 94, 123] },
+      { bw: 60, thresholds: [32, 49, 72, 99, 129] },
+      { bw: 65, thresholds: [35, 53, 76, 104, 134] },
+      { bw: 70, thresholds: [37, 56, 80, 109, 140] },
+      { bw: 75, thresholds: [40, 59, 84, 113, 145] },
+      { bw: 80, thresholds: [42, 62, 88, 117, 149] },
+      { bw: 85, thresholds: [45, 65, 91, 121, 154] },
+      { bw: 90, thresholds: [47, 68, 94, 125, 158] },
+      { bw: 95, thresholds: [49, 71, 98, 129, 162] },
+      { bw: 100, thresholds: [52, 74, 101, 132, 166] },
+      { bw: 105, thresholds: [54, 76, 104, 136, 170] },
+      { bw: 110, thresholds: [56, 79, 107, 139, 174] },
+      { bw: 115, thresholds: [58, 81, 109, 142, 177] },
+      { bw: 120, thresholds: [60, 83, 112, 145, 181] },
+    ],
+  },
+  bench: {
+    male: [
+      { bw: 50, thresholds: [27, 41, 58, 78, 101] },
+      { bw: 55, thresholds: [32, 47, 65, 87, 110] },
+      { bw: 60, thresholds: [37, 53, 72, 95, 119] },
+      { bw: 65, thresholds: [42, 59, 79, 102, 128] },
+      { bw: 70, thresholds: [47, 64, 85, 110, 136] },
+      { bw: 75, thresholds: [51, 70, 92, 117, 144] },
+      { bw: 80, thresholds: [56, 75, 98, 124, 151] },
+      { bw: 85, thresholds: [60, 80, 104, 130, 158] },
+      { bw: 90, thresholds: [65, 85, 109, 137, 165] },
+      { bw: 95, thresholds: [69, 90, 115, 143, 172] },
+      { bw: 100, thresholds: [73, 95, 120, 149, 179] },
+      { bw: 105, thresholds: [77, 99, 125, 155, 185] },
+      { bw: 110, thresholds: [81, 104, 131, 160, 191] },
+      { bw: 115, thresholds: [85, 108, 135, 166, 197] },
+      { bw: 120, thresholds: [89, 113, 140, 171, 203] },
+      { bw: 125, thresholds: [93, 117, 145, 176, 209] },
+      { bw: 130, thresholds: [97, 121, 150, 181, 214] },
+      { bw: 135, thresholds: [100, 125, 154, 186, 220] },
+      { bw: 140, thresholds: [104, 129, 158, 191, 225] },
+    ],
+    female: [
+      { bw: 40, thresholds: [10, 19, 33, 49, 68] },
+      { bw: 45, thresholds: [12, 22, 36, 54, 74] },
+      { bw: 50, thresholds: [14, 25, 40, 58, 79] },
+      { bw: 55, thresholds: [17, 28, 44, 62, 84] },
+      { bw: 60, thresholds: [19, 31, 47, 66, 88] },
+      { bw: 65, thresholds: [21, 33, 50, 70, 92] },
+      { bw: 70, thresholds: [22, 36, 53, 74, 96] },
+      { bw: 75, thresholds: [24, 38, 56, 77, 100] },
+      { bw: 80, thresholds: [26, 40, 59, 80, 104] },
+      { bw: 85, thresholds: [28, 43, 61, 83, 107] },
+      { bw: 90, thresholds: [30, 45, 64, 86, 111] },
+      { bw: 95, thresholds: [31, 47, 66, 89, 114] },
+      { bw: 100, thresholds: [33, 49, 69, 92, 117] },
+      { bw: 105, thresholds: [35, 51, 71, 94, 120] },
+      { bw: 110, thresholds: [36, 53, 73, 97, 123] },
+      { bw: 115, thresholds: [38, 54, 75, 99, 126] },
+      { bw: 120, thresholds: [39, 56, 77, 102, 128] },
+    ],
+  },
+  ohp: {
+    male: [
+      { bw: 50, thresholds: [15, 24, 36, 51, 67] },
+      { bw: 55, thresholds: [18, 28, 41, 56, 73] },
+      { bw: 60, thresholds: [21, 32, 45, 62, 79] },
+      { bw: 65, thresholds: [24, 35, 50, 67, 85] },
+      { bw: 70, thresholds: [27, 39, 54, 72, 90] },
+      { bw: 75, thresholds: [30, 43, 58, 76, 96] },
+      { bw: 80, thresholds: [33, 46, 62, 81, 101] },
+      { bw: 85, thresholds: [36, 49, 66, 85, 106] },
+      { bw: 90, thresholds: [38, 53, 70, 90, 111] },
+      { bw: 95, thresholds: [41, 56, 74, 94, 115] },
+      { bw: 100, thresholds: [44, 59, 77, 98, 120] },
+      { bw: 105, thresholds: [47, 62, 81, 102, 124] },
+      { bw: 110, thresholds: [49, 65, 84, 105, 128] },
+      { bw: 115, thresholds: [52, 68, 87, 109, 132] },
+      { bw: 120, thresholds: [54, 71, 90, 113, 136] },
+      { bw: 125, thresholds: [56, 73, 94, 116, 140] },
+      { bw: 130, thresholds: [59, 76, 97, 119, 144] },
+      { bw: 135, thresholds: [61, 79, 100, 123, 147] },
+      { bw: 140, thresholds: [63, 81, 102, 126, 151] },
+    ],
+    female: [
+      { bw: 40, thresholds: [7, 13, 22, 33, 45] },
+      { bw: 45, thresholds: [9, 15, 24, 36, 48] },
+      { bw: 50, thresholds: [10, 17, 27, 38, 51] },
+      { bw: 55, thresholds: [11, 19, 29, 41, 54] },
+      { bw: 60, thresholds: [12, 20, 31, 43, 57] },
+      { bw: 65, thresholds: [14, 22, 32, 45, 59] },
+      { bw: 70, thresholds: [15, 23, 34, 47, 62] },
+      { bw: 75, thresholds: [16, 25, 36, 49, 64] },
+      { bw: 80, thresholds: [17, 26, 37, 51, 66] },
+      { bw: 85, thresholds: [18, 27, 39, 53, 68] },
+      { bw: 90, thresholds: [19, 28, 40, 54, 70] },
+      { bw: 95, thresholds: [20, 30, 42, 56, 72] },
+      { bw: 100, thresholds: [21, 31, 43, 58, 74] },
+      { bw: 105, thresholds: [22, 32, 45, 59, 75] },
+      { bw: 110, thresholds: [23, 33, 46, 61, 77] },
+      { bw: 115, thresholds: [24, 34, 47, 62, 79] },
+      { bw: 120, thresholds: [24, 35, 48, 64, 80] },
+    ],
+  },
+  deadlift: {
+    male: [
+      { bw: 50, thresholds: [46, 68, 96, 129, 164] },
+      { bw: 55, thresholds: [54, 77, 107, 141, 178] },
+      { bw: 60, thresholds: [61, 86, 117, 153, 191] },
+      { bw: 65, thresholds: [68, 95, 127, 164, 204] },
+      { bw: 70, thresholds: [75, 103, 137, 175, 216] },
+      { bw: 75, thresholds: [82, 111, 146, 186, 228] },
+      { bw: 80, thresholds: [89, 119, 155, 196, 239] },
+      { bw: 85, thresholds: [96, 127, 164, 205, 250] },
+      { bw: 90, thresholds: [102, 134, 172, 215, 260] },
+      { bw: 95, thresholds: [108, 141, 180, 224, 270] },
+      { bw: 100, thresholds: [114, 148, 188, 232, 279] },
+      { bw: 105, thresholds: [120, 155, 195, 241, 289] },
+      { bw: 110, thresholds: [126, 161, 203, 249, 298] },
+      { bw: 115, thresholds: [132, 168, 210, 257, 306] },
+      { bw: 120, thresholds: [137, 174, 217, 265, 315] },
+      { bw: 125, thresholds: [143, 180, 224, 272, 323] },
+      { bw: 130, thresholds: [148, 186, 231, 280, 331] },
+      { bw: 135, thresholds: [153, 192, 237, 287, 339] },
+      { bw: 140, thresholds: [159, 198, 243, 294, 346] },
+    ],
+    female: [
+      { bw: 40, thresholds: [26, 43, 65, 92, 121] },
+      { bw: 45, thresholds: [30, 48, 71, 99, 129] },
+      { bw: 50, thresholds: [34, 52, 76, 105, 136] },
+      { bw: 55, thresholds: [37, 56, 81, 111, 143] },
+      { bw: 60, thresholds: [40, 60, 86, 116, 149] },
+      { bw: 65, thresholds: [43, 64, 90, 121, 155] },
+      { bw: 70, thresholds: [46, 68, 95, 126, 160] },
+      { bw: 75, thresholds: [49, 71, 99, 131, 166] },
+      { bw: 80, thresholds: [52, 74, 102, 135, 170] },
+      { bw: 85, thresholds: [54, 77, 106, 139, 175] },
+      { bw: 90, thresholds: [57, 80, 109, 143, 180] },
+      { bw: 95, thresholds: [59, 83, 113, 147, 184] },
+      { bw: 100, thresholds: [61, 86, 116, 151, 188] },
+      { bw: 105, thresholds: [64, 89, 119, 154, 192] },
+      { bw: 110, thresholds: [66, 91, 122, 158, 196] },
+      { bw: 115, thresholds: [68, 94, 125, 161, 200] },
+      { bw: 120, thresholds: [70, 96, 128, 164, 203] },
+    ],
+  },
+  incline_bench: {
+    male: [
+      { bw: 50, thresholds: [22, 34, 49, 66, 86] },
+      { bw: 55, thresholds: [27, 40, 56, 74, 94] },
+      { bw: 60, thresholds: [32, 45, 62, 82, 103] },
+      { bw: 65, thresholds: [36, 51, 69, 89, 111] },
+      { bw: 70, thresholds: [41, 56, 75, 96, 119] },
+      { bw: 75, thresholds: [45, 61, 81, 103, 126] },
+      { bw: 80, thresholds: [50, 66, 87, 109, 134] },
+      { bw: 85, thresholds: [54, 71, 92, 116, 141] },
+      { bw: 90, thresholds: [58, 76, 98, 122, 147] },
+      { bw: 95, thresholds: [62, 81, 103, 128, 154] },
+      { bw: 100, thresholds: [66, 86, 108, 134, 160] },
+      { bw: 105, thresholds: [70, 90, 113, 139, 166] },
+      { bw: 110, thresholds: [74, 94, 118, 145, 172] },
+      { bw: 115, thresholds: [78, 99, 123, 150, 178] },
+      { bw: 120, thresholds: [82, 103, 128, 155, 184] },
+      { bw: 125, thresholds: [85, 107, 132, 160, 189] },
+      { bw: 130, thresholds: [89, 111, 137, 165, 195] },
+      { bw: 135, thresholds: [93, 115, 141, 170, 200] },
+      { bw: 140, thresholds: [96, 119, 145, 175, 205] },
+    ],
+    female: [
+      { bw: 40, thresholds: [7, 15, 26, 40, 57] },
+      { bw: 45, thresholds: [9, 17, 29, 45, 62] },
+      { bw: 50, thresholds: [11, 20, 33, 49, 67] },
+      { bw: 55, thresholds: [12, 22, 36, 53, 72] },
+      { bw: 60, thresholds: [14, 25, 39, 56, 76] },
+      { bw: 65, thresholds: [16, 27, 42, 60, 80] },
+      { bw: 70, thresholds: [18, 29, 45, 63, 84] },
+      { bw: 75, thresholds: [20, 32, 47, 66, 87] },
+      { bw: 80, thresholds: [21, 34, 50, 69, 91] },
+      { bw: 85, thresholds: [23, 36, 52, 72, 94] },
+      { bw: 90, thresholds: [24, 38, 55, 75, 97] },
+      { bw: 95, thresholds: [26, 40, 57, 78, 101] },
+      { bw: 100, thresholds: [28, 42, 59, 80, 104] },
+      { bw: 105, thresholds: [29, 43, 62, 83, 106] },
+      { bw: 110, thresholds: [30, 45, 64, 85, 109] },
+      { bw: 115, thresholds: [32, 47, 66, 88, 112] },
+      { bw: 120, thresholds: [33, 49, 68, 90, 114] },
+    ],
+  },
+}
+
+/** Bodyweight-only pull-up rep counts. Zero stands for the published "< 1". */
+export const PULLUP_REP_STANDARDS: Record<StandardsSex, readonly StandardRow[]> = {
+  male: [
+    { bw: 50, thresholds: [0, 6, 14, 24, 34] },
+    { bw: 55, thresholds: [0, 7, 14, 24, 34] },
+    { bw: 60, thresholds: [0, 7, 14, 23, 33] },
+    { bw: 65, thresholds: [0, 7, 14, 23, 32] },
+    { bw: 70, thresholds: [0, 7, 14, 22, 31] },
+    { bw: 75, thresholds: [0, 7, 13, 21, 30] },
+    { bw: 80, thresholds: [1, 7, 13, 21, 29] },
+    { bw: 85, thresholds: [1, 7, 13, 20, 28] },
+    { bw: 90, thresholds: [1, 7, 12, 19, 27] },
+    { bw: 95, thresholds: [1, 7, 12, 19, 26] },
+    { bw: 100, thresholds: [0, 6, 11, 18, 25] },
+    { bw: 105, thresholds: [0, 6, 11, 18, 24] },
+    { bw: 110, thresholds: [0, 6, 10, 17, 23] },
+    { bw: 115, thresholds: [0, 6, 10, 16, 23] },
+    { bw: 120, thresholds: [0, 5, 10, 16, 22] },
+    { bw: 125, thresholds: [0, 5, 10, 15, 21] },
+    { bw: 130, thresholds: [0, 5, 9, 14, 20] },
+    { bw: 135, thresholds: [0, 4, 9, 14, 20] },
+    { bw: 140, thresholds: [0, 4, 9, 13, 19] },
+  ],
+  female: [
+    { bw: 40, thresholds: [0, 0, 6, 14, 23] },
+    { bw: 45, thresholds: [0, 0, 6, 13, 22] },
+    { bw: 50, thresholds: [0, 0, 6, 13, 22] },
+    { bw: 55, thresholds: [0, 0, 6, 13, 21] },
+    { bw: 60, thresholds: [0, 0, 6, 12, 20] },
+    { bw: 65, thresholds: [0, 0, 6, 11, 19] },
+    { bw: 70, thresholds: [0, 0, 5, 11, 18] },
+    { bw: 75, thresholds: [0, 0, 5, 10, 17] },
+    { bw: 80, thresholds: [0, 0, 5, 10, 16] },
+    { bw: 85, thresholds: [0, 0, 4, 9, 15] },
+    { bw: 90, thresholds: [0, 0, 4, 9, 14] },
+    { bw: 95, thresholds: [0, 0, 4, 9, 13] },
+    { bw: 100, thresholds: [0, 0, 3, 8, 13] },
+    { bw: 105, thresholds: [0, 0, 3, 8, 12] },
+    { bw: 110, thresholds: [0, 0, 2, 7, 11] },
+    { bw: 115, thresholds: [0, 0, 2, 7, 10] },
+    { bw: 120, thresholds: [0, 0, 1, 6, 10] },
+  ],
+}
+
+/** Pull-up one-rep max as ADDED load in kg. Negative means assistance needed. */
+export const PULLUP_ADDED_LOAD_STANDARDS: Record<StandardsSex, readonly StandardRow[]> = {
+  male: [
+    { bw: 50, thresholds: [-5, 7, 22, 39, 56] },
+    { bw: 55, thresholds: [-4, 9, 25, 42, 61] },
+    { bw: 60, thresholds: [-4, 11, 27, 45, 64] },
+    { bw: 65, thresholds: [-3, 12, 29, 48, 68] },
+    { bw: 70, thresholds: [-2, 13, 31, 50, 71] },
+    { bw: 75, thresholds: [-2, 14, 32, 52, 73] },
+    { bw: 80, thresholds: [-2, 14, 33, 54, 75] },
+    { bw: 85, thresholds: [-2, 15, 34, 56, 77] },
+    { bw: 90, thresholds: [-2, 15, 35, 57, 79] },
+    { bw: 95, thresholds: [-2, 15, 36, 58, 81] },
+    { bw: 100, thresholds: [-3, 15, 36, 59, 82] },
+    { bw: 105, thresholds: [-3, 15, 37, 60, 83] },
+    { bw: 110, thresholds: [-4, 15, 37, 60, 84] },
+    { bw: 115, thresholds: [-5, 15, 37, 60, 85] },
+    { bw: 120, thresholds: [-6, 14, 36, 61, 85] },
+    { bw: 125, thresholds: [-7, 13, 36, 61, 86] },
+    { bw: 130, thresholds: [-8, 13, 36, 61, 86] },
+    { bw: 135, thresholds: [-9, 12, 35, 60, 86] },
+    { bw: 140, thresholds: [-10, 11, 35, 60, 86] },
+  ],
+  female: [
+    { bw: 40, thresholds: [-14, -5, 6, 17, 30] },
+    { bw: 45, thresholds: [-14, -5, 7, 19, 33] },
+    { bw: 50, thresholds: [-14, -4, 8, 21, 35] },
+    { bw: 55, thresholds: [-15, -4, 8, 22, 37] },
+    { bw: 60, thresholds: [-16, -4, 9, 23, 38] },
+    { bw: 65, thresholds: [-16, -5, 9, 24, 39] },
+    { bw: 70, thresholds: [-18, -5, 9, 24, 40] },
+    { bw: 75, thresholds: [-19, -6, 8, 24, 41] },
+    { bw: 80, thresholds: [-20, -7, 8, 24, 41] },
+    { bw: 85, thresholds: [-21, -8, 7, 24, 41] },
+    { bw: 90, thresholds: [-23, -9, 7, 24, 41] },
+    { bw: 95, thresholds: [-24, -10, 6, 23, 41] },
+    { bw: 100, thresholds: [-26, -12, 5, 22, 40] },
+    { bw: 105, thresholds: [-28, -13, 3, 21, 40] },
+    { bw: 110, thresholds: [-30, -15, 2, 20, 39] },
+    { bw: 115, thresholds: [-32, -17, 1, 19, 38] },
+    { bw: 120, thresholds: [-34, -18, -1, 18, 37] },
+  ],
+}
