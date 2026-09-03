@@ -19,8 +19,7 @@ Your phone
 Cloudflare (one Worker, one deploy)
 ├── Static Assets           The React shell. Free, unlimited, and not counted as requests.
 ├── Worker script           /api/* only. A sync mirror and one daily push. Nothing else.
-├── D1 (SQLite)             The mirror of the event log, plus counters
-├── R2                      Encrypted progress photos (optional, off by default)
+├── D1 (SQLite)             The mirror of the event log, plus rate-limit counters
 └── Cron Trigger            One invocation a day: the reminder notification
 ```
 
@@ -30,35 +29,36 @@ up. If a change would break that, the change is wrong.
 
 ---
 
-## 2. The billing model, which is the thing to understand first
+## 2. The billing model: nothing here can charge you
 
-Cloudflare's free services behave in two completely different ways when you go over, and this
-difference drives the whole design.
+This is the most important property of the architecture, and it was a deliberate choice rather
+than luck.
 
-**Workers and D1 hard-fail. They do not bill.** Exceeding the Workers daily request limit returns
-error 1027. Exceeding a D1 daily limit makes queries return errors until the counter resets.
-Unpleasant, but free.
+Cloudflare's free services fail in two completely different ways when you exceed a limit. Most of
+them **hard-fail**: Workers returns error 1027 past its daily request limit, and D1 starts
+returning errors on queries until the counter resets. Unpleasant for an hour, and free.
 
-**R2 bills.** There is no block and no throttle — you are simply charged for the excess. Worse, the
-billing rounds *up* to the next whole unit: one operation past a million is billed as two million.
+**R2 was the exception. It bills instead of blocking**, with no throttle, rounding *up* to the next
+whole unit — one operation past a million is invoiced as two million. And there is no hard spend cap
+anywhere in Cloudflare. The only feature is "Budget alerts", and the documentation is blunt about
+it: *"Budget alerts are informational only. They do not pause or cap usage."*
 
-And there is **no hard spend cap anywhere in Cloudflare.** The only feature is "Budget alerts",
-which sends an email after the fact. The documentation says it plainly: *"Budget alerts are
-informational only. They do not pause or cap usage."*
+R2 existed in this design for exactly one thing: mirroring progress photos. Those photos fed
+nothing — no experience, no rank, no stats, no progression. Nothing in the engine ever read them.
+So the only service capable of producing a bill was carrying the least valuable feature in the app.
 
-Two consequences, and they are not optional:
+**That feature was cut, and R2 with it.** Every remaining service — Workers, Static Assets, D1,
+Cron Triggers — hard-fails against a free-tier limit. The worst case across the entire stack is now
+"a feature stops working until midnight UTC", never an invoice.
 
-1. **The Worker counts its own R2 usage in D1 and refuses to proceed past a self-imposed cap.**
-   Cloudflare will not stop us, so we stop ourselves. The cap is enforced *before* the R2 call, not
-   after.
-2. **Turn on a budget alert in the dashboard** (Manage Account → Billing → Billable Usage → Create
-   budget alert). Set it low, a dollar or two. It will not prevent a charge, but it means you find
-   out in hours rather than at the end of the month.
+Two notes to keep it that way:
 
-Enabling R2 is what made billing possible on this account at all. Before that, the account could
-not be charged. That is worth knowing rather than discovering.
-
----
+- **Do not add R2, KV-with-paid-limits, Durable Objects, Workflows, or Queues without revisiting
+  this section.** Of those, Workflows now bills for steps and storage, and R2 bills on overage. The
+  rest hard-fail, but each one is a new dimension to reason about.
+- **If your Cloudflare account still carries an R2 subscription from enabling it, you can remove
+  it.** Unused R2 costs nothing, so this is tidiness rather than urgency — but with no R2
+  subscription the account has no usage-based service at all, which is a cleaner place to stand.
 
 ## 3. The resource budget
 
@@ -71,7 +71,7 @@ margin that absorbs a bug, a retry loop, or a leaked licence key before it becom
 |---|---|---|---|---|
 | Requests | 100,000/day | none needed | ~150/day | Hard-fails, no bill |
 | CPU per invocation | **10 ms** | design target 3 ms | ~1–2 ms | Request killed |
-| Subrequests per invocation | **50** | 10 | 4 (photo PUT) | Request fails |
+| Subrequests per invocation | **50** | 10 | 4–14 (D1 statements) | Request fails |
 | Memory per isolate | 128 MB, **shared across concurrent requests** | never buffer >64 KB | streaming | Isolate recycled |
 | Script size | 3 MB gzipped | 1 MB gzipped | **94.76 KiB measured** | Deploy rejected |
 | Global scope startup | 1 second | — | trivial | Deploy rejected |
@@ -80,16 +80,16 @@ margin that absorbs a bug, a retry loop, or a leaked licence key before it becom
 
 The ~150 requests a day is roughly 50 API calls plus a handful of cron invocations. The
 documentation does not actually say whether cron invocations count as requests, so we assume they
-do and budget accordingly. See section 4a for why that number is one a day and not ninety-six.
+do and budget accordingly. See section 4 for why that number is one a day and not ninety-six.
 
 Three of these are tighter than they look:
 
 - **CPU is 10 ms and it applies to the cron handler too.** Waiting on I/O is free, so what matters
   is arithmetic and cryptography, not database round-trips.
-- **Subrequests include R2, KV and D1 binding calls**, not just `fetch()`. The documentation is
+- **Subrequests include D1 and KV binding calls**, not just `fetch()`. The documentation is
   explicit: *"A subrequest is any request a Worker makes using the Fetch API or to Cloudflare
-  services like R2, KV, or D1."* A photo upload costs one R2 put plus a few D1 statements, so it
-  sits at about 4 of the 50.
+  services like R2, KV, or D1."* A sync request costs a handful of D1 statements, so it sits well
+  under the 50.
 - **128 MB is per isolate, not per request**, and one isolate serves many concurrent requests. So
   per-request memory has to be a small fraction of it. Hence streaming.
 
@@ -115,47 +115,19 @@ query that filters an unindexed column over 5,000 rows costs 5,000 rows read eve
 one. Every query in this app filters on an indexed column, and every response carries
 `meta.rows_read` so it can be measured rather than assumed.
 
-### R2 — the only service that can cost money
+### Nothing else
 
-| Resource | Cloudflare free | **Our enforced cap** | Expected real use | Headroom |
-|---|---|---|---|---|
-| Class A ops (writes, lists) | 1,000,000/month | **5,000/month** | ~5/month | 200× under our own cap |
-| Class B ops (reads) | 10,000,000/month | **20,000/month** | ~50/month | 400× |
-| Storage | 10 GB-month | **2 GB total**, 250 MB per hunter | ~50 MB after four years | 40× |
-| Object size | 5 TiB | **400 KB** | ~250 KB | — |
+There is no R2, no KV, no Durable Objects, no Queues and no Workflows in this design. That is the
+budget: four services, all of which fail closed.
 
-Expected use assumes one progress photo a week. Four years of that is about 208 photos and 50 MB.
-The caps are not sized for that; they are sized so that a runaway loop is capped at a rounding
-error rather than a bill.
-
-Notes that shaped these choices:
-
-- **`DeleteObject` is free.** It is not Class A or Class B. So deleting aggressively costs nothing.
-- **Lifecycle transitions to Infrequent Access each cost a Class A operation.** We do not use them.
-  Expiry-only lifecycle rules are what we want, if we use lifecycle at all.
-- **We never call `LIST`.** It is a Class A operation, and D1 already knows every object we own.
-  D1 is the index; R2 is only the bytes.
-- Concurrent writes to the *same* key are limited to one per second and return HTTP 429. Our keys
-  are unique per photo, so this cannot arise.
-
-### How the R2 cap is actually enforced
-
-A `usage_budget` table in D1, keyed by month and metric. Before every R2 operation the Worker
-increments the counter and checks it against the cap in the same statement. Over the cap, it
-returns 429 with a plain message and the client shows a System window; the photo stays on the
-device and nothing is lost.
-
-The cap is enforced **globally, across all hunters**, not just per hunter. The licence key is the
-only credential, so if one ever leaked, a per-hunter cap would not bound the spend. A global cap
-does.
-
-A test asserts that every configured cap is below the corresponding documented Cloudflare
-allowance, with the Cloudflare numbers written as literals. Raising a cap past the free tier fails
-the build rather than quietly costing money.
+The one guard still worth keeping is a test that asserts our own configured bounds — rows per sync
+request, bound parameters per statement, subscriptions per cron run — sit under the documented
+Cloudflare limits, with those limits written as literals. It caught the 100-parameter problem once
+already, and it will catch the next person who raises a constant without checking.
 
 ---
 
-## 4a. Why the daily reminder uses a Cron Trigger and not a queue
+## 4. Why the daily reminder uses a Cron Trigger and not a queue
 
 Cron exists in this product for exactly one reason: sending the daily reminder notification while
 the app is closed. Nothing else uses it. Everything the reminder needs is already on the device —
@@ -227,8 +199,6 @@ Concretely:
   per subscription. Since the service worker composes the notification text from the local database
   anyway, the payload was never doing anything. Removing it removes nearly all the cryptography
   from the cron path.
-- **Bodies are streamed into R2, never buffered.** `bucket.put(key, request.body)` is the
-  documented idiom and takes a `ReadableStream`.
 - **Every loop is bounded.** Rows per request, statements per batch, subscriptions per cron run.
 
 ---
@@ -263,21 +233,6 @@ saves and what pairs a second device.
 
 Losing the key means losing the mirror. The interface has to say so before it becomes a surprise.
 
-### Photos
-
-Local IndexedDB is the source of truth, as with everything else. R2 is an optional mirror, off
-until switched on.
-
-Before upload the client downscales to at most 1280 px on the long edge, re-encodes to WebP,
-targets 250 KB, and rejects anything still over 400 KB. Then it **encrypts the image in the
-browser** with AES-256-GCM under a key derived from the Hunter Secret, and uploads the ciphertext.
-
-R2 therefore holds bytes nobody can read without the key — not an attacker who reaches the bucket,
-and not us. Progress photos are the most sensitive thing in this app, and this costs only client
-CPU. It also means the existing "lose the key, lose the mirror" warning covers photos correctly.
-
----
-
 ## 7. Security posture
 
 - **Nothing shipped to the browser is secret.** Every `VITE_`-prefixed variable, every string in
@@ -304,23 +259,21 @@ One-time, on your machine:
 ```sh
 pnpm install
 wrangler login
-pnpm run setup          # creates the D1 database and R2 bucket, generates VAPID keys,
-                        # sets the Worker secrets, and writes the ids into wrangler.jsonc
+pnpm run setup          # creates the D1 database, generates VAPID keys, sets the
+                        # Worker secrets, and writes the database id into wrangler.jsonc
 pnpm run cf:migrate:remote
 pnpm run deploy
 ```
 
-Then, once, in the dashboard: create a budget alert (section 2).
-
 After that, GitHub Actions deploys on every push to `main`. It needs two repository secrets,
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The token needs Workers Scripts: Edit, D1: Edit,
-Workers R2 Storage: Edit, and Account Settings: Read.
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. The token needs Workers Scripts: Edit, D1: Edit, and
+Account Settings: Read. It does not need R2 or KV permissions.
 
 ### Local development
 
 ```sh
 pnpm dev                          # the client, with hot reload
-pnpm run cf:dev                   # the Worker, D1 and R2 simulated locally
+pnpm run cf:dev                   # the Worker and D1 simulated locally
 pnpm run cf:migrate:local         # apply migrations to the local database
 ```
 
@@ -350,6 +303,5 @@ Verified by running it:
   deploy. The design targets 3 ms; that is an estimate, not a measurement.
 - **A real push delivery.** The library bundles and imports, and the scheduling arithmetic is unit
   tested, but no notification has been delivered to a real device from this code.
-- Whether cron invocations count toward the daily request limit. Undocumented; assumed yes.
-- Whether R2 lifecycle expiry deletes are free. `DeleteObject` is free, but the lifecycle
-  documentation does not say so for lifecycle-initiated deletes. We avoid depending on it.
+- Whether cron invocations count toward the daily request limit. Undocumented, so we assume they
+  do. At one invocation a day it makes no practical difference.

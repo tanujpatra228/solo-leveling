@@ -26,9 +26,10 @@ is the point at which this becomes usable on a phone in the gym.
 - [ ] C7 Stop re-reading the whole database after every logged set; append in memory instead
 - [ ] C8 Use the Zod 4 idiom `z.url()` rather than `z.string().url()`
 - [ ] C9 One daily cron instead of `*/15` polling; drop `isDue`, `notify_minute`, `tz_offset_min`
-- [ ] Add the `budget.ts` accounting module and the guard test asserting caps sit under the
-      documented Cloudflare allowances
-- [ ] Add migration `0002_photos_and_budget.sql` and the `r2_buckets` binding
+- [ ] C10 Delete the photo and Cloudinary remnants: the Dexie `photos` table and `LocalPhoto`, the
+      five repo photo functions, the three photo settings fields, and the Cloudinary hosts in
+      `public/_headers`
+- [ ] Add the guard test asserting our configured bounds sit under the documented Cloudflare limits
 
 ## Phase 0 — Awakening, logging, PWA
 - [x] Scaffold Vite + React + TS + Tailwind, pnpm, strict tsconfig
@@ -99,15 +100,11 @@ is the point at which this becomes usable on a phone in the gym.
 - [x] Service worker push and notificationclick handling
 - [ ] Android install prompt and permission request from a user gesture
 
-## Photos on R2 (supersedes the Cloudinary plan; R2 access is now available)
-- [ ] Client pipeline: downscale to 1280px, WebP re-encode, 400 KB hard reject
-- [ ] AES-256-GCM encryption in the browser, key derived from the Hunter Secret
-- [ ] `PhotoStore` adapter; the IndexedDB implementation stays the default
-- [ ] R2 bucket binding in wrangler.jsonc
-- [ ] `PUT/GET/DELETE /api/photos/:id` plus a D1-backed `GET /api/photos` index
-- [ ] Stream request bodies into R2, never buffer; enforce the byte cap on the stream
-- [ ] Never call R2 LIST anywhere; D1 is the index
-- [ ] `usage_budget` table and the enforced global R2 caps, checked before every operation
+## Photos — dropped (decided 2026-09-03)
+
+Progress photos fed nothing in the engine: no XP, no rank, no stats, no progression. They carried
+the only billing exposure in the stack, so they were cut and R2 was cut with them. Removing the
+dead code is correction C10.
 
 ## Phase 6 — Flavour
 - [ ] Build-time generated System flavour text

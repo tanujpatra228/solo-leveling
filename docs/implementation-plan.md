@@ -95,7 +95,14 @@ form. Same for the other string formats.
 approximate an arbitrary user-chosen local reminder time, so 95 of the 96 daily runs do nothing.
 Replace it with a single daily trigger at the UTC time matching the local morning, and delete the
 `isDue` polling logic along with the `notify_minute` and `tz_offset_min` columns. The full
-comparison against Durable Object alarms, Workflows and Queues is in `infrastructure.md` section 4a.
+comparison against Durable Object alarms, Workflows and Queues is in `infrastructure.md` section 4.
+
+**C10 — remove the photo and Cloudinary remnants.** Progress photos are cut from the product, so
+the code written for them is now dead weight. Delete the `photos` table and `LocalPhoto` type from
+the Dexie schema, the five photo functions from the repository, the `photoBackend`,
+`cloudinaryCloudName` and `cloudinaryUploadPreset` fields from the settings schema, and the two
+Cloudinary hosts from the `img-src` and `connect-src` directives in `public/_headers`. No R2
+binding is ever added.
 
 ---
 
@@ -117,88 +124,30 @@ the Worker entirely.
 **D3 — Counters live in D1, never KV.** KV allows 1,000 writes a day; a rate limiter and a usage
 counter write on every request. D1 allows 100,000.
 
-**D4 — R2 usage is capped by our own code, enforced before the call.** Cloudflare has no spend cap
-and R2 bills on overage with round-up pricing, so a self-imposed cap is the only real protection.
-The cap is global across all hunters, because the licence key is the only credential and a
-per-hunter cap would not bound spend if one leaked.
+**D4 — No service that can bill is used.** Workers, Static Assets, D1 and Cron Triggers all
+hard-fail against a free-tier limit. R2 was the sole exception and is gone with the photo feature,
+so the worst case across the whole stack is a feature pausing until midnight UTC.
 
-**D5 — D1 is the photo index; R2 is only the bytes.** `LIST` is a Class A operation and D1 already
-knows every object we own. We never list.
-
-**D6 — Bodies stream into R2 and are never buffered.** 128 MB is per isolate and shared across
-concurrent requests, so per-request memory has to stay small. `bucket.put(key, request.body)` takes
-a `ReadableStream` and is the documented idiom.
-
-**D7 — Photos are encrypted in the browser before upload.** AES-256-GCM under a key derived from
-the Hunter Secret. Body photos are the most sensitive data here; this way a bucket
-misconfiguration or a compromised Worker exposes ciphertext. It costs client CPU only, and the
-existing "lose the key, lose the mirror" warning already covers the consequence.
-
-**D8 — Every loop in the Worker is bounded**, and each bound is written next to the Cloudflare
+**D5 — Every loop in the Worker is bounded**, and each bound is written next to the Cloudflare
 limit it respects.
 
-**D9 — A test guards the budget.** `budget.test.ts` asserts every configured cap is below the
+**D6 — A test guards the limits.** `budget.test.ts` asserts every configured cap is below the
 documented Cloudflare allowance, with the Cloudflare figures as literals. Raising a cap past the
 free tier fails the build instead of quietly costing money.
 
-**D10 — Sync stays event-log-only.** Sessions, sets and body metrics, all append-only. Derived
+**D7 — Sync stays event-log-only.** Sessions, sets and body metrics, all append-only. Derived
 state is never synced. Corrections are superseding rows, never updates.
 
 ---
 
-## 4. The R2 photo subsystem, in detail
-
-Replaces the Cloudinary plan. R2 is off by default and the app is complete without it.
-
-### Client pipeline
-
-1. The hunter picks or takes a photo.
-2. Downscale to at most 1280 px on the long edge via `OffscreenCanvas`.
-3. Re-encode to WebP at quality 0.8, targeting 250 KB. If still larger, step quality down to 0.6,
-   then the long edge to 1024 px. Reject anything still over **400 KB**.
-4. Store the processed image in IndexedDB. **This is the copy that matters**; everything else is a
-   mirror.
-5. Derive an encryption key: `HKDF-SHA256(hunterSecret, info: "photo-encryption-v1")`.
-6. Encrypt with AES-256-GCM under a fresh 12-byte IV, prepended to the ciphertext.
-7. `PUT /api/photos/:id` with the ciphertext as the body.
-
-### Worker endpoints
-
-| Route | Cost | Notes |
-|---|---|---|
-| `PUT /api/photos/:id` | 1 R2 Class A, ~3 D1 statements | Checks the budget *before* the R2 call. Enforces 400 KB from `Content-Length` **and** by counting bytes through the stream, because the header can lie. |
-| `GET /api/photos/:id` | 1 R2 Class B, 1 D1 read | Ownership checked in D1 first. Responds `Cache-Control: private, immutable` — the ciphertext never changes. |
-| `DELETE /api/photos/:id` | free in R2, 2 D1 statements | `DeleteObject` costs nothing, so deletion is cheap by design. |
-| `GET /api/photos` | 0 R2 ops | Served from the D1 index. Never `LIST`. |
-
-Object key: `p/<hunterId>/<photoId>`. The hunter id is a SHA-256 digest, so the key identifies
-nobody.
-
-### New migration `0002_photos_and_budget.sql`
-
-- `photos` — the index: hunter id, photo id, byte length, created-at, day key.
-- `usage_budget` — `(period, metric)` primary key with a counter, incremented and checked in one
-  statement.
-
-### Enforced caps
-
-Global 5,000 Class A and 20,000 Class B operations a month, 2 GB stored in total and 250 MB per
-hunter, 400 KB per object. Expected real use is about five uploads and 50 MB *in total over four
-years*. The caps are sized to bound a bug, not to fit the use case.
-
-Over the cap the endpoint returns 429 with a plain message. The photo is already on the device, so
-nothing is lost and nothing breaks.
-
----
-
-## 5. Milestones
+## 4. Milestones
 
 Each milestone is independently shippable and states what it costs in Cloudflare resources.
 M4 is the point at which this is usable on your phone in the gym.
 
 ### M1 — Foundations and corrections
-Land C1 through C8. Add the `budget.ts` module with pure accounting functions, `budget.test.ts`
-with the guard test, and migration `0002`. Add the `r2_buckets` binding to `wrangler.jsonc`.
+Land C1 through C10. Add the guard test asserting our configured bounds sit under the documented
+Cloudflare limits. No new migration and no new binding are needed.
 
 *Acceptance:* all existing tests still pass; new budget tests pass; `wrangler dev` starts and the
 sync round trip still works end to end against the new string-payload protocol.
@@ -226,7 +175,7 @@ keeps the screen awake.
 
 ### M4 — Installable, deployed, on the phone
 PWA icons generated by script with no new dependencies, manifest verified, Workbox precache
-confirmed, Android install prompt. The one-time setup script (D1 database, R2 bucket, VAPID keys,
+confirmed, Android install prompt. The one-time setup script (D1 database, VAPID keys,
 secrets, writing ids into `wrangler.jsonc`), the GitHub Actions workflow, the private GitHub
 repository, and the first real deploy.
 
@@ -256,17 +205,7 @@ never blocks logging; API requests measured at well under 100 a day.
 *Budget impact:* the Worker request budget starts being used — about 50 requests a day against
 100,000.
 
-### M7 — Photos on R2
-The whole of section 4: the client pipeline, the encryption, the four endpoints, the D1 index, and
-the enforced caps. `PhotoStore` adapter with the local implementation as the default and R2 as an
-opt-in.
-
-*Acceptance:* a photo round-trips through R2 and decrypts; the byte cap is enforced against a lying
-`Content-Length`; exceeding the configured cap returns 429 and the app keeps working; no `LIST`
-call exists anywhere in the codebase.
-*Budget impact:* the only spend risk in the stack, capped as above.
-
-### M8 — The rest of the fantasy layer
+### M7 — The rest of the fantasy layer
 Gates with ranks and the week view, Dungeon Break, Red Gate, Instant Dungeon Key, the shadow army
 with the INT-capped roster, marshals, titles, gold and the System Shop, runes surfaced in the
 session screen, the Job Change Quest, the Demon Castle, Monarchs, the Reawakening Test, and the
@@ -276,7 +215,7 @@ Hunter License PNG card.
 shares via the Web Share adapter.
 *Budget impact:* none.
 
-### M9 — Push notifications
+### M8 — Push notifications
 VAPID keys from the setup script, the subscription flow gated behind a user gesture, the contentless
 push, and the notification composed on-device. One cron invocation a day at a fixed UTC time, per
 C9 — no polling, and no self-rescheduling primitive.
@@ -289,7 +228,7 @@ Note that this milestone is genuinely optional. It is the only unverified part o
 dropping it would remove 213 lines of Worker code, four API routes, a D1 table, the `web-push`
 dependency and the VAPID secret. The app is complete without it.
 
-### M10 — Flavour
+### M9 — Flavour
 Build-time generated System flavour text. Any runtime AI, if it ever happens, uses Workers AI so
 no external key exists to leak — and not one of the model families that require a paid plan.
 
@@ -297,14 +236,14 @@ no external key exists to leak — and not one of the model families that requir
 
 ---
 
-## 6. How the work gets checked
+## 5. How the work gets checked
 
 - **Tests before formulas.** Anything producing a number gets a Vitest case with the expected
   value as a literal, taken from the brief where the brief states one.
 - **The budget guard test.** Configured caps versus documented Cloudflare allowances, as described
   in D9.
 - **A local smoke script** run before each deploy: start `wrangler dev`, apply migrations, health
-  check, sync round trip, dedupe check, tenant-isolation check, photo round trip. This is the
+  check, sync round trip, dedupe check, and a tenant-isolation check. This is the
   sequence already run by hand for the sync path; it becomes a script.
 - **Real CPU measurement after the first deploy.** Local wall time is not CPU time. The number goes
   into `infrastructure.md` with the date.
@@ -313,15 +252,15 @@ no external key exists to leak — and not one of the model families that requir
 
 ---
 
-## 7. Residual risks, stated plainly
+## 6. Residual risks, stated plainly
 
-**R2 can bill and Cloudflare will not stop it.** Our caps make organic overage impossible and bound
-a bug to a rounding error. They cannot make it theoretically impossible: the caps live in the same
-system they protect. Mitigation is defence in depth — the cap check before every operation, the
-guard test, a dashboard budget alert, and the fact that photos are opt-in and off by default.
+**Nothing in the stack can bill.** This used to be the headline risk. Cutting progress photos
+removed R2, which was the only service that charged instead of failing closed. What remains is the
+weaker risk that a future feature quietly reintroduces a usage-billed service — which is why
+`infrastructure.md` section 2 names the ones to watch.
 
 **A leaked Hunter License Key is full access.** That is the trade for having no login screen, and
-the brief chose it deliberately. It is bounded by the global R2 cap and the per-hunter rate limit,
+the brief chose it deliberately. It is bounded by the per-hunter rate limit,
 and `POST /api/forget-me` lets the mirror be wiped. Rotating to a new key means the old mirror is
 abandoned rather than revoked.
 
