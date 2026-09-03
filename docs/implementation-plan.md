@@ -91,6 +91,12 @@ after a sync pull. The projection stays a pure function of in-memory arrays.
 **C8 — use the Zod 4 idiom.** `z.string().url()` still works at 4.4.3 but `z.url()` is the current
 form. Same for the other string formats.
 
+**C9 — the cron schedule polls 96 times a day to do one thing.** `*/15 * * * *` exists only to
+approximate an arbitrary user-chosen local reminder time, so 95 of the 96 daily runs do nothing.
+Replace it with a single daily trigger at the UTC time matching the local morning, and delete the
+`isDue` polling logic along with the `notify_minute` and `tz_offset_min` columns. The full
+comparison against Durable Object alarms, Workflows and Queues is in `infrastructure.md` section 4a.
+
 ---
 
 ## 3. Design decisions this plan commits to
@@ -272,11 +278,16 @@ shares via the Web Share adapter.
 
 ### M9 — Push notifications
 VAPID keys from the setup script, the subscription flow gated behind a user gesture, the contentless
-cron push, and the notification composed on-device.
+push, and the notification composed on-device. One cron invocation a day at a fixed UTC time, per
+C9 — no polling, and no self-rescheduling primitive.
 
-*Acceptance:* a real notification arrives on the Android device at the chosen local time; a dead
-subscription is deleted on 404 or 410; the cron handler stays inside 10 ms of CPU and 8 subrequests.
-*Budget impact:* 96 cron invocations a day, worst case.
+*Acceptance:* a real notification arrives on the Android device; a dead subscription is deleted on
+404 or 410; the handler stays inside 10 ms of CPU and 8 subrequests.
+*Budget impact:* 1 cron invocation a day.
+
+Note that this milestone is genuinely optional. It is the only unverified part of the stack, and
+dropping it would remove 213 lines of Worker code, four API routes, a D1 table, the `web-push`
+dependency and the VAPID secret. The app is complete without it.
 
 ### M10 — Flavour
 Build-time generated System flavour text. Any runtime AI, if it ever happens, uses Workers AI so

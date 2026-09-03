@@ -25,6 +25,7 @@ is the point at which this becomes usable on a phone in the gym.
 - [ ] C6 Contentless push, and cap subscriptions per cron run at 8 (subrequest and CPU limits)
 - [ ] C7 Stop re-reading the whole database after every logged set; append in memory instead
 - [ ] C8 Use the Zod 4 idiom `z.url()` rather than `z.string().url()`
+- [ ] C9 One daily cron instead of `*/15` polling; drop `isDue`, `notify_minute`, `tz_offset_min`
 - [ ] Add the `budget.ts` accounting module and the guard test asserting caps sit under the
       documented Cloudflare allowances
 - [ ] Add migration `0002_photos_and_budget.sql` and the `r2_buckets` binding

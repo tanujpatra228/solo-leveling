@@ -14,14 +14,14 @@ These numbers move, so re-check before relying on them, and update this file whe
 Your phone
 ├── The app                 React PWA, installed to the Home Screen
 ├── IndexedDB               THE SOURCE OF TRUTH. All training data lives here.
-└── Service worker          Precached shell, plus the daily notification
+└── Service worker          Precached shell, and composes the notification text
 
 Cloudflare (one Worker, one deploy)
 ├── Static Assets           The React shell. Free, unlimited, and not counted as requests.
 ├── Worker script           /api/* only. A sync mirror and one daily push. Nothing else.
 ├── D1 (SQLite)             The mirror of the event log, plus counters
 ├── R2                      Encrypted progress photos (optional, off by default)
-└── Cron Trigger            Fires the daily quest notification
+└── Cron Trigger            One invocation a day: the reminder notification
 ```
 
 The single most important property: **the server is a mirror, never a dependency.** With
@@ -76,10 +76,11 @@ margin that absorbs a bug, a retry loop, or a leaked licence key before it becom
 | Script size | 3 MB gzipped | 1 MB gzipped | **94.76 KiB measured** | Deploy rejected |
 | Global scope startup | 1 second | — | trivial | Deploy rejected |
 | Cron Triggers | 5 per account | 1 | 1 | — |
+| Cron invocations | counted as requests | 1/day | 1/day | Hard-fails, no bill |
 
-The ~150 requests a day is 96 cron invocations at a 15-minute interval plus roughly 50 API calls.
-That is 0.15% of the allowance. The documentation does not actually say whether cron invocations
-count as requests, so we assume they do and budget accordingly.
+The ~150 requests a day is roughly 50 API calls plus a handful of cron invocations. The
+documentation does not actually say whether cron invocations count as requests, so we assume they
+do and budget accordingly. See section 4a for why that number is one a day and not ninety-six.
 
 Three of these are tighter than they look:
 
@@ -154,7 +155,61 @@ the build rather than quietly costing money.
 
 ---
 
-## 4. Why the Worker is deliberately stupid
+## 4a. Why the daily reminder uses a Cron Trigger and not a queue
+
+Cron exists in this product for exactly one reason: sending the daily reminder notification while
+the app is closed. Nothing else uses it. Everything the reminder needs is already on the device —
+the quest is generated deterministically client-side and the service worker composes the
+notification text from IndexedDB — so the server contributes no content. It is purely a doorbell.
+
+That raises a fair question, since a recurring timer is a poor fit for "fire once at a chosen local
+time". Every Cloudflare option was checked against current documentation on 2026-09-03:
+
+| Option | Free? | One-off event? | Cost for one daily reminder |
+|---|---|---|---|
+| **Cron Trigger** | Yes, 5 per account | **No**, recurring only | 1 invocation/day, fixed schedule |
+| Durable Object alarm | Yes, SQLite-backed only | Yes, exact timestamp | 1 request/day |
+| Workflows `sleepUntil` | Yes | Yes, up to 365 days | ~3 steps/day, no CPU while asleep |
+| Queues `delaySeconds` | Yes, since Feb 2026 | Yes, but **24 h maximum delay** | ~3 operations/day |
+
+**Decision: a single daily Cron Trigger.** Reasons, in order of weight:
+
+1. **It cannot run away.** A cron schedule is fixed and external to our code, so a bug in the
+   handler cannot make it fire more often. Every one-off primitive schedules its own successor,
+   which is the shape that can tight-loop.
+2. **One invocation a day, not ninety-six.** The original design polled every fifteen minutes so it
+   could approximate an arbitrary user-chosen local time — 95 of those 96 runs did nothing. A
+   personal app in a single timezone needs one cron at the UTC time matching the local morning.
+   That deletes the polling logic entirely.
+3. **No new machinery.** A Durable Object means a new class, a binding, a config migration, and the
+   hibernation and constructor pitfalls that come with alarms. Workflows adds a second billable
+   dimension — step and storage billing began 10 August 2026 — which is exactly what we are trying
+   not to acquire.
+
+**Queues was rejected on a concrete number.** Its maximum delay is 24 hours and free-plan message
+retention is also 24 hours, which is precisely our reminder period. There is no headroom in either
+figure, so a daily self-re-enqueue would sit permanently on two separate cliff edges.
+
+**Two web-platform routes that would remove the server entirely do not work.** The Notification
+Triggers API, which would have scheduled a local notification with no server at all, was abandoned
+— Chrome's own documentation says *"The development of Notification Triggers API… has ended."* And
+Periodic Background Sync enforces a minimum gap of at least twelve hours and modulates frequency by
+a site-engagement score, so it cannot deliver at a chosen time of day. It is a "freshen content
+sometime today" primitive, not a scheduler.
+
+**The upgrade path, if it is ever wanted.** The one real cost of cron is that the reminder time is
+fixed at deploy rather than configurable in the app. If that becomes annoying, either run the cron
+hourly and fire only in the matching hour (24 invocations a day, still a quarter of the original),
+or move to a Durable Object alarm. If we ever do move, two guards are mandatory: compute the next
+alarm from the next calendar occurrence rather than `now + 24h`, and keep the existing
+twelve-hour minimum between sends, so that even a self-rescheduling bug cannot spam notifications.
+
+Worth knowing for the record: on the free plan, none of these can produce a bill. Workers, D1,
+Durable Objects and Queues all hard-fail against a daily cap. A runaway loop costs a broken feature
+for a day, not an invoice. The reason to avoid one is that it would spam notifications, which the
+twelve-hour guard already prevents.
+
+## 5. Why the Worker is deliberately stupid
 
 It moves bytes and counts things. It does not compute progression, hash passwords, render anything,
 or hold state the client needs. That is not minimalism for its own sake — it is what keeps every
@@ -178,7 +233,7 @@ Concretely:
 
 ---
 
-## 5. Data flow
+## 6. Data flow
 
 ### Sync
 
@@ -223,7 +278,7 @@ CPU. It also means the existing "lose the key, lose the mirror" warning covers p
 
 ---
 
-## 6. Security posture
+## 7. Security posture
 
 - **Nothing shipped to the browser is secret.** Every `VITE_`-prefixed variable, every string in
   the bundle, everything in the service worker cache is public. The VAPID *public* key is meant to
@@ -242,7 +297,7 @@ CPU. It also means the existing "lose the key, lose the mirror" warning covers p
 
 ---
 
-## 7. Deploying
+## 8. Deploying
 
 One-time, on your machine:
 
@@ -277,7 +332,7 @@ after 2026-08-04 for `nodejs_compat` to be enabled by default.
 
 ---
 
-## 8. What has been verified, and what has not
+## 9. What has been verified, and what has not
 
 Verified by running it:
 
