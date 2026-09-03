@@ -71,6 +71,88 @@ is asserted in a test so it cannot drift silently.
   VAPID private key lives only in a Worker secret. Worth telling the user explicitly rather than
   quietly skipping.
 
+## R2 is the only Cloudflare service here that can produce a bill
+
+Verified against the docs on 2026-09-03, and it reshaped the design.
+
+**Workers and D1 hard-fail when you exceed a free limit. They do not charge.** Workers returns
+error 1027 past 100,000 requests a day; D1 returns errors on queries past its daily row limits.
+
+**R2 bills instead of blocking**, and it rounds up to the next whole unit: one operation past a
+million Class A operations is invoiced as two million. There is also **no hard spend cap anywhere
+in Cloudflare** — the only feature is "Budget alerts", and the documentation says outright that
+they are *"informational only. They do not pause or cap usage."*
+
+So the Worker has to police itself: a `usage_budget` table in D1, incremented and checked in the
+same statement, **before** each R2 call, against caps far below the free allowance. The cap is
+global across all hunters rather than per hunter, because the licence key is the only credential
+and a per-hunter cap would not bound spend if one leaked.
+
+Also worth writing down: `DeleteObject` is free in R2, neither Class A nor Class B, so deleting
+aggressively costs nothing. Lifecycle transitions to Infrequent Access *do* cost a Class A
+operation each, so we do not use them. And `LIST` is Class A, which is why D1 is the photo index
+and we never list the bucket.
+
+---
+
+## Three hard limits that are tighter than they look
+
+**R2, KV and D1 binding calls all count as subrequests.** The docs are explicit: *"A subrequest is
+any request a Worker makes using the Fetch API or to Cloudflare services like R2, KV, or D1."* The
+free allowance is 50 per invocation. This turned the daily-push handler into a real bug: it was
+willing to send to 50 subscriptions in one cron run, which would have consumed the entire
+subrequest budget for that invocation.
+
+**The 10 ms CPU limit applies to the cron handler too**, not just to HTTP requests. Waiting on I/O
+is free, so what costs is arithmetic and cryptography. That is the second half of the same bug: a
+push *with* a payload needs an ECDH agreement, an HKDF derivation and an AES-GCM encryption per
+subscription. The fix is to send a **contentless** push — the service worker already composes the
+notification text from the local database and ignores the payload entirely, so the payload was
+never doing anything. Without it, a push needs one ES256 signature, reusable across subscriptions
+that share a push-service origin.
+
+**D1 allows only 100 bound parameters per query.** The multi-row insert used 20 rows at five
+columns, which is exactly 100 — sitting on a hard limit with zero headroom, where adding one column
+becomes a runtime failure. Sixteen rows (80 parameters) is the corrected figure.
+
+One more, less dangerous but worth knowing: the 128 MB memory limit is **per isolate and shared
+across concurrent requests**, not per request. So per-request memory has to be a small fraction of
+it, which is why photo uploads stream into R2 rather than being buffered.
+
+---
+
+## Two config defects found by actually starting the Worker
+
+Neither would have been caught by reading the file.
+
+**`compatibility_date` cannot be newer than the installed runtime supports.** It was set to today,
+2026-09-03, and `wrangler dev` refused to start: *"This Worker requires compatibility date
+2026-09-03, but the newest date supported by this server binary is 2026-09-02."* Use 2026-09-02.
+It has to stay at or after 2026-08-04, which is the date that makes `nodejs_compat` default-on.
+
+**`migrations_dir` is not a top-level field.** Wrangler warns *"Unexpected fields found in
+top-level field"*, and the config schema shows it belongs inside each `d1_databases` entry. It
+worked anyway only because `./migrations` is the default.
+
+---
+
+## What the local runtime can and cannot tell you
+
+Worth knowing before trying to measure performance locally.
+
+The Worker does boot in workerd with `web-push` bundled and imported, `/api/health` answers, and a
+full sync round trip works against local D1 — including deduplicating a resent row and showing
+nothing to a different licence key. That is genuine verification and it caught the config defects
+above.
+
+What it **cannot** tell you is CPU time. The local observability API reports wall-clock span
+durations, and the first request measured 811 ms — almost all of it cold-start compilation and
+local filesystem I/O on Windows. That number says nothing about production CPU. The `cpuTimeMs`
+attribute is not populated locally. **Actual CPU has to be read from Workers observability after a
+real deploy**, and until then any CPU figure in this repository is an estimate.
+
+---
+
 ## `minimum-release-age` needs pnpm 10.16 or newer, and older pnpm ignores it silently
 
 The user requires `minimum-release-age=10080` (seven days), set in `.npmrc`, so that no dependency

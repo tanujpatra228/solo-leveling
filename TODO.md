@@ -9,8 +9,25 @@ identity and sync client, the Worker with D1 and the cron trigger, and the servi
 414 tests pass and every TypeScript project typechecks clean.
 
 Not started: the React user interface. Every screen still needs building, along with the icons,
-the setup script, the CI workflow, and `infrastructure.md`. The engine behind those screens is
-finished and tested, so what remains is presentation work on top of a working core.
+the setup script and the CI workflow. The engine behind those screens is finished and tested, so
+what remains is presentation work on top of a working core.
+
+The sequenced plan lives in `docs/implementation-plan.md`, and the verified Cloudflare limits and
+resource budget live in `infrastructure.md`. Read both before starting. Milestone M4 in the plan
+is the point at which this becomes usable on a phone in the gym.
+
+## Corrections to land first (found by running the Worker; see docs/implementation-plan.md)
+- [ ] C1 Move `migrations_dir` inside the d1_databases entry; wrangler warns it is unexpected
+- [ ] C2 Set `compatibility_date` to 2026-09-02, since today's date is newer than the runtime runs
+- [ ] C3 Reduce the multi-row insert to 16 rows; 20 rows is exactly D1's 100-parameter limit
+- [ ] C4 Sync payloads cross as opaque strings so the Worker does no JSON work; cap rows at 200
+- [ ] C5 Rename the sync response `applied` field to `received`; it reports offered, not inserted
+- [ ] C6 Contentless push, and cap subscriptions per cron run at 8 (subrequest and CPU limits)
+- [ ] C7 Stop re-reading the whole database after every logged set; append in memory instead
+- [ ] C8 Use the Zod 4 idiom `z.url()` rather than `z.string().url()`
+- [ ] Add the `budget.ts` accounting module and the guard test asserting caps sit under the
+      documented Cloudflare allowances
+- [ ] Add migration `0002_photos_and_budget.sql` and the `r2_buckets` binding
 
 ## Phase 0 — Awakening, logging, PWA
 - [x] Scaffold Vite + React + TS + Tailwind, pnpm, strict tsconfig
@@ -81,11 +98,15 @@ finished and tested, so what remains is presentation work on top of a working co
 - [x] Service worker push and notificationclick handling
 - [ ] Android install prompt and permission request from a user gesture
 
-## Photos — Cloudinary behind an adapter (user amendment to the brief)
-- [ ] `PhotoStore` adapter interface; IndexedDB implementation is the default
-- [ ] Cloudinary implementation using an unsigned upload preset (no secret in the bundle)
-- [ ] Cloud name and preset entered by the user in Settings, stored locally
-- [ ] Delete routed through the Worker, Cloudinary API secret as a Worker secret
+## Photos on R2 (supersedes the Cloudinary plan; R2 access is now available)
+- [ ] Client pipeline: downscale to 1280px, WebP re-encode, 400 KB hard reject
+- [ ] AES-256-GCM encryption in the browser, key derived from the Hunter Secret
+- [ ] `PhotoStore` adapter; the IndexedDB implementation stays the default
+- [ ] R2 bucket binding in wrangler.jsonc
+- [ ] `PUT/GET/DELETE /api/photos/:id` plus a D1-backed `GET /api/photos` index
+- [ ] Stream request bodies into R2, never buffer; enforce the byte cap on the stream
+- [ ] Never call R2 LIST anywhere; D1 is the index
+- [ ] `usage_budget` table and the enforced global R2 caps, checked before every operation
 
 ## Phase 6 — Flavour
 - [ ] Build-time generated System flavour text
