@@ -5,46 +5,71 @@ starting work.
 
 ---
 
-## WHERE I LEFT OFF (2026-09-03) — read this first
+## WHERE I LEFT OFF (2026-09-03, second pause) - read this first
 
-Work was paused by request partway through dependency installation. The repository is in a
-**deliberately half-installed state**, and the first job on resuming is to unwedge it.
+Everything below the user interface is built, tested, and committed. Two commits are on `main`
+and the working tree is clean. No GitHub remote exists yet and nothing has been deployed.
 
-State on disk right now:
+`pnpm run test` gives 414 passing tests across 23 files. `pnpm run typecheck` is clean across all
+four TypeScript projects.
 
-- `.git` initialised, branch `main`, nothing committed yet. No GitHub remote created yet.
-- Written and complete: `.gitignore`, `TODO.md`, `engineering-standards.md`, this file, `package.json`.
-- **`node_modules/` and `pnpm-lock.yaml` were deleted on purpose** to force a clean re-resolution
-  under the new `minimum-release-age` rule. They have not been recreated. Nothing has been
-  installed since.
-- No application source exists yet. `src/`, `worker/`, `migrations/`, `vite.config.ts`,
-  `tsconfig.json`, and `wrangler.jsonc` are all still to be written.
+### What exists
 
-The blocker, exactly: `package.json` now pins `"packageManager": "pnpm@10.34.5"`, but the pnpm on
-this machine is a standalone Windows executable at
-`C:\Users\tanuj\AppData\Local\pnpm\pnpm.exe` whose self-installer is broken. Both
-`pnpm install` (via its automatic package-manager management) and `pnpm self-update 10.34.5` fail
-with the same underlying error:
+- `src/domain/` - the whole engine, pure and tested: progression, e1RM, volume landmarks, ACWR,
+  deload, XP and levels, the hybrid stats, rank from real published tables, body composition,
+  quests, gates, shadows, titles, runes, the 100-floor tower, programme advisories, streaks, and
+  the projection that rebuilds player state from the log.
+- `src/db/` - the Dexie schema and the repository. Nothing else touches IndexedDB.
+- `src/platform/capabilities.ts` - adapters for wake lock, haptics, the chime, install prompt,
+  notifications, push, sharing, and QR camera.
+- `src/sync/` - the capability-token identity and the sync client.
+- `src/app/state.ts` - the Zustand store: loads the log, holds the projection, and owns every
+  action including session logging, quest issuing, shadow extraction, and title awarding.
+- `src/sw.ts` - the service worker.
+- `worker/` - the Hono Worker, D1 access, the push scheduler, and the server half of identity.
+- `migrations/0001_init.sql`, `wrangler.jsonc`, `public/_headers`, `index.html`, `src/index.css`.
 
-```
-ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "C:\snapshot\dist\pnpm.cjs" not found
-```
+### What does not exist yet
 
-It is trying to invoke its own bundled entrypoint by an absolute path that does not exist outside
-the packaged binary. This is a problem with that pnpm installation, not with the project.
+**The React user interface. None of it.** There is no `src/main.tsx`, no router, no components,
+and no screens. The store and engine behind them are finished, so this is presentation work, but
+it is all of the presentation work: the Awakening Test, the Status Window, the session logger with
+its rest timer, the Physique panel, the gates and shadows and tower and shop screens, System Link
+pairing, and settings.
 
-Resume by getting a pnpm of 10.16 or newer onto the PATH by some other route, then installing:
+Also outstanding: the PWA icons (`public/icons/` is empty and `vite.config.ts` already references
+the files), the one-time Cloudflare setup script, the GitHub Actions workflow, and
+`infrastructure.md`.
 
-```sh
-npm install -g pnpm@10.34.5     # simplest; or use corepack, which is present at 0.34.6
-pnpm --version                   # must print 10.34.5 before continuing
-pnpm install
-```
+Because `index.html` loads `/src/main.tsx` and that file does not exist, **`pnpm run build` will
+fail until the interface is started**. That is expected, not a regression.
 
-Do not "fix" this by lowering the `packageManager` pin back to 10.6.1. See the next entry for why
-that would silently break a rule the user asked for.
+### Deliberate deviations from the brief, both flagged rather than hidden
 
----
+**The Hunter License Key is 120 bits, not 256.** The brief asks for both 32 random bytes and a
+24-character key, and those cannot both hold: 32 bytes needs 52 base32 characters. Since the key
+has to be typeable on a second device, the secret is 15 bytes, which encodes to exactly 24
+characters in Crockford base32. 120 bits from `crypto.getRandomValues` is not brute-forceable, so
+nothing practical is lost. See the comment at the top of `src/sync/identity.ts`.
+
+**The six-rank ladder is built from five published thresholds.** Both strength-standard sources
+publish exactly five tiers and neither has a "Proficient" band. Five thresholds partition into six
+bands, which is the only way to reach six ranks without inventing a number. The consequence is
+that a lifter exactly on the published Intermediate threshold lands at B rather than C, and that
+is asserted in a test so it cannot drift silently.
+
+### Two things that need verifying on the first real deploy
+
+- **`web-push` inside the Worker.** Cloudflare documents this path and their own guide uses the
+  library, and `nodejs_compat` is on by default at our compatibility date, but it has not been
+  exercised against a live push service from this codebase. The scheduling arithmetic around it is
+  unit-tested; the actual send is not.
+- **GitHub secret scanning and push protection.** The brief wants both on before the first commit.
+  On a **private** repository these are Advanced Security features and are not available on a free
+  plan, so the requirement cannot be met as written for the chosen repository visibility. What
+  stands in for it: no secret is ever committed, `.env*` and `.dev.vars` are gitignored, and the
+  VAPID private key lives only in a Worker secret. Worth telling the user explicitly rather than
+  quietly skipping.
 
 ## `minimum-release-age` needs pnpm 10.16 or newer, and older pnpm ignores it silently
 
