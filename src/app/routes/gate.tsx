@@ -1,20 +1,27 @@
 /**
- * Today's Gate, read-only.
+ * Today's Gate.
  *
- * The programme on the phone before logging exists: what today asks for, in
- * the order the routine defines it, with the rest each item wants and the cue
- * attached to it. Nothing here writes, so it needs no profile and no session —
- * it reads the seeded week, which is already built and tested.
+ * No session open: a read-only preview of today's routine (and the next
+ * scheduled day, on a rest day) with a Start Gate action. A session open:
+ * every block and item in the order the routine defines, each carrying its
+ * target from the progression engine — `weightKg`, one rep target per set,
+ * the plain-language `reason`, and the cue — with a thumb-sized entry form
+ * for the next set. `logSet` no-ops silently with no active session, so this
+ * screen must not (and does not) render entry without one.
  *
- * Supersets need no special rule. The seed encodes the convention in the data:
- * `restSec: 0` on the non-final item means go straight over to the next
- * exercise, and the real rest sits on the last one.
+ * Supersets need no special rest rule — the seed already encodes it via
+ * `restSec: 0` on the non-final item — so the only superset-specific
+ * behaviour here is the visual grouping, not the rest logic.
  */
+import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
+import { ChoiceGroup } from '../../components/ChoiceGroup'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
+import { dropSuperseded } from '../../domain/projection'
+import type { NextTarget, ProgressionKind } from '../../domain/progression'
 import { addDaysToKey, dayKeyStart, dayOfWeekForKey } from '../../domain/time'
-import type { Block, DayKey, Exercise, Routine } from '../../domain/types'
+import type { Block, BlockItem, DayKey, Exercise, Routine, SessionLog, SetLog } from '../../domain/types'
 import { useApp } from '../state'
 import { rootRoute } from './root'
 
@@ -40,17 +47,61 @@ function formatRest(seconds: number): string {
   return remainder === 0 ? `${minutes}m rest` : `${minutes}m ${remainder}s rest`
 }
 
+/**
+ * Each kind of prescription reads differently on purpose: "no record of this
+ * movement" and "reps are there but the effort is above RPE 8" are not the
+ * same message and should not look the same.
+ */
+const KIND_TONE_CLASS: Record<ProgressionKind, string> = {
+  increase_load: 'text-good',
+  advance_variation: 'text-good',
+  hold_add_rep: 'text-system',
+  add_external_load: 'text-system',
+  no_history: 'text-ink-faint',
+  repeat_session: 'text-warn',
+  reduce_load: 'text-warn',
+  slow_the_tempo: 'text-warn',
+}
+
+function liveSessionSets(sets: readonly SetLog[], sessionId: string, exerciseId: string): SetLog[] {
+  return dropSuperseded(sets.filter((s) => s.sessionId === sessionId && s.exerciseId === exerciseId)).sort(
+    (a, b) => a.order - b.order,
+  )
+}
+
 function TodaysGateScreen() {
   const today = useApp((s) => s.today)
   const routines = useApp((s) => s.routines)
   const exercises = useApp((s) => s.exercises)
   const isRestDay = useApp((s) => s.isRestDay)
+  const activeSessionId = useApp((s) => s.activeSessionId)
+  const sessions = useApp((s) => s.sessions)
+  const startGate = useApp((s) => s.startGate)
+  const [starting, setStarting] = useState(false)
 
-  const exerciseById = new Map(exercises.map((e) => [e.id, e]))
-  const routineFor = (day: DayKey) =>
-    routines.find((r) => r.dayOfWeek === dayOfWeekForKey(day))
-
+  const exerciseById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
+  const routineFor = (day: DayKey) => routines.find((r) => r.dayOfWeek === dayOfWeekForKey(day))
   const todaysRoutine = routineFor(today)
+
+  const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null
+  const activeRoutine = activeSession?.routineId
+    ? routines.find((r) => r.id === activeSession.routineId)
+    : undefined
+
+  if (activeSession && activeRoutine) {
+    return (
+      <main className="flex flex-1 flex-col gap-4 p-4">
+        <ActiveGateScreen routine={activeRoutine} session={activeSession} exerciseById={exerciseById} />
+      </main>
+    )
+  }
+
+  async function start(routineId: string) {
+    if (starting) return
+    setStarting(true)
+    await startGate(routineId)
+    setStarting(false)
+  }
 
   /* ---- the next scheduled day, so a rest day still tells you what is coming ---- */
   let nextDay: DayKey | null = null
@@ -74,7 +125,21 @@ function TodaysGateScreen() {
       </header>
 
       {todaysRoutine ? (
-        <GateWindow routine={todaysRoutine} exerciseById={exerciseById} strong />
+        <GateWindow
+          routine={todaysRoutine}
+          exerciseById={exerciseById}
+          strong
+          footer={
+            <button
+              type="button"
+              onClick={() => void start(todaysRoutine.id)}
+              disabled={starting}
+              className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+            >
+              Start Gate
+            </button>
+          }
+        />
       ) : (
         <SystemWindow title="Rest Day" strong>
           <p className="text-sm text-ink-soft">
@@ -95,34 +160,35 @@ function TodaysGateScreen() {
           upcomingLabel={todaysRoutine ? 'Next' : formatDayKey(nextDay)}
         />
       ) : null}
-
-      <p className="px-1 pb-2 font-system text-[10px] leading-relaxed text-ink-faint">
-        Read-only preview. Set logging, targets and the rest timer arrive in the next milestone.
-      </p>
     </main>
   )
 }
+
+/* ------------------------------------------------------------------ */
+/* Read-only preview — no session open yet                            */
+/* ------------------------------------------------------------------ */
 
 interface GateWindowProps {
   routine: Routine
   exerciseById: Map<string, Exercise>
   strong?: boolean
   upcomingLabel?: string
+  footer?: ReactNode
 }
 
-function GateWindow({ routine, exerciseById, strong, upcomingLabel }: GateWindowProps) {
-  const workingSets = routine.blocks
-    .flatMap((b) => b.items)
-    .reduce((total, item) => total + item.sets, 0)
+function GateWindow({ routine, exerciseById, strong, upcomingLabel, footer }: GateWindowProps) {
+  const workingSets = routine.blocks.flatMap((b) => b.items).reduce((total, item) => total + item.sets, 0)
 
   return (
     <SystemWindow
       title={upcomingLabel ? `${upcomingLabel} — ${routine.name}` : routine.name}
       strong={strong}
       footer={
-        <p className="font-system text-[11px] text-ink-faint">
-          Rank {routine.gateRank} · {workingSets} working sets · {routine.blocks.length} blocks
-        </p>
+        footer ?? (
+          <p className="font-system text-[11px] text-ink-faint">
+            Rank {routine.gateRank} · {workingSets} working sets · {routine.blocks.length} blocks
+          </p>
+        )
       }
     >
       <div className="flex flex-col gap-3">
@@ -136,13 +202,7 @@ function GateWindow({ routine, exerciseById, strong, upcomingLabel }: GateWindow
   )
 }
 
-function BlockRows({
-  block,
-  exerciseById,
-}: {
-  block: Block
-  exerciseById: Map<string, Exercise>
-}) {
+function BlockRows({ block, exerciseById }: { block: Block; exerciseById: Map<string, Exercise> }) {
   const isSuperset = block.type === 'superset'
 
   return (
@@ -159,9 +219,7 @@ function BlockRows({
           return (
             <li key={item.exerciseId}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm font-medium text-ink">
-                  {exercise?.name ?? item.exerciseId}
-                </span>
+                <span className="text-sm font-medium text-ink">{exercise?.name ?? item.exerciseId}</span>
                 <span className="font-system text-xs whitespace-nowrap text-ink-soft tabular-nums">
                   {item.sets} × {item.repRange[0]}–{item.repRange[1]}
                 </span>
@@ -185,6 +243,255 @@ function BlockRows({
           )
         })}
       </ul>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Live session                                                        */
+/* ------------------------------------------------------------------ */
+
+function ActiveGateScreen({
+  routine,
+  session,
+  exerciseById,
+}: {
+  routine: Routine
+  session: SessionLog
+  exerciseById: Map<string, Exercise>
+}) {
+  const finishGate = useApp((s) => s.finishGate)
+  const [finishing, setFinishing] = useState(false)
+
+  async function finish() {
+    if (finishing) return
+    setFinishing(true)
+    await finishGate()
+    setFinishing(false)
+  }
+
+  return (
+    <SystemWindow
+      title={routine.name}
+      strong
+      footer={
+        <button
+          type="button"
+          onClick={() => void finish()}
+          disabled={finishing}
+          className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+        >
+          Finish Gate
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {routine.blocks.map((block, index) => (
+          <SystemPanel key={index}>
+            {block.type === 'superset' ? (
+              <p className="mb-2 font-system text-[10px] tracking-[0.16em] text-system-dim uppercase">
+                Superset · alternating
+              </p>
+            ) : null}
+            <div
+              className={
+                block.type === 'superset'
+                  ? 'flex flex-col gap-4 border-l-2 border-system-dim pl-3'
+                  : 'flex flex-col gap-4'
+              }
+            >
+              {block.items.map((item) => {
+                const exercise = exerciseById.get(item.exerciseId)
+                if (!exercise) return null
+                return (
+                  <ActiveBlockItem key={item.exerciseId} sessionId={session.id} item={item} exercise={exercise} />
+                )
+              })}
+            </div>
+          </SystemPanel>
+        ))}
+      </div>
+    </SystemWindow>
+  )
+}
+
+function ActiveBlockItem({
+  sessionId,
+  item,
+  exercise,
+}: {
+  sessionId: string
+  item: BlockItem
+  exercise: Exercise
+}) {
+  const target = useApp((s) => s.targetFor(item.exerciseId))
+  const sets = useApp((s) => s.sets)
+  const logged = useMemo(() => liveSessionSets(sets, sessionId, item.exerciseId), [sets, sessionId, item.exerciseId])
+
+  if (!target) return null
+
+  const remaining = item.sets - logged.length
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-medium text-ink">{exercise.name}</span>
+        <span className="font-system text-xs text-ink-soft tabular-nums">
+          {logged.length}/{item.sets} sets
+        </span>
+      </div>
+
+      <p className={`text-xs ${KIND_TONE_CLASS[target.kind]}`}>{target.reason}</p>
+      {target.cue ? <p className="text-[11px] text-ink-soft/80">{target.cue}</p> : null}
+
+      {logged.length > 0 ? (
+        <ul className="flex flex-col gap-1">
+          {logged.map((set) => (
+            <li
+              key={set.id}
+              className="flex items-center justify-between font-system text-xs text-ink-soft tabular-nums"
+            >
+              <span>
+                {set.weight > 0 ? `${set.weight} kg × ` : ''}
+                {set.reps} reps
+                {set.rpe ? ` @ RPE ${set.rpe}` : ''}
+              </span>
+              {set.isWarmup ? <span className="text-ink-faint normal-case">warmup</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {remaining > 0 ? (
+        <SetEntryRow exercise={exercise} setIndex={logged.length} target={target} />
+      ) : (
+        <p className="font-system text-[11px] text-good uppercase">Done</p>
+      )}
+    </div>
+  )
+}
+
+const RPE_OPTIONS = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10].map((v) => ({ value: String(v), label: String(v) }))
+
+function SetEntryRow({
+  exercise,
+  setIndex,
+  target,
+}: {
+  exercise: Exercise
+  setIndex: number
+  target: NextTarget
+}) {
+  const logSet = useApp((s) => s.logSet)
+
+  // Per M3-D4: fields branch on the exercise's unit, with one exception — a
+  // reps-unit exercise still needs a weight field once the engine says to
+  // hang load off the body (`add_external_load`), or the prescription can't
+  // be followed.
+  const needsWeight = exercise.unit === 'kg' || target.kind === 'add_external_load' || target.weightKg > 0
+  const needsReps = exercise.unit === 'kg' || exercise.unit === 'reps'
+  const needsSeconds = exercise.unit === 'time' || exercise.unit === 'distance'
+  const needsMetres = exercise.unit === 'distance'
+
+  const [weight, setWeight] = useState(() => (target.weightKg > 0 ? String(target.weightKg) : ''))
+  const [reps, setReps] = useState(() => String(target.repTargets[setIndex] ?? exercise.repRange[0]))
+  const [seconds, setSeconds] = useState('')
+  const [metres, setMetres] = useState('')
+  const [rpe, setRpe] = useState<string[]>([])
+  const [isWarmup, setIsWarmup] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function submit() {
+    if (submitting) return
+    setSubmitting(true)
+    await logSet({
+      exerciseId: exercise.id,
+      weight: needsWeight && weight !== '' ? Number(weight) : 0,
+      reps: needsReps && reps !== '' ? Number(reps) : 0,
+      seconds: needsSeconds && seconds !== '' ? Number(seconds) : undefined,
+      metres: needsMetres && metres !== '' ? Number(metres) : undefined,
+      rpe: rpe[0] ? Number(rpe[0]) : undefined,
+      isWarmup,
+    })
+    setSubmitting(false)
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded border border-panel-edge/70 p-2">
+      <div className="flex gap-2">
+        {needsWeight ? (
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="font-system text-[10px] text-ink-faint uppercase">kg</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step={0.5}
+              value={weight}
+              onChange={(event) => setWeight(event.target.value)}
+              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            />
+          </label>
+        ) : null}
+        {needsReps ? (
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="font-system text-[10px] text-ink-faint uppercase">reps</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={reps}
+              onChange={(event) => setReps(event.target.value)}
+              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            />
+          </label>
+        ) : null}
+        {needsSeconds ? (
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="font-system text-[10px] text-ink-faint uppercase">sec</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={seconds}
+              onChange={(event) => setSeconds(event.target.value)}
+              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            />
+          </label>
+        ) : null}
+        {needsMetres ? (
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="font-system text-[10px] text-ink-faint uppercase">m</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              value={metres}
+              onChange={(event) => setMetres(event.target.value)}
+              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            />
+          </label>
+        ) : null}
+      </div>
+
+      <ChoiceGroup<string> label="RPE" options={RPE_OPTIONS} value={rpe} onChange={setRpe} />
+
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setIsWarmup((w) => !w)}
+          aria-pressed={isWarmup}
+          className={`rounded-full border px-3 py-1 font-system text-[10px] uppercase ${
+            isWarmup ? 'border-system bg-system-deep/30 text-ink' : 'border-panel-edge text-ink-faint'
+          }`}
+        >
+          Warmup
+        </button>
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={submitting}
+          className="rounded bg-system-deep px-4 py-2 font-system text-xs text-ink uppercase disabled:opacity-30"
+        >
+          Log Set
+        </button>
+      </div>
     </div>
   )
 }
