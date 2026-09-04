@@ -87,6 +87,7 @@ const DEFAULT_PROGRESS: Progress = {
   restTokensMonth: '',
   lastDeloadDayKey: null,
   trainingStartDayKey: null,
+  doubleDungeonSeenAt: null,
   updatedAt: 0,
 }
 

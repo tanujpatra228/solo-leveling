@@ -82,6 +82,9 @@ export interface Progress {
   restTokensMonth: string
   lastDeloadDayKey: string | null
   trainingStartDayKey: string | null
+  /** When the first-launch Double Dungeon sequence was seen, by completion or
+   *  skip — both count. `null` means it has never run. */
+  doubleDungeonSeenAt: number | null
   updatedAt: number
 }
 

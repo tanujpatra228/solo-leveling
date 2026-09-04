@@ -246,6 +246,7 @@ export const useApp = create<AppState>((set, get) => ({
     restTokensMonth: '',
     lastDeloadDayKey: null,
     trainingStartDayKey: null,
+    doubleDungeonSeenAt: null,
     updatedAt: 0,
   },
   earnedTitleIds: [],
