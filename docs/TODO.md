@@ -40,6 +40,9 @@ Step-by-step plan for all of the above: docs/m1-plan.md
 
 Step-by-step plan for M2, with six findings from surveying the ground: docs/m2-plan.md
 
+Step-by-step plan for M3, with six findings in the engine and store: docs/m3-plan.md
+Commits 1-3 of M3 (G1-G6) need no UI and can land before M2.
+
 ## Phase 0 — Awakening, logging, PWA
 - [x] Scaffold Vite + React + TS + Tailwind, pnpm, strict tsconfig
 - [x] Domain types + Zod schemas (single source of truth)
@@ -60,6 +63,23 @@ Step-by-step plan for M2, with six findings from surveying the ground: docs/m2-p
       pattern changes. Deferred deliberately: the onboarding step machine is pure and tested instead
 - [ ] Session logging UI (log sets, weight, reps, RPE, warmup flag)
 - [ ] Rest timer with Screen Wake Lock
+- [ ] G1 `targetFor` resolves the routine by today's day of week, not the active session's
+      `routineId`. A session crossing the 04:00 rollover falls through to the default 3 planned
+      sets, so Friday's 4-set squat is shown 3 rep targets with no sign the number is a fallback
+- [ ] G2 `BlockItem.repRange` is seeded deliberately and never read - the engine only ever uses
+      `exercise.repRange`. Not wrong today (every seeded value matches) but two sources of truth for
+      one fact, and editing a routine's rep range would silently do nothing. Engine takes an override
+- [ ] G3 Nothing supplies `startGate`'s optional `bodyweightKg`, and `projection.ts` feeds it into
+      tonnage for every `usesBodyweight` exercise. Omitting it counts a bodyweight push-up as zero
+      tonnage, understating XP silently. Default it inside the store, not at the call site
+- [ ] G4 `state.correctSet` cannot patch `isWarmup` though `repo.correctSet` can. It is the one
+      correction that changes the future: warmups are filtered out of the progression input
+- [ ] G5 `logSet` computes `order` as `existing.length`, which counts superseded rows - a correction
+      leaves a duplicate order and a gap. Low severity (`dropSuperseded` runs before any sort) but
+      `max(order) + 1` over live rows is the honest computation
+- [ ] G6 The rest timer cannot use `setInterval`: hidden tabs throttle to ~once a minute and squat
+      rest is 210s. Derive from an absolute `endsAt`, recompute on `visibilitychange`, and re-acquire
+      the wake lock on becoming visible - `createWakeLock()` drops its sentinel when the page hides
 - [ ] PWA manifest, icons, Workbox precache, install prompt (Android)
 - [ ] F2 `public/` holds only `_headers`: the favicon, apple-touch-icon and all three manifest icons
       referenced by `index.html` and `vite.config.ts` do not exist yet (M4, unless the build refuses)

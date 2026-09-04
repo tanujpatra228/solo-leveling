@@ -188,9 +188,23 @@ The gate screen: blocks and supersets in the order the routine defines, per-exer
 the progression engine with its reason shown, set entry sized for a thumb, RPE, warmup flag, and
 set correction. Rest timer with Screen Wake Lock and the System chime. Session summary on finish.
 
-*Acceptance:* a full Friday Legs session can be logged offline, in airplane mode, with the app
-installed; targets change the following week according to the double-progression rules; the timer
-keeps the screen awake.
+Reading the engine and store for this milestone turned up six findings. Two matter: `targetFor`
+resolves the routine from today's day of week rather than the active session's `routineId`, so a
+session crossing the 04:00 rollover silently falls back to 3 planned sets where Friday's squat wants
+4; and nothing supplies `startGate`'s optional `bodyweightKg`, which `projection.ts` feeds into
+tonnage, so every bodyweight push-up currently counts as zero tonnage and understates XP. The others
+are a routine rep range that is stored and never read, a warmup flag the store cannot correct though
+the repository can, an `order` computation that counts superseded rows, and the constraint that a
+210-second rest cannot be counted down with `setInterval` in a backgroundable tab.
+
+**Detailed step-by-step plan: `docs/m3-plan.md`.** Its first three commits are engine and store
+corrections plus a pure timer module, and need no component to exist - so they can land before M2.
+
+*Acceptance, split from the original because it straddled two milestones:* **M3 owns offline** - a
+full Friday Legs session, all 17 working sets, logged with the network off, driven in test by one
+store-level integration test that then asserts every target moved per the double-progression rules;
+and the timer keeps the screen awake, including after the app has been hidden and shown again.
+**M4 owns installed-and-offline**, on the phone, which is where it actually matters.
 *Budget impact:* none. IndexedDB only.
 
 ### M4 — Installable, deployed, on the phone
