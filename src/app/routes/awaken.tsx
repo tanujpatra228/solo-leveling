@@ -23,6 +23,7 @@ import {
   type AwakeningAnswers,
   type AwakeningStepId,
 } from '../awakening'
+import { useAwakeningDraft } from '../awakeningDraft'
 import { useApp } from '../state'
 import { rootRoute } from './root'
 
@@ -69,8 +70,11 @@ function hasAnyPhysique(answers: AwakeningAnswers): boolean {
 function AwakeningTestScreen() {
   const completeAwakening = useApp((s) => s.completeAwakening)
   const navigate = useNavigate()
-  const [answers, setAnswers] = useState<AwakeningAnswers>({})
-  const [stepIndex, setStepIndex] = useState(0)
+  const answers = useAwakeningDraft((s) => s.answers)
+  const stepIndex = useAwakeningDraft((s) => s.stepIndex)
+  const patch = useAwakeningDraft((s) => s.patch)
+  const setStepIndex = useAwakeningDraft((s) => s.setStepIndex)
+  const resetDraft = useAwakeningDraft((s) => s.reset)
   const [submitting, setSubmitting] = useState(false)
 
   const steps = useMemo(() => stepsFor(answers), [answers])
@@ -78,10 +82,6 @@ function AwakeningTestScreen() {
   const step = steps[index]!
   const error = validateStep(step, answers)
   const isLast = index === steps.length - 1
-
-  function patch(next: Partial<AwakeningAnswers>) {
-    setAnswers((prev) => ({ ...prev, ...next }))
-  }
 
   async function goNext() {
     if (error) return
@@ -92,6 +92,7 @@ function AwakeningTestScreen() {
     if (!isComplete(answers) || submitting) return
     setSubmitting(true)
     await completeAwakening(toProfileInput(answers))
+    resetDraft()
     await navigate({ to: '/' })
   }
 
@@ -108,7 +109,12 @@ function AwakeningTestScreen() {
       </p>
 
       <SystemWindow title={STEP_TITLES[step]} strong>
-        <StepBody step={step} answers={answers} onChange={patch} />
+        {/* Keyed on the step id: without it, switching from one NumberField
+            step straight into another (height into bodyweight) reuses the
+            same component instance and leaks its typed-but-unsubmitted text
+            into the next field, since only the initial mount reads
+            defaultRaw. */}
+        <StepBody key={step} step={step} answers={answers} onChange={patch} />
         {error ? <p className="mt-3 font-system text-[11px] text-warn">{error}</p> : null}
       </SystemWindow>
 
