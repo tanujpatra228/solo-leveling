@@ -11,6 +11,7 @@ import {
   inchToCm,
   kgToLb,
   lbToKg,
+  parseHeightToCm,
   parseWeightToKg,
   roundToIncrement,
 } from './units'
@@ -91,5 +92,42 @@ describe('parseWeightToKg', () => {
   it('returns null for something that is not a number', () => {
     expect(parseWeightToKg('', 'metric')).toBeNull()
     expect(parseWeightToKg('heavy', 'metric')).toBeNull()
+  })
+})
+
+describe('parseHeightToCm', () => {
+  it('reads a plain centimetre number in metric', () => {
+    expect(parseHeightToCm('180', 'metric')).toBe(180)
+    expect(parseHeightToCm('177,5', 'metric')).toBe(177.5)
+  })
+
+  it('reads feet-and-inches notation, however it is typed', () => {
+    expect(parseHeightToCm("5'11\"", 'imperial')).toBeCloseTo(180.34, 2)
+    expect(parseHeightToCm("5' 11", 'imperial')).toBeCloseTo(180.34, 2)
+    expect(parseHeightToCm('5 11', 'imperial')).toBeCloseTo(180.34, 2)
+  })
+
+  it('reads a bare foot mark with no inches as a whole number of feet', () => {
+    expect(parseHeightToCm("5'", 'imperial')).toBeCloseTo(152.4, 2)
+  })
+
+  it('reads a bare number in imperial as a whole inch count', () => {
+    expect(parseHeightToCm('71', 'imperial')).toBeCloseTo(180.34, 2)
+  })
+
+  it('does not guess at a bare decimal: it is not decimal feet nor 5 feet 9', () => {
+    // Genuinely ambiguous between decimal feet and a typo for 5'9", so it is
+    // read like any other bare number — keeping only its digits, 59 inches —
+    // rather than guessed at either way.
+    expect(parseHeightToCm('5.9', 'imperial')).toBeCloseTo(149.86, 2)
+  })
+
+  it('returns null for empty input, non-numeric input, and a negative height', () => {
+    expect(parseHeightToCm('', 'imperial')).toBeNull()
+    expect(parseHeightToCm('abc', 'imperial')).toBeNull()
+    expect(parseHeightToCm('-5', 'imperial')).toBeNull()
+    expect(parseHeightToCm('', 'metric')).toBeNull()
+    expect(parseHeightToCm('abc', 'metric')).toBeNull()
+    expect(parseHeightToCm('-5', 'metric')).toBeNull()
   })
 })
