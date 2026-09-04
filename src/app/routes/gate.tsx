@@ -23,6 +23,7 @@ import type { NextTarget, ProgressionKind } from '../../domain/progression'
 import { addDaysToKey, dayKeyStart, dayOfWeekForKey } from '../../domain/time'
 import type { Block, BlockItem, DayKey, Exercise, Routine, SessionLog, SetLog } from '../../domain/types'
 import { useApp } from '../state'
+import { useRestTimer } from '../useRestTimer'
 import { rootRoute } from './root'
 
 export const gateRoute = createRoute({
@@ -262,56 +263,82 @@ function ActiveGateScreen({
 }) {
   const finishGate = useApp((s) => s.finishGate)
   const [finishing, setFinishing] = useState(false)
+  const restTimer = useRestTimer()
 
   async function finish() {
     if (finishing) return
+    restTimer.clear()
     setFinishing(true)
     await finishGate()
     setFinishing(false)
   }
 
   return (
-    <SystemWindow
-      title={routine.name}
-      strong
-      footer={
-        <button
-          type="button"
-          onClick={() => void finish()}
-          disabled={finishing}
-          className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
-        >
-          Finish Gate
-        </button>
-      }
-    >
-      <div className="flex flex-col gap-4">
-        {routine.blocks.map((block, index) => (
-          <SystemPanel key={index}>
-            {block.type === 'superset' ? (
-              <p className="mb-2 font-system text-[10px] tracking-[0.16em] text-system-dim uppercase">
-                Superset · alternating
-              </p>
-            ) : null}
-            <div
-              className={
-                block.type === 'superset'
-                  ? 'flex flex-col gap-4 border-l-2 border-system-dim pl-3'
-                  : 'flex flex-col gap-4'
-              }
-            >
-              {block.items.map((item) => {
-                const exercise = exerciseById.get(item.exerciseId)
-                if (!exercise) return null
-                return (
-                  <ActiveBlockItem key={item.exerciseId} sessionId={session.id} item={item} exercise={exercise} />
-                )
-              })}
-            </div>
-          </SystemPanel>
-        ))}
-      </div>
-    </SystemWindow>
+    <>
+      <SystemWindow
+        title={routine.name}
+        strong
+        footer={
+          <button
+            type="button"
+            onClick={() => void finish()}
+            disabled={finishing}
+            className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+          >
+            Finish Gate
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          {routine.blocks.map((block, index) => (
+            <SystemPanel key={index}>
+              {block.type === 'superset' ? (
+                <p className="mb-2 font-system text-[10px] tracking-[0.16em] text-system-dim uppercase">
+                  Superset · alternating
+                </p>
+              ) : null}
+              <div
+                className={
+                  block.type === 'superset'
+                    ? 'flex flex-col gap-4 border-l-2 border-system-dim pl-3'
+                    : 'flex flex-col gap-4'
+                }
+              >
+                {block.items.map((item) => {
+                  const exercise = exerciseById.get(item.exerciseId)
+                  if (!exercise) return null
+                  return (
+                    <ActiveBlockItem
+                      key={item.exerciseId}
+                      sessionId={session.id}
+                      item={item}
+                      exercise={exercise}
+                      onSetLogged={() => restTimer.start(item.restSec, exercise.name)}
+                    />
+                  )
+                })}
+              </div>
+            </SystemPanel>
+          ))}
+        </div>
+      </SystemWindow>
+
+      {restTimer.state ? (
+        <div className="sticky bottom-14 z-30 mx-auto w-full max-w-md rounded-t-lg border border-panel-edge bg-panel/95 px-4 py-3 text-center shadow-system">
+          <p className="font-system text-[10px] tracking-[0.18em] text-ink-faint uppercase">
+            {restTimer.state.label}
+          </p>
+          <p className="font-system text-2xl text-system tabular-nums">{restTimer.state.display}</p>
+          <button
+            type="button"
+            onClick={restTimer.clear}
+            className="mt-1 font-system text-[10px] text-ink-faint uppercase underline"
+          >
+            Skip rest
+          </button>
+        </div>
+      ) : null}
+    </>
   )
 }
 
@@ -319,10 +346,12 @@ function ActiveBlockItem({
   sessionId,
   item,
   exercise,
+  onSetLogged,
 }: {
   sessionId: string
   item: BlockItem
   exercise: Exercise
+  onSetLogged: () => void
 }) {
   const target = useApp((s) => s.targetFor(item.exerciseId))
   const sets = useApp((s) => s.sets)
@@ -353,7 +382,7 @@ function ActiveBlockItem({
       ) : null}
 
       {remaining > 0 ? (
-        <SetEntryRow exercise={exercise} setIndex={logged.length} target={target} />
+        <SetEntryRow exercise={exercise} setIndex={logged.length} target={target} onLogged={onSetLogged} />
       ) : (
         <p className="font-system text-[11px] text-good uppercase">Done</p>
       )}
@@ -367,10 +396,12 @@ function SetEntryRow({
   exercise,
   setIndex,
   target,
+  onLogged,
 }: {
   exercise: Exercise
   setIndex: number
   target: NextTarget
+  onLogged: () => void
 }) {
   const logSet = useApp((s) => s.logSet)
 
@@ -404,6 +435,7 @@ function SetEntryRow({
       isWarmup,
     })
     setSubmitting(false)
+    onLogged()
   }
 
   return (
