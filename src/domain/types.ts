@@ -392,9 +392,5 @@ export const SettingsSchema = z.object({
   syncEnabled: z.boolean().default(false),
   /** Advisory ids the hunter has dismissed. */
   dismissedAdvisories: z.array(z.string()).default([]),
-  /** Photo storage backend. Local is the default and needs no account. */
-  photoBackend: z.enum(['local', 'cloudinary']).default('local'),
-  cloudinaryCloudName: z.string().optional(),
-  cloudinaryUploadPreset: z.string().optional(),
 })
 export type Settings = z.infer<typeof SettingsSchema>

@@ -51,21 +51,6 @@ export interface Allocation {
   updatedAt: number
 }
 
-/**
- * Progress photos held on the device. The default photo backend is this table,
- * so the feature needs no account anywhere and no data leaves the phone.
- */
-export interface LocalPhoto {
-  id: string
-  dayKey: string
-  takenAt: number
-  /** The image itself. Blobs are stored natively by IndexedDB. */
-  blob: Blob
-  /** Set when the photo has also been uploaded to a remote backend. */
-  remoteUrl?: string
-  note?: string
-}
-
 /** Days the hunter declared as illness or travel, for the forgiveness rules. */
 export interface DeclaredAbsence {
   dayKey: string
@@ -103,7 +88,6 @@ export class SystemDatabase extends Dexie {
   allocation!: EntityTable<Allocation, 'id'>
   progress!: EntityTable<Progress, 'id'>
   absences!: EntityTable<DeclaredAbsence, 'dayKey'>
-  photos!: EntityTable<LocalPhoto, 'id'>
   outbox!: EntityTable<OutboxEntry, 'id'>
   syncState!: EntityTable<SyncState, 'id'>
 
@@ -127,7 +111,6 @@ export class SystemDatabase extends Dexie {
       allocation: 'id',
       progress: 'id',
       absences: 'dayKey',
-      photos: 'id, dayKey, takenAt',
       outbox: 'id, table, createdAt',
       syncState: 'id',
     })

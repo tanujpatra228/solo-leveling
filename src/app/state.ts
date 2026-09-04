@@ -208,7 +208,6 @@ export const useApp = create<AppState>((set, get) => ({
     pushEnabled: false,
     syncEnabled: false,
     dismissedAdvisories: [],
-    photoBackend: 'local',
   },
   exercises: [],
   routines: [],

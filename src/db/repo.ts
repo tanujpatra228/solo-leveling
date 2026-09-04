@@ -9,7 +9,7 @@
  * correction is a new row carrying `supersedes` rather than an edit.
  */
 import * as z from 'zod'
-import { db, type Allocation, type DeclaredAbsence, type LocalPhoto, type Progress, type SyncState } from './db'
+import { db, type Allocation, type DeclaredAbsence, type Progress, type SyncState } from './db'
 import { SEED_EXERCISES, SEED_ROUTINES } from './seed'
 import {
   BodyMetricSchema,
@@ -72,7 +72,6 @@ const DEFAULT_SETTINGS: Settings = {
   pushEnabled: false,
   syncEnabled: false,
   dismissedAdvisories: [],
-  photoBackend: 'local',
 }
 
 const DEFAULT_PROGRESS: Progress = {
@@ -386,39 +385,6 @@ export async function undeclareAbsence(dayKey: string): Promise<void> {
 }
 
 /* ------------------------------------------------------------------ */
-/* Photos                                                             */
-/* ------------------------------------------------------------------ */
-
-export async function addLocalPhoto(input: {
-  blob: Blob
-  note?: string
-  at?: number
-}): Promise<LocalPhoto> {
-  const takenAt = input.at ?? Date.now()
-  const photo: LocalPhoto = {
-    id: newId(),
-    dayKey: toDayKey(takenAt),
-    takenAt,
-    blob: input.blob,
-    note: input.note,
-  }
-  await db.photos.add(photo)
-  return photo
-}
-
-export async function getPhotos(): Promise<LocalPhoto[]> {
-  return db.photos.orderBy('takenAt').reverse().toArray()
-}
-
-export async function setPhotoRemoteUrl(id: string, remoteUrl: string): Promise<void> {
-  await db.photos.update(id, { remoteUrl })
-}
-
-export async function deletePhoto(id: string): Promise<void> {
-  await db.photos.delete(id)
-}
-
-/* ------------------------------------------------------------------ */
 /* Sync plumbing                                                      */
 /* ------------------------------------------------------------------ */
 
@@ -509,7 +475,6 @@ export async function wipeEverything(): Promise<void> {
       db.allocation,
       db.progress,
       db.absences,
-      db.photos,
       db.outbox,
       db.syncState,
     ],
@@ -529,7 +494,6 @@ export async function wipeEverything(): Promise<void> {
         db.allocation.clear(),
         db.progress.clear(),
         db.absences.clear(),
-        db.photos.clear(),
         db.outbox.clear(),
         db.syncState.clear(),
       ])
