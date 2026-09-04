@@ -64,6 +64,13 @@ export interface ProgressionContext {
   equipmentAccess?: readonly Equipment[]
   /** Resolves the next rung of a bodyweight ladder. */
   resolveExercise?: (id: string) => Exercise | undefined
+  /**
+   * The routine block's own rep range, when it differs from the exercise's.
+   * Varying rep ranges for the same movement across a week is ordinary
+   * programming, and `BlockItem.repRange` already carries it — the engine was
+   * simply never asked to read it. Falls back to `exercise.repRange`.
+   */
+  repRangeOverride?: readonly [number, number]
 }
 
 /**
@@ -133,7 +140,7 @@ export function computeNextTarget(
   plannedSets: number,
   ctx: ProgressionContext,
 ): NextTarget {
-  const [lo, hi] = exercise.repRange
+  const [lo, hi] = ctx.repRangeOverride ?? exercise.repRange
   const sets = workingSets(ctx.lastSets)
   const isBodyweight = exercise.increment === 0 || exercise.unit === 'reps'
 
@@ -272,11 +279,19 @@ export function computeNextTarget(
  * contained the exercise, which is all the decision needs.
  */
 export function computeSessionTargets(
-  exercises: readonly { exercise: Exercise; plannedSets: number }[],
+  exercises: readonly {
+    exercise: Exercise
+    plannedSets: number
+    repRangeOverride?: readonly [number, number]
+  }[],
   historyFor: (exerciseId: string) => readonly SetLog[],
-  ctx: Omit<ProgressionContext, 'lastSets'> = {},
+  ctx: Omit<ProgressionContext, 'lastSets' | 'repRangeOverride'> = {},
 ): NextTarget[] {
-  return exercises.map(({ exercise, plannedSets }) =>
-    computeNextTarget(exercise, plannedSets, { ...ctx, lastSets: historyFor(exercise.id) }),
+  return exercises.map(({ exercise, plannedSets, repRangeOverride }) =>
+    computeNextTarget(exercise, plannedSets, {
+      ...ctx,
+      lastSets: historyFor(exercise.id),
+      repRangeOverride,
+    }),
   )
 }

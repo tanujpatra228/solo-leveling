@@ -291,3 +291,34 @@ describe('computeSessionTargets', () => {
     expect(targets[1]!.kind).toBe('no_history')
   })
 })
+
+describe('block rep-range override (G2)', () => {
+  it('uses the override range instead of the exercise default when supplied', () => {
+    // Squat's own range is [5, 8]; the block asks for a 10-15 rep block instead.
+    const target = computeNextTarget(squat, 3, {
+      repRangeOverride: [10, 15],
+      lastSets: sets([{ weight: 100, reps: 8 }]),
+    })
+    // 8 reps is below the overridden floor of 10, so it reads as a real miss —
+    // proof the override, not the exercise's [5, 8], drove the decision.
+    expect(target.kind).toBe('reduce_load')
+  })
+
+  it('falls back to the exercise range when no override is given', () => {
+    const target = computeNextTarget(squat, 3, { lastSets: sets([{ weight: 100, reps: 8 }]) })
+    expect(target.kind).toBe('increase_load')
+  })
+
+  it('threads the override through computeSessionTargets per exercise', () => {
+    const targets = computeSessionTargets(
+      [
+        { exercise: squat, plannedSets: 3, repRangeOverride: [10, 15] },
+        { exercise: curl, plannedSets: 3 },
+      ],
+      (id) =>
+        id === 'barbell-squat' ? sets([{ weight: 100, reps: 8 }, { weight: 100, reps: 8 }]) : [],
+    )
+    expect(targets[0]!.kind).toBe('reduce_load')
+    expect(targets[1]!.kind).toBe('no_history')
+  })
+})
