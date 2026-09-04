@@ -83,7 +83,15 @@ export interface AppState extends LoadedData {
   activeSessionId: string | null
 
   load: () => Promise<void>
+  /** Reads every table and re-derives the projection from it. */
   refresh: () => Promise<void>
+  /**
+   * Re-derives the projection from whatever is already in the store, with no
+   * database read. What `logSet` and `correctSet` call after appending in
+   * memory, since re-reading thirteen Dexie tables on every set logged is the
+   * difference between a responsive rest timer and a stutter.
+   */
+  recompute: () => void
   /**
    * Issues whatever the System owes for today: the Daily Quest, a Penalty
    * Quest for an unfinished yesterday, and a Recovery Quest on a workload
@@ -266,67 +274,86 @@ export const useApp = create<AppState>((set, get) => ({
 
   async refresh() {
     const data = await loadAll()
+    set(data)
+    get().recompute()
+  },
+
+  recompute() {
+    const state = get()
     const today = toDayKey(Date.now())
-    const streak = computeStreak(data.quests, today, data.absences)
+    const streak = computeStreak(state.quests, today, state.absences)
 
     const projection = projectPlayer({
       today,
       now: Date.now(),
-      profile: data.profile,
-      exercises: data.exercises,
-      routines: data.routines,
-      sessions: data.sessions,
-      sets: data.sets,
-      bodyMetrics: data.bodyMetrics,
-      quests: data.quests,
-      shadows: data.shadows,
-      allocated: data.allocated,
-      earnedTitleIds: data.earnedTitleIds,
-      gatesCleared: data.progress.gatesCleared,
-      redGatesCleared: data.progress.redGatesCleared,
-      towerFloorCleared: data.progress.towerFloorCleared,
-      gold: data.progress.gold,
-      restTokens: data.progress.restTokens,
-      lastDeloadDayKey: data.progress.lastDeloadDayKey,
-      trainingStartDayKey: data.progress.trainingStartDayKey,
+      profile: state.profile,
+      exercises: state.exercises,
+      routines: state.routines,
+      sessions: state.sessions,
+      sets: state.sets,
+      bodyMetrics: state.bodyMetrics,
+      quests: state.quests,
+      shadows: state.shadows,
+      allocated: state.allocated,
+      earnedTitleIds: state.earnedTitleIds,
+      gatesCleared: state.progress.gatesCleared,
+      redGatesCleared: state.progress.redGatesCleared,
+      towerFloorCleared: state.progress.towerFloorCleared,
+      gold: state.progress.gold,
+      restTokens: state.progress.restTokens,
+      lastDeloadDayKey: state.progress.lastDeloadDayKey,
+      trainingStartDayKey: state.progress.trainingStartDayKey,
       longestStreak: streak.longest,
       currentStreak: streak.current,
     })
 
-    const exerciseById = new Map(data.exercises.map((e) => [e.id, e]))
+    const exerciseById = new Map(state.exercises.map((e) => [e.id, e]))
     const resolveExercise = (id: string) => exerciseById.get(id)
 
-    const weekSets = data.sessions
+    // One pass over the sets, indexed by session, replaces filtering all
+    // ~20,000 sets once per session in the trailing week.
+    const setsBySession = new Map<string, SetLog[]>()
+    for (const s of state.sets) {
+      const bucket = setsBySession.get(s.sessionId)
+      if (bucket) bucket.push(s)
+      else setsBySession.set(s.sessionId, [s])
+    }
+
+    const weekSets = state.sessions
       .filter((s) => s.dayKey >= addDaysToKey(today, -6))
-      .flatMap((s) => data.sets.filter((set) => set.sessionId === s.id))
+      .flatMap((s) => setsBySession.get(s.id) ?? [])
 
     const allAdvisories = detectAdvisories({
-      routines: data.routines,
+      routines: state.routines,
       resolveExercise,
       weeklySetsByMuscle: hardSetsPerMuscle(weekSets, resolveExercise),
     })
 
     // A gate stays open for the canon seven days. Sessions logged against a
-    // routine close it; anything still open past the window has broken.
+    // routine close it; anything still open past the window has broken. One
+    // pass over sessions builds the cleared-gate index, replacing a scan of
+    // every session for each of the fourteen candidate days.
+    const clearedGates = new Set<string>()
+    for (const s of state.sessions) {
+      if (s.endedAt !== null && s.routineId) clearedGates.add(`${s.dayKey}:${s.routineId}`)
+    }
     const openGates: OpenGate[] = []
     for (let i = 1; i <= 14; i += 1) {
       const dayKey = addDaysToKey(today, -i)
-      const routine = data.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(dayKey))
+      const routine = state.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(dayKey))
       if (!routine) continue
-      const cleared = data.sessions.some(
-        (s) => s.dayKey === dayKey && s.routineId === routine.id && s.endedAt !== null,
-      )
-      if (!cleared) openGates.push({ routineId: routine.id, openedDayKey: dayKey, rank: routine.gateRank })
+      if (!clearedGates.has(`${dayKey}:${routine.id}`)) {
+        openGates.push({ routineId: routine.id, openedDayKey: dayKey, rank: routine.gateRank })
+      }
     }
 
-    const activeSession = data.sessions.find((s) => s.endedAt === null) ?? null
+    const activeSession = state.sessions.find((s) => s.endedAt === null) ?? null
 
     set({
-      ...data,
       today,
       projection,
       streak,
-      advisories: activeAdvisories(allAdvisories, data.settings.dismissedAdvisories),
+      advisories: activeAdvisories(allAdvisories, state.settings.dismissedAdvisories),
       dungeonBreaks: resolveDungeonBreaks(openGates, today),
       activeSessionId: activeSession?.id ?? null,
     })
@@ -445,7 +472,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (!sessionId) return
 
     const existing = state.sets.filter((s) => s.sessionId === sessionId)
-    await repo.addSet({
+    const created = await repo.addSet({
       sessionId,
       exerciseId: input.exerciseId,
       order: existing.length,
@@ -456,12 +483,16 @@ export const useApp = create<AppState>((set, get) => ({
       metres: input.metres,
       isWarmup: input.isWarmup ?? false,
     })
-    await get().refresh()
+    // Appended in memory rather than re-read: repo.addSet already returns the
+    // row it wrote, so nothing here touches IndexedDB again.
+    set((s) => ({ sets: [...s.sets, created] }))
+    get().recompute()
   },
 
   async correctSet(setId, patch) {
-    await repo.correctSet(setId, patch)
-    await get().refresh()
+    const replacement = await repo.correctSet(setId, patch)
+    if (replacement) set((s) => ({ sets: [...s.sets, replacement] }))
+    get().recompute()
   },
 
   /**
