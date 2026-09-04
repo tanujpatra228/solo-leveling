@@ -13,7 +13,7 @@
  * bodyweight-only rep count, and an ADDED-LOAD one-rep max where a negative
  * value means assistance was required. Neither is a total-system load.
  *
- * See NOTES.md for the licensing question and for why these are never blended
+ * See docs/NOTES.md for the licensing question and for why these are never blended
  * with the ExRx tables.
  */
 
