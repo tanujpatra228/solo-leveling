@@ -9,7 +9,7 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "types": ["node", "vite/client"],
+    "types": ["node", "vite/client", "./worker-configuration.d.ts"],
     "composite": false,
     "declaration": false,
     "noEmit": true

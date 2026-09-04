@@ -14,6 +14,8 @@ import { createMiddleware } from 'hono/factory'
 import * as z from 'zod'
 import { authenticate } from './identity'
 import {
+  MAX_PAYLOAD_BYTES,
+  MAX_RESPONSE_BYTES,
   MAX_ROWS_PER_REQUEST,
   MAX_ROWS_RETURNED,
   RATE_MAX_REQUESTS,
@@ -39,12 +41,18 @@ const app = new Hono<{ Bindings: Env; Variables: { hunterId: string } }>()
 /* ------------------------------------------------------------------ */
 
 /**
- * The Worker validates the envelope and treats each row as opaque JSON. It
- * deliberately does not re-validate the shape of a session or a set: the client
- * that wrote the row already did, the client that reads it back validates
- * again, and a schema copy here would be a second definition to keep in step.
+ * The Worker validates the envelope and treats each row as an opaque,
+ * pre-serialised string. It deliberately does not re-validate the shape of a
+ * session or a set: the client that wrote the row already did, the client
+ * that reads it back validates again, and a schema copy here would be a
+ * second definition to keep in step. Storing the row verbatim rather than as
+ * a parsed object tree means the Worker never spends CPU re-serialising data
+ * it never reads.
  */
-const RowSchema = z.object({ id: z.string().min(1).max(200) }).loose()
+const RowSchema = z.object({
+  id: z.string().min(1).max(200),
+  json: z.string().min(2).max(MAX_PAYLOAD_BYTES),
+})
 
 const SyncRequestSchema = z.object({
   since: z.number().int().nonnegative().default(0),
@@ -147,7 +155,7 @@ app.post('/api/sync', async (c) => {
   }
   const { since, changes } = parsed.data
 
-  const incoming: { kind: RowKind; row: { id: string } }[] = [
+  const incoming: { kind: RowKind; row: { id: string; json: string } }[] = [
     ...changes.sessions.map((row) => ({ kind: 'session' as const, row })),
     ...changes.sets.map((row) => ({ kind: 'set' as const, row })),
     ...changes.bodyMetrics.map((row) => ({ kind: 'bodyMetric' as const, row })),
@@ -161,6 +169,19 @@ app.post('/api/sync', async (c) => {
       },
       413,
     )
+  }
+
+  // The response is built by concatenating stored payloads verbatim, which is
+  // only safe if every payload in D1 is well-formed JSON. Zod already bounded
+  // the size and type of `json`; this confirms it actually parses, so a
+  // malformed row can never wedge a future pull for this hunter. The parsed
+  // value itself is discarded — the Worker never looks inside a row.
+  for (const { row } of incoming) {
+    try {
+      JSON.parse(row.json)
+    } catch {
+      return c.json({ error: 'Malformed sync request.' }, 400)
+    }
   }
 
   const now = Date.now()
@@ -178,7 +199,7 @@ app.post('/api/sync', async (c) => {
     const placeholders = chunk.map(() => '(?, ?, ?, ?, ?)').join(', ')
     const bindings: unknown[] = []
     for (const { kind, row } of chunk) {
-      bindings.push(hunterId, kind, row.id, JSON.stringify(row), now)
+      bindings.push(hunterId, kind, row.id, row.json, now)
     }
     statements.push(
       c.env.DB.prepare(
@@ -202,33 +223,40 @@ app.post('/api/sync', async (c) => {
     .bind(hunterId, since, MAX_ROWS_RETURNED)
     .all<{ seq: number; kind: RowKind; payload: string }>()
 
-  const rows: { sessions: unknown[]; sets: unknown[]; bodyMetrics: unknown[] } = {
-    sessions: [],
-    sets: [],
-    bodyMetrics: [],
-  }
+  // Every stored payload was checked as valid JSON on the way in, so the
+  // response is built by concatenation rather than parse-then-reserialise.
+  const sessions: string[] = []
+  const sets: string[] = []
+  const bodyMetrics: string[] = []
   let highestSeq = since
+  let responseBytes = 0
+  let truncated = false
 
   for (const result of results ?? []) {
-    if (result.seq > highestSeq) highestSeq = result.seq
-    let payload: unknown
-    try {
-      payload = JSON.parse(result.payload)
-    } catch {
-      continue
+    // A row cap alone does not bound CPU: this also stops once the response
+    // would get too large to build inside the CPU budget. The sequence cursor
+    // only advances for rows actually emitted, so the next pull resumes
+    // exactly here — no row is skipped and none is sent twice.
+    if (responseBytes + result.payload.length > MAX_RESPONSE_BYTES) {
+      truncated = true
+      break
     }
-    if (result.kind === 'session') rows.sessions.push(payload)
-    else if (result.kind === 'set') rows.sets.push(payload)
-    else rows.bodyMetrics.push(payload)
+    if (result.kind === 'session') sessions.push(result.payload)
+    else if (result.kind === 'set') sets.push(result.payload)
+    else bodyMetrics.push(result.payload)
+    responseBytes += result.payload.length
+    highestSeq = result.seq
   }
 
-  return c.json({
-    seq: highestSeq,
-    applied: incoming.length,
-    rows,
-    // True when there is more waiting, so the client knows to go round again.
-    hasMore: (results?.length ?? 0) === MAX_ROWS_RETURNED,
-  })
+  const hasMore = truncated || (results?.length ?? 0) === MAX_ROWS_RETURNED
+
+  const body =
+    `{"seq":${highestSeq},"received":${incoming.length},"hasMore":${hasMore},"rows":{` +
+    `"sessions":[${sessions.join(',')}],` +
+    `"sets":[${sets.join(',')}],` +
+    `"bodyMetrics":[${bodyMetrics.join(',')}]}}`
+
+  return new Response(body, { headers: { 'content-type': 'application/json' } })
 })
 
 /* ------------------------------------------------------------------ */

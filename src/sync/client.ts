@@ -32,7 +32,10 @@ const MAX_ROUNDS_PER_RUN = 20
 
 const SyncResponseSchema = z.object({
   seq: z.number().int().nonnegative(),
-  applied: z.number().int().nonnegative(),
+  /** Rows the Worker received in this request, not rows it applied — a retry
+   *  of already-mirrored rows still reports the count offered. Kept only as a
+   *  cross-check; `pushed` below is counted from what this device sent. */
+  received: z.number().int().nonnegative(),
   rows: z.object({
     sessions: z.array(z.unknown()).default([]),
     sets: z.array(z.unknown()).default([]),
@@ -55,6 +58,9 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size))
   return out
 }
+
+/** Reused for every round that is pulling only, so nothing is re-sent. */
+const EMPTY_CHANGES = { sessions: [], sets: [], bodyMetrics: [] } as const
 
 /**
  * One sync run: push whatever is in the outbox, then pull anything newer than
@@ -82,6 +88,11 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
     for (const batch of batches.length > 0 ? batches : [null]) {
       let rounds = 0
       let hasMore = true
+      // The batch's rows are sent on the first round only; every further
+      // round in this batch's pull loop carries an empty change set, so the
+      // same rows are never re-posted while more of the server's backlog is
+      // still being pulled down.
+      let sent = false
 
       while (hasMore && rounds < MAX_ROUNDS_PER_RUN) {
         rounds += 1
@@ -94,7 +105,7 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
           },
           body: JSON.stringify({
             since,
-            changes: batch?.changes ?? { sessions: [], sets: [], bodyMetrics: [] },
+            changes: !sent && batch ? batch.changes : EMPTY_CHANGES,
           }),
         })
 
@@ -140,10 +151,13 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
         since = Math.max(since, parsed.data.seq)
         hasMore = parsed.data.hasMore
 
-        // Only clear the outbox after the server has taken the rows.
-        if (batch) {
+        // Only clear the outbox once the server has taken the rows, and only
+        // once per batch: `pushed` counts what this device actually handed
+        // over, not the server's per-round echo of it.
+        if (!sent && batch) {
           await clearOutboxEntries(batch.entryIds)
-          pushed += parsed.data.applied
+          pushed += batch.entryIds.length
+          sent = true
         }
       }
     }
@@ -163,12 +177,19 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
   }
 }
 
+/** A row on the wire: the id the Worker indexes by, and the row pre-serialised
+ *  by the client. The Worker stores `json` verbatim and never parses it. */
+interface WireRow {
+  id: string
+  json: string
+}
+
 interface Batch {
   entryIds: string[]
   changes: {
-    sessions: unknown[]
-    sets: unknown[]
-    bodyMetrics: unknown[]
+    sessions: WireRow[]
+    sets: WireRow[]
+    bodyMetrics: WireRow[]
   }
 }
 
@@ -177,13 +198,21 @@ interface Batch {
  * the outbox entry that will be cleared once it lands.
  */
 function buildBatches(pending: Awaited<ReturnType<typeof collectPendingRows>>): Batch[] {
-  const items: { entryId: string; kind: 'sessions' | 'sets' | 'bodyMetrics'; row: unknown }[] = [
-    ...pending.sessions.map((row) => ({ entryId: `sessions:${row.id}`, kind: 'sessions' as const, row })),
-    ...pending.sets.map((row) => ({ entryId: `sets:${row.id}`, kind: 'sets' as const, row })),
+  const items: { entryId: string; kind: 'sessions' | 'sets' | 'bodyMetrics'; row: WireRow }[] = [
+    ...pending.sessions.map((row) => ({
+      entryId: `sessions:${row.id}`,
+      kind: 'sessions' as const,
+      row: { id: row.id, json: JSON.stringify(row) },
+    })),
+    ...pending.sets.map((row) => ({
+      entryId: `sets:${row.id}`,
+      kind: 'sets' as const,
+      row: { id: row.id, json: JSON.stringify(row) },
+    })),
     ...pending.bodyMetrics.map((row) => ({
       entryId: `bodyMetrics:${row.id}`,
       kind: 'bodyMetrics' as const,
-      row,
+      row: { id: row.id, json: JSON.stringify(row) },
     })),
   ]
 
