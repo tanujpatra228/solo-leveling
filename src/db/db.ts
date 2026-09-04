@@ -33,6 +33,18 @@ export interface OutboxEntry {
   createdAt: number
 }
 
+/**
+ * The Hunter Secret, persisted. Its own store rather than folded into
+ * `SyncState`, so "wipe my training history, keep my key" is expressible:
+ * `wipeEverything` excludes this table unless explicitly told otherwise.
+ */
+export interface StoredIdentity {
+  id: 'self'
+  /** 15 random bytes. The credential. Never logged, never rendered. */
+  secret: Uint8Array
+  createdAt: number
+}
+
 /** Everything about talking to the mirror. One row, id `state`. */
 export interface SyncState {
   id: 'state'
@@ -90,6 +102,7 @@ export class SystemDatabase extends Dexie {
   absences!: EntityTable<DeclaredAbsence, 'dayKey'>
   outbox!: EntityTable<OutboxEntry, 'id'>
   syncState!: EntityTable<SyncState, 'id'>
+  identity!: EntityTable<StoredIdentity, 'id'>
 
   constructor(name = 'solo-leveling-system') {
     super(name)
@@ -113,6 +126,7 @@ export class SystemDatabase extends Dexie {
       absences: 'dayKey',
       outbox: 'id, table, createdAt',
       syncState: 'id',
+      identity: 'id',
     })
   }
 }

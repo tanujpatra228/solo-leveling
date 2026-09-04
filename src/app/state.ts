@@ -30,6 +30,7 @@ import { extractShadow, shouldExtract } from '../domain/shadows'
 import { resolveDungeonBreaks, type DungeonBreak, type OpenGate } from '../domain/gates'
 import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
 import { titleById } from '../domain/titles'
+import type { Identity } from '../sync/identity'
 import type {
   BodyFatSource,
   BodyMetric,
@@ -73,6 +74,8 @@ interface LoadedData {
 
 export interface AppState extends LoadedData {
   ready: boolean
+  /** The Hunter Secret, minted on first launch and persisted from then on. */
+  identity: Identity | null
   today: DayKey
   projection: Projection | null
   streak: StreakState
@@ -205,6 +208,7 @@ async function loadAll(): Promise<LoadedData> {
 
 export const useApp = create<AppState>((set, get) => ({
   ready: false,
+  identity: null,
   today: toDayKey(Date.now()),
   profile: null,
   settings: {
@@ -256,6 +260,11 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async load() {
+    // Mints the Hunter Secret on a first launch. No network consequence:
+    // syncEnabled defaults to false, so this contacts nothing.
+    const identity = await repo.ensureIdentity()
+    set({ identity })
+
     await repo.ensureSeeded()
     await get().refresh()
 

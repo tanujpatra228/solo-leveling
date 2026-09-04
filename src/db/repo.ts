@@ -9,8 +9,10 @@
  * correction is a new row carrying `supersedes` rather than an edit.
  */
 import * as z from 'zod'
+import type { Table } from 'dexie'
 import { db, type Allocation, type DeclaredAbsence, type Progress, type SyncState } from './db'
 import { SEED_EXERCISES, SEED_ROUTINES } from './seed'
+import { createIdentity, identityFromSecret, type Identity } from '../sync/identity'
 import {
   BodyMetricSchema,
   ExerciseSchema,
@@ -110,6 +112,35 @@ export async function ensureSeeded(): Promise<void> {
       await db.progress.put({ ...DEFAULT_PROGRESS, updatedAt: Date.now() })
     }
   })
+}
+
+/* ------------------------------------------------------------------ */
+/* Identity                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function getStoredIdentity(): Promise<Identity | null> {
+  const row = await db.identity.get('self')
+  if (!row) return null
+  return identityFromSecret(row.secret)
+}
+
+/**
+ * Mints the Hunter Secret on first call and returns the same identity on
+ * every call after. Has no network consequence — `syncEnabled` defaults to
+ * false, so this contacts nothing.
+ */
+export async function ensureIdentity(): Promise<Identity> {
+  const existing = await db.identity.get('self')
+  if (existing) return identityFromSecret(existing.secret)
+
+  const identity = await createIdentity()
+  await db.identity.put({ id: 'self', secret: identity.secret, createdAt: Date.now() })
+  return identity
+}
+
+/** Abandons the mirror identity. Distinct from `wipeEverything`, on purpose. */
+export async function forgetIdentity(): Promise<void> {
+  await db.identity.delete('self')
 }
 
 /* ------------------------------------------------------------------ */
@@ -456,47 +487,53 @@ export async function collectPendingRows(): Promise<{
  * Wipes every table. Used by the "start over" control in settings, and
  * deliberately explicit about what it destroys rather than being reachable by
  * accident.
+ *
+ * Keeps the Hunter Secret by default: resetting training history should not
+ * silently abandon the mirror. Pass `forgetIdentity: true` for the separate,
+ * explicitly named path that does both.
  */
-export async function wipeEverything(): Promise<void> {
-  await db.transaction(
-    'rw',
-    [
-      db.exercises,
-      db.routines,
-      db.sessions,
-      db.sets,
-      db.bodyMetrics,
-      db.quests,
-      db.shadows,
-      db.titles,
-      db.personalRecords,
-      db.profile,
-      db.settings,
-      db.allocation,
-      db.progress,
-      db.absences,
-      db.outbox,
-      db.syncState,
-    ],
-    async () => {
-      await Promise.all([
-        db.exercises.clear(),
-        db.routines.clear(),
-        db.sessions.clear(),
-        db.sets.clear(),
-        db.bodyMetrics.clear(),
-        db.quests.clear(),
-        db.shadows.clear(),
-        db.titles.clear(),
-        db.personalRecords.clear(),
-        db.profile.clear(),
-        db.settings.clear(),
-        db.allocation.clear(),
-        db.progress.clear(),
-        db.absences.clear(),
-        db.outbox.clear(),
-        db.syncState.clear(),
-      ])
-    },
-  )
+export async function wipeEverything(options?: { forgetIdentity?: boolean }): Promise<void> {
+  // Explicitly `any`: the tables being cleared have no field in common, and
+  // Dexie's own `transaction` signature only wants them as a scope list.
+  const tables: Table<any, any, any>[] = [
+    db.exercises,
+    db.routines,
+    db.sessions,
+    db.sets,
+    db.bodyMetrics,
+    db.quests,
+    db.shadows,
+    db.titles,
+    db.personalRecords,
+    db.profile,
+    db.settings,
+    db.allocation,
+    db.progress,
+    db.absences,
+    db.outbox,
+    db.syncState,
+  ]
+  if (options?.forgetIdentity) tables.push(db.identity)
+
+  await db.transaction('rw', tables, async () => {
+    await Promise.all([
+      db.exercises.clear(),
+      db.routines.clear(),
+      db.sessions.clear(),
+      db.sets.clear(),
+      db.bodyMetrics.clear(),
+      db.quests.clear(),
+      db.shadows.clear(),
+      db.titles.clear(),
+      db.personalRecords.clear(),
+      db.profile.clear(),
+      db.settings.clear(),
+      db.allocation.clear(),
+      db.progress.clear(),
+      db.absences.clear(),
+      db.outbox.clear(),
+      db.syncState.clear(),
+      ...(options?.forgetIdentity ? [db.identity.clear()] : []),
+    ])
+  })
 }
