@@ -59,7 +59,7 @@ const SyncRequestSchema = z.object({
 
 const SubscribeSchema = z.object({
   subscription: z.object({
-    endpoint: z.string().url().max(1000),
+    endpoint: z.url().max(1000),
     keys: z.object({
       p256dh: z.string().min(1).max(500),
       auth: z.string().min(1).max(500),
@@ -69,7 +69,7 @@ const SubscribeSchema = z.object({
   tzOffsetMinutes: z.number().int().min(-840).max(840).default(0),
 })
 
-const UnsubscribeSchema = z.object({ endpoint: z.string().url().max(1000) })
+const UnsubscribeSchema = z.object({ endpoint: z.url().max(1000) })
 
 /* ------------------------------------------------------------------ */
 /* Middleware                                                          */
