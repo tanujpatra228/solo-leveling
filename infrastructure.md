@@ -71,7 +71,7 @@ margin that absorbs a bug, a retry loop, or a leaked licence key before it becom
 |---|---|---|---|---|
 | Requests | 100,000/day | none needed | ~150/day | Hard-fails, no bill |
 | CPU per invocation | **10 ms** | design target 3 ms | ~1–2 ms | Request killed |
-| Subrequests per invocation | **50** | 10 | 4–14 (D1 statements) | Request fails |
+| Subrequests per invocation | **50** | 16 | 4–16 (D1 statements; cron run: 12) | Request fails |
 | Memory per isolate | 128 MB, **shared across concurrent requests** | never buffer >64 KB | streaming | Isolate recycled |
 | Script size | 3 MB gzipped | 1 MB gzipped | **94.76 KiB measured** | Deploy rejected |
 | Global scope startup | 1 second | — | trivial | Deploy rejected |
@@ -100,10 +100,10 @@ Three of these are tighter than they look:
 | Rows written | 100,000/day | none needed | ~100/day |
 | Rows read | 5,000,000/day | none needed | a few thousand/day |
 | Storage | 500 MB per database, 5 GB per account | 100 MB | ~12 MB after four years |
-| Queries per invocation | **50** | 20 | 4–14 |
+| Queries per invocation | **50** | 16 | 4–16 |
 | **Bound parameters per query** | **100** | **80** | 80 |
-| Max SQL statement | 100 KB | 50 KB | ~5 KB |
-| Max row size | 2 MB | 3 KB per payload | ~250 bytes |
+| Max SQL statement | 100 KB | ~65 KB (16 rows × 4 KB + overhead) | ~5 KB |
+| Max row size | 2 MB | 4 KB per payload (`MAX_PAYLOAD_BYTES`) | ~250 bytes |
 | Databases | 10 | 1 | 1 |
 
 The bound-parameter limit of 100 is the one that bites. A multi-row insert of 20 rows at five
@@ -291,10 +291,11 @@ Verified by running it:
 
 - The Worker starts in the local runtime with `web-push` bundled and imported.
 - `/api/health` returns `{"ok":true}`; an unauthenticated `/api/sync` returns 401.
-- A full sync round trip works against local D1: rows push, come back on pull, deduplicate on
-  resend, and a different licence key sees nothing.
+- A full sync round trip works against local D1: rows push and come back on pull **byte-identical**
+  to what was sent, deduplicate on resend with `seq` unchanged, a malformed row is rejected with
+  400 before anything is written, and a different licence key sees nothing.
 - The bundle is 94.76 KiB gzipped, against a 3 MB limit.
-- 414 unit tests pass; all TypeScript projects typecheck.
+- 415 unit tests pass; all TypeScript projects typecheck.
 
 **Not yet verified, and honestly flagged:**
 

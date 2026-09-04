@@ -2,11 +2,13 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
-## Where the build stands (paused 2026-09-03)
+## Where the build stands (M1 landed 2026-09-04)
 
 Done: the whole domain engine, the data model, the storage layer, the platform adapters, the
-identity and sync client, the Worker with D1 and the cron trigger, and the service worker.
-414 tests pass and every TypeScript project typechecks clean.
+identity and sync client, the Worker with D1 and the cron trigger, and the service worker. M1's
+eleven corrections are landed and verified — see below. 415 tests pass and every TypeScript
+project typechecks clean. `pnpm run build` still fails: `index.html` points at `/src/main.tsx`,
+which does not exist yet. That is M2.
 
 Not started: the React user interface. Every screen still needs building, along with the icons,
 the setup script and the CI workflow. The engine behind those screens is finished and tested, so
@@ -16,22 +18,22 @@ The sequenced plan lives in `docs/implementation-plan.md`, and the verified Clou
 resource budget live in `infrastructure.md`. Read both before starting. Milestone M4 in the plan
 is the point at which this becomes usable on a phone in the gym.
 
-## Corrections to land first (found by running the Worker; see docs/implementation-plan.md)
-- [ ] C1 Move `migrations_dir` inside the d1_databases entry; wrangler warns it is unexpected
-- [ ] C2 Set `compatibility_date` to 2026-09-02, since today's date is newer than the runtime runs
-- [ ] C3 Reduce the multi-row insert to 16 rows; 20 rows is exactly D1's 100-parameter limit
-- [ ] C4 Sync payloads cross as opaque strings so the Worker does no JSON work; cap rows at 200
-- [ ] C5 Rename the sync response `applied` field to `received`; it reports offered, not inserted
-- [ ] C6 Contentless push, and cap subscriptions per cron run at 8 (subrequest and CPU limits)
-- [ ] C7 Stop re-reading the whole database after every logged set; append in memory instead
-- [ ] C8 Use the Zod 4 idiom `z.url()` rather than `z.string().url()`
-- [ ] C9 One daily cron instead of `*/15` polling; drop `isDue`, `notify_minute`, `tz_offset_min`
-- [ ] C10 Delete the photo and Cloudinary remnants: the Dexie `photos` table and `LocalPhoto`, the
+## Corrections landed (found by running the Worker; see docs/implementation-plan.md)
+- [x] C1 Move `migrations_dir` inside the d1_databases entry; wrangler warns it is unexpected
+- [x] C2 Set `compatibility_date` to 2026-09-02, since today's date is newer than the runtime runs
+- [x] C3 Reduce the multi-row insert to 16 rows; 20 rows is exactly D1's 100-parameter limit
+- [x] C4 Sync payloads cross as opaque strings so the Worker does no JSON work; cap rows at 200
+- [x] C5 Rename the sync response `applied` field to `received`; it reports offered, not inserted
+- [x] C6 Contentless push, and cap subscriptions per cron run at 8 (subrequest and CPU limits)
+- [x] C7 Stop re-reading the whole database after every logged set; append in memory instead
+- [x] C8 Use the Zod 4 idiom `z.url()` rather than `z.string().url()`
+- [x] C9 One daily cron instead of `*/15` polling; drop `isDue`, `notify_minute`, `tz_offset_min`
+- [x] C10 Delete the photo and Cloudinary remnants: the Dexie `photos` table and `LocalPhoto`, the
       four repo photo functions, the three photo settings fields, and the Cloudinary hosts in
       `public/_headers`
-- [ ] C11 Sync client resends the same batch on every pull round; send once, then pull with an
+- [x] C11 Sync client resends the same batch on every pull round; send once, then pull with an
       empty change set. Also fixes the double-counted `pushed` total
-- [ ] Extract the bounds into `worker/limits.ts` and add the guard test asserting they sit under the
+- [x] Extract the bounds into `worker/limits.ts` and add the guard test asserting they sit under the
       documented Cloudflare limits
 
 Step-by-step plan for all of the above: docs/m1-plan.md
