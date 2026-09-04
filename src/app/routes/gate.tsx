@@ -347,17 +347,7 @@ function ActiveBlockItem({
       {logged.length > 0 ? (
         <ul className="flex flex-col gap-1">
           {logged.map((set) => (
-            <li
-              key={set.id}
-              className="flex items-center justify-between font-system text-xs text-ink-soft tabular-nums"
-            >
-              <span>
-                {set.weight > 0 ? `${set.weight} kg × ` : ''}
-                {set.reps} reps
-                {set.rpe ? ` @ RPE ${set.rpe}` : ''}
-              </span>
-              {set.isWarmup ? <span className="text-ink-faint normal-case">warmup</span> : null}
-            </li>
+            <LoggedSetRow key={set.id} set={set} />
           ))}
         </ul>
       ) : null}
@@ -493,5 +483,115 @@ function SetEntryRow({
         </button>
       </div>
     </div>
+  )
+}
+
+/**
+ * A logged set, correctable in place. The log itself never edits: saving
+ * appends a new row that supersedes this one (`repo.correctSet`), so the
+ * original survives underneath and only the replacement is ever shown.
+ */
+function LoggedSetRow({ set }: { set: SetLog }) {
+  const correctSet = useApp((s) => s.correctSet)
+  const [editing, setEditing] = useState(false)
+  const [weight, setWeight] = useState(() => String(set.weight))
+  const [reps, setReps] = useState(() => String(set.reps))
+  const [rpe, setRpe] = useState<string[]>(() => (set.rpe ? [String(set.rpe)] : []))
+  const [isWarmup, setIsWarmup] = useState(set.isWarmup)
+  const [saving, setSaving] = useState(false)
+
+  if (!editing) {
+    return (
+      <li className="flex items-center justify-between font-system text-xs text-ink-soft tabular-nums">
+        <span>
+          {set.weight > 0 ? `${set.weight} kg × ` : ''}
+          {set.reps} reps
+          {set.rpe ? ` @ RPE ${set.rpe}` : ''}
+        </span>
+        <span className="flex items-center gap-2">
+          {set.isWarmup ? <span className="text-ink-faint normal-case">warmup</span> : null}
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-ink-faint normal-case underline"
+          >
+            correct
+          </button>
+        </span>
+      </li>
+    )
+  }
+
+  async function save() {
+    if (saving) return
+    setSaving(true)
+    await correctSet(set.id, {
+      weight: weight !== '' ? Number(weight) : undefined,
+      reps: reps !== '' ? Number(reps) : undefined,
+      rpe: rpe[0] ? Number(rpe[0]) : undefined,
+      isWarmup,
+    })
+    setSaving(false)
+    setEditing(false)
+  }
+
+  return (
+    <li className="flex flex-col gap-2 rounded border border-panel-edge/70 p-2 normal-case">
+      <div className="flex gap-2">
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="font-system text-[10px] text-ink-faint uppercase">kg</span>
+          <input
+            type="number"
+            inputMode="decimal"
+            step={0.5}
+            value={weight}
+            onChange={(event) => setWeight(event.target.value)}
+            className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+          />
+        </label>
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="font-system text-[10px] text-ink-faint uppercase">reps</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={reps}
+            onChange={(event) => setReps(event.target.value)}
+            className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+          />
+        </label>
+      </div>
+
+      <ChoiceGroup<string> label="RPE" options={RPE_OPTIONS} value={rpe} onChange={setRpe} />
+
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setIsWarmup((w) => !w)}
+          aria-pressed={isWarmup}
+          className={`rounded-full border px-3 py-1 font-system text-[10px] uppercase ${
+            isWarmup ? 'border-system bg-system-deep/30 text-ink' : 'border-panel-edge text-ink-faint'
+          }`}
+        >
+          Warmup
+        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            className="font-system text-xs text-ink-faint uppercase"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={saving}
+            className="rounded bg-system-deep px-4 py-2 font-system text-xs text-ink uppercase disabled:opacity-30"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </li>
   )
 }
