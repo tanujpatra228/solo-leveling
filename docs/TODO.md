@@ -38,6 +38,8 @@ is the point at which this becomes usable on a phone in the gym.
 
 Step-by-step plan for all of the above: docs/m1-plan.md
 
+Step-by-step plan for M2, with six findings from surveying the ground: docs/m2-plan.md
+
 ## Phase 0 — Awakening, logging, PWA
 - [x] Scaffold Vite + React + TS + Tailwind, pnpm, strict tsconfig
 - [x] Domain types + Zod schemas (single source of truth)
@@ -48,9 +50,19 @@ Step-by-step plan for all of the above: docs/m1-plan.md
 - [x] Seed the 6 routines including Thursday and Friday supersets
 - [ ] Awakening Test onboarding (sex, bodyweight, height, age, training years, units, equipment)
 - [ ] Optional skippable tape and body-fat step at end of onboarding
+- [ ] F1 **Persist the Hunter Secret.** `createIdentity()` is never called and the secret is stored
+      nowhere, so an identity would not survive a reload and System Link could never pair. New Dexie
+      `identity` store, minted on first launch, kept by `clearAll()` unless explicitly forgotten
+- [ ] F4 `parseHeightToCm` for imperial height entry; `parseWeightToKg` has no length equivalent
+- [ ] F5 The Double Dungeon must branch on `useReducedMotion()`, not CSS - the global reduced-motion
+      rule in `index.css` would make a keyframe-driven sequence flash instead of degrade
+- [ ] F6 Vitest collects `*.test.ts` only, so any component test must stay non-JSX or the include
+      pattern changes. Deferred deliberately: the onboarding step machine is pure and tested instead
 - [ ] Session logging UI (log sets, weight, reps, RPE, warmup flag)
 - [ ] Rest timer with Screen Wake Lock
 - [ ] PWA manifest, icons, Workbox precache, install prompt (Android)
+- [ ] F2 `public/` holds only `_headers`: the favicon, apple-touch-icon and all three manifest icons
+      referenced by `index.html` and `vite.config.ts` do not exist yet (M4, unless the build refuses)
 - [ ] Double Dungeon first-launch sequence
 
 ## Phase 1 — Game layer

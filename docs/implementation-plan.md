@@ -167,8 +167,20 @@ vocabulary (window, panel, stat bar, mana bar, rank badge, message queue), and o
 bodyweight, height, age, training years, units, equipment, plus the genuinely skippable tape and
 body-fat step. Ends on the E-Rank window and the Player line.
 
-*Acceptance:* `pnpm run build` succeeds; onboarding completes with every optional field blank and
-writes a profile; the Double Dungeon first-launch sequence plays once.
+Surveying the ground first turned up six findings the milestone description did not account for, one
+of them a defect: **the Hunter Secret is generated but never persisted**, so an identity would not
+survive a reload and System Link could never pair. Identity persistence therefore belongs here,
+because first launch is where the secret is born. The other five are a missing height parser, absent
+icon files, an empty `dist/`, a global reduced-motion rule that rules out a CSS-driven cinematic, and
+a Vitest include pattern that would silently collect no component tests.
+
+**Detailed step-by-step plan, with those findings and the decisions they force: `docs/m2-plan.md`.**
+
+*Acceptance:* `pnpm run build` succeeds with the initial route at or under 200 KB gzipped; onboarding
+completes with prefer-not-to-say, no standards table and physique skipped, landing on a correct
+*Unranked* window; the licence key survives a reload and a `clearAll()`; the Double Dungeon plays
+once, is skippable, and is readable under `prefers-reduced-motion`; and `wrangler dev` serves the
+built app through the SPA fallback while `/api/health` still reaches the Worker.
 *Budget impact:* none. Entirely client-side.
 
 ### M3 — Session logging, the rest timer, and targets
