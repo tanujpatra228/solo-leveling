@@ -146,11 +146,19 @@ Each milestone is independently shippable and states what it costs in Cloudflare
 M4 is the point at which this is usable on your phone in the gym.
 
 ### M1 — Foundations and corrections
-Land C1 through C10. Add the guard test asserting our configured bounds sit under the documented
-Cloudflare limits. No new migration and no new binding are needed.
+Land C1 through C11 — C11 was found while planning this milestone: the sync client re-posts the same
+outbox batch on every pull round. Extract the resource bounds into a dependency-free
+`worker/limits.ts` and add the guard test asserting they sit under the documented Cloudflare limits.
+No new migration and no new binding are needed: the D1 database and the Dexie schema have never
+existed anywhere, so `0001_init.sql` and `version(1)` are edited in place rather than superseded.
 
-*Acceptance:* all existing tests still pass; new budget tests pass; `wrangler dev` starts and the
-sync round trip still works end to end against the new string-payload protocol.
+**Detailed step-by-step plan, with the reasoning behind each correction: `docs/m1-plan.md`.**
+
+*Acceptance:* typecheck clean across all six projects; `pnpm vitest run` passes at roughly 416 tests
+(ten `isDue`/`localMinuteOfDay` tests are deleted with the code they cover, and twelve are added);
+`wrangler dev` starts with no warnings; migrations apply to a clean local D1; and the sync round trip
+works end to end against the new string-payload protocol, with pulled rows byte-identical to what
+was pushed.
 *Budget impact:* reduces CPU and parameter pressure. No new resource use.
 
 ### M2 — App shell and the Awakening Test

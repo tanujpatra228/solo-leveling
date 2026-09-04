@@ -27,9 +27,14 @@ is the point at which this becomes usable on a phone in the gym.
 - [ ] C8 Use the Zod 4 idiom `z.url()` rather than `z.string().url()`
 - [ ] C9 One daily cron instead of `*/15` polling; drop `isDue`, `notify_minute`, `tz_offset_min`
 - [ ] C10 Delete the photo and Cloudinary remnants: the Dexie `photos` table and `LocalPhoto`, the
-      five repo photo functions, the three photo settings fields, and the Cloudinary hosts in
+      four repo photo functions, the three photo settings fields, and the Cloudinary hosts in
       `public/_headers`
-- [ ] Add the guard test asserting our configured bounds sit under the documented Cloudflare limits
+- [ ] C11 Sync client resends the same batch on every pull round; send once, then pull with an
+      empty change set. Also fixes the double-counted `pushed` total
+- [ ] Extract the bounds into `worker/limits.ts` and add the guard test asserting they sit under the
+      documented Cloudflare limits
+
+Step-by-step plan for all of the above: docs/m1-plan.md
 
 ## Phase 0 — Awakening, logging, PWA
 - [x] Scaffold Vite + React + TS + Tailwind, pnpm, strict tsconfig
