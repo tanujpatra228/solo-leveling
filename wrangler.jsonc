@@ -7,7 +7,7 @@
   // compatibility dates indefinitely, so this only needs changing deliberately.
   // At 2026-08-04 or later, nodejs_compat and nodejs_compat_v2 are enabled by
   // default, which is what lets the Worker use `web-push` with no extra flag.
-  "compatibility_date": "2026-09-03",
+  "compatibility_date": "2026-09-02",
 
   // Navigation requests are served straight from the asset store without
   // invoking the Worker script at all. On the free plan that matters: asset
@@ -33,11 +33,10 @@
       "database_name": "solo-leveling",
       // Filled in by scripts/setup.sh, which creates the database. Not a
       // secret: it identifies the database but grants nothing on its own.
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "./migrations"
     }
   ],
-
-  "migrations_dir": "./migrations",
 
   "triggers": {
     // Every fifteen minutes. The handler sends only to subscriptions whose
