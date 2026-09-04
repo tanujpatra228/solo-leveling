@@ -33,7 +33,7 @@
       "database_name": "solo-leveling",
       // Filled in by scripts/setup.sh, which creates the database. Not a
       // secret: it identifies the database but grants nothing on its own.
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "9cbfab12-854d-487a-8343-1af206195c46",
       "migrations_dir": "./migrations"
     }
   ],

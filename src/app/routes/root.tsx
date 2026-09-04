@@ -1,31 +1,41 @@
 /**
- * The shell every route renders inside: the safe-area frame, the message
- * queue overlay, and a connectivity indicator. No nav — with only Home and the
- * Awakening Test existing, and the two redirecting into each other based on
- * whether a profile exists, there is nothing yet to navigate between.
+ * The shell every route renders inside. Owns the safe-area frame and the one
+ * piece of navigation there is — which stayed absent until a second real route
+ * existed to navigate between.
  */
-import { useEffect, useState } from 'react'
-import { Outlet, createRootRoute } from '@tanstack/react-router'
+import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { MessageQueue } from '../../components/MessageQueue'
-import { onConnectivityChange } from '../../platform/capabilities'
 
-function ConnectivityBanner() {
-  const [online, setOnline] = useState(() => navigator.onLine)
-  useEffect(() => onConnectivityChange(setOnline), [])
-
-  if (online) return null
-  return (
-    <div className="bg-void-soft px-3 py-1 text-center font-system text-[11px] text-warn">
-      Offline. The mirror will catch up later.
-    </div>
-  )
-}
+const TABS = [
+  { to: '/gate', label: 'Gate' },
+  { to: '/', label: 'Status' },
+] as const
 
 function RootLayout() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <ConnectivityBanner />
-      <Outlet />
+      <div className="flex flex-1 flex-col">
+        <Outlet />
+      </div>
+
+      {/* Bottom-anchored, because this is used one-handed at arm's length. */}
+      <nav className="sticky bottom-0 border-t border-panel-edge bg-void/95 backdrop-blur">
+        <ul className="flex">
+          {TABS.map((tab) => (
+            <li key={tab.to} className="flex-1">
+              <Link
+                to={tab.to}
+                className="block py-3 text-center font-system text-[11px] tracking-[0.18em] uppercase text-ink-faint"
+                activeProps={{ className: 'block py-3 text-center font-system text-[11px] tracking-[0.18em] uppercase text-system' }}
+                activeOptions={{ exact: true }}
+              >
+                {tab.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
       <MessageQueue />
     </div>
   )
