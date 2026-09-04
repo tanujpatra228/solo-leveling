@@ -73,8 +73,6 @@ const SubscribeSchema = z.object({
       auth: z.string().min(1).max(500),
     }),
   }),
-  notifyMinute: z.number().int().min(0).max(1439).default(480),
-  tzOffsetMinutes: z.number().int().min(-840).max(840).default(0),
 })
 
 const UnsubscribeSchema = z.object({ endpoint: z.url().max(1000) })
@@ -276,28 +274,18 @@ app.post('/api/push/subscribe', async (c) => {
   const parsed = SubscribeSchema.safeParse(await c.req.json().catch(() => null))
   if (!parsed.success) return c.json({ error: 'Malformed subscription.' }, 400)
 
-  const { subscription, notifyMinute, tzOffsetMinutes } = parsed.data
+  const { subscription } = parsed.data
   await c.env.DB.prepare(
     `INSERT INTO push_subscriptions
-       (endpoint, hunter_id, p256dh, auth, notify_minute, tz_offset_min, created_at, failure_count)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+       (endpoint, hunter_id, p256dh, auth, created_at, failure_count)
+     VALUES (?, ?, ?, ?, ?, 0)
      ON CONFLICT (endpoint) DO UPDATE SET
        hunter_id = excluded.hunter_id,
        p256dh = excluded.p256dh,
        auth = excluded.auth,
-       notify_minute = excluded.notify_minute,
-       tz_offset_min = excluded.tz_offset_min,
        failure_count = 0`,
   )
-    .bind(
-      subscription.endpoint,
-      hunterId,
-      subscription.keys.p256dh,
-      subscription.keys.auth,
-      notifyMinute,
-      tzOffsetMinutes,
-      Date.now(),
-    )
+    .bind(subscription.endpoint, hunterId, subscription.keys.p256dh, subscription.keys.auth, Date.now())
     .run()
 
   return c.json({ ok: true })

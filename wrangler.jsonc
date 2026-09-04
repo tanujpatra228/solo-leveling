@@ -39,10 +39,9 @@
   ],
 
   "triggers": {
-    // Every fifteen minutes. The handler sends only to subscriptions whose
-    // chosen local time falls in the current window, so a single trigger serves
-    // every timezone and each device still gets exactly one push a day.
-    "crons": ["*/15 * * * *"]
+    // 02:30 UTC, 08:00 IST. The reminder time is a deploy-time constant, not a
+    // per-device setting: changing the hour is a one-line edit and a redeploy.
+    "crons": ["30 2 * * *"]
   },
 
   "observability": {

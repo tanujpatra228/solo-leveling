@@ -38,15 +38,13 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS events_hunter_seq ON events (hunter_id, seq);
 
 -- Web push subscriptions, one or more per hunter (a phone and a tablet).
+-- The daily nudge fires from one cron expression, deploy-wide, so there is no
+-- per-device local time to store here.
 CREATE TABLE IF NOT EXISTS push_subscriptions (
   endpoint       TEXT PRIMARY KEY,
   hunter_id      TEXT NOT NULL,
   p256dh         TEXT NOT NULL,
   auth           TEXT NOT NULL,
-  -- Local minutes past midnight the hunter wants the daily quest nudge.
-  notify_minute  INTEGER NOT NULL DEFAULT 480,
-  -- Offset from UTC in minutes, so the cron can fire at the right local time.
-  tz_offset_min  INTEGER NOT NULL DEFAULT 0,
   created_at     INTEGER NOT NULL,
   -- A push service returning 404 or 410 means the subscription is dead.
   failure_count  INTEGER NOT NULL DEFAULT 0,
@@ -54,7 +52,6 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS push_by_hunter ON push_subscriptions (hunter_id);
-CREATE INDEX IF NOT EXISTS push_by_minute ON push_subscriptions (notify_minute);
 
 -- Rate limiting lives here rather than in Workers KV, because the free KV
 -- allowance is 1,000 writes a day and a rate limiter writes on every request.

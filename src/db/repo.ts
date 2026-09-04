@@ -70,7 +70,6 @@ const DEFAULT_SETTINGS: Settings = {
   hapticsEnabled: true,
   keepScreenAwake: true,
   pushEnabled: false,
-  dailyQuestPushMinute: 8 * 60,
   syncEnabled: false,
   dismissedAdvisories: [],
   photoBackend: 'local',

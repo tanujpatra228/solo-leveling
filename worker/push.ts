@@ -9,16 +9,13 @@
  */
 import webpush from 'web-push'
 import type { Env } from './index'
-import { MAX_FAILURES, MAX_SUBSCRIPTIONS_PER_RUN } from './limits'
-import { isDue } from './schedule'
+import { MAX_FAILURES, MAX_SUBSCRIPTIONS_PER_RUN, MIN_HOURS_BETWEEN_SENDS } from './limits'
 
 interface SubscriptionRow {
   endpoint: string
   hunter_id: string
   p256dh: string
   auth: string
-  notify_minute: number
-  tz_offset_min: number
   failure_count: number
   last_sent_at: number | null
 }
@@ -30,18 +27,26 @@ export async function sendDailyQuestPush(env: Env): Promise<void> {
     return
   }
 
+  const now = Date.now()
+
+  // The 12-hour resend guard and the failure ceiling are both SQL predicates
+  // now, so nothing here has to hold every subscription in memory just to
+  // filter most of them out. ORDER BY last_sent_at ASC puts never-notified
+  // subscriptions first and, if there are ever more than
+  // MAX_SUBSCRIPTIONS_PER_RUN, guarantees the least-recently-notified are
+  // served first, so nothing starves.
   const { results } = await env.DB.prepare(
-    `SELECT endpoint, hunter_id, p256dh, auth, notify_minute, tz_offset_min,
-            failure_count, last_sent_at
+    `SELECT endpoint, hunter_id, p256dh, auth, failure_count, last_sent_at
      FROM push_subscriptions
      WHERE failure_count < ?
+       AND (last_sent_at IS NULL OR last_sent_at < ?)
+     ORDER BY last_sent_at ASC
      LIMIT ?`,
   )
-    .bind(MAX_FAILURES, MAX_SUBSCRIPTIONS_PER_RUN)
+    .bind(MAX_FAILURES, now - MIN_HOURS_BETWEEN_SENDS * 3_600_000, MAX_SUBSCRIPTIONS_PER_RUN)
     .all<SubscriptionRow>()
 
-  const now = Date.now()
-  const due = (results ?? []).filter((row) => isDue(now, row))
+  const due = results ?? []
   if (due.length === 0) return
 
   webpush.setVapidDetails(

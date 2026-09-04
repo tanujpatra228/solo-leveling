@@ -389,8 +389,6 @@ export const SettingsSchema = z.object({
   hapticsEnabled: z.boolean().default(true),
   keepScreenAwake: z.boolean().default(true),
   pushEnabled: z.boolean().default(false),
-  /** Local time of day for the daily quest push, minutes past midnight. */
-  dailyQuestPushMinute: z.number().int().min(0).max(1439).default(8 * 60),
   syncEnabled: z.boolean().default(false),
   /** Advisory ids the hunter has dismissed. */
   dismissedAdvisories: z.array(z.string()).default([]),

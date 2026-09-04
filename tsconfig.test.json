@@ -17,7 +17,6 @@
   "include": [
     "worker/**/*.test.ts",
     "worker/identity.ts",
-    "worker/schedule.ts",
     "worker/limits.ts",
     "src/sync/identity.ts",
     "src/sync/client.ts"

@@ -206,7 +206,6 @@ export const useApp = create<AppState>((set, get) => ({
     hapticsEnabled: true,
     keepScreenAwake: true,
     pushEnabled: false,
-    dailyQuestPushMinute: 480,
     syncEnabled: false,
     dismissedAdvisories: [],
     photoBackend: 'local',

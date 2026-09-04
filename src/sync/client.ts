@@ -257,7 +257,6 @@ export async function fetchPushKey(identity: Identity, baseUrl = ''): Promise<st
 export async function registerPushSubscription(
   identity: Identity,
   subscription: PushSubscription,
-  notifyMinute: number,
   baseUrl = '',
 ): Promise<boolean> {
   try {
@@ -267,13 +266,7 @@ export async function registerPushSubscription(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${identity.licenseKey}`,
       },
-      body: JSON.stringify({
-        subscription: subscription.toJSON(),
-        notifyMinute,
-        // Intl reports minutes *behind* UTC, so the sign is flipped to give
-        // minutes ahead, which is what the Worker's arithmetic expects.
-        tzOffsetMinutes: -new Date().getTimezoneOffset(),
-      }),
+      body: JSON.stringify({ subscription: subscription.toJSON() }),
     })
     return response.ok
   } catch {
