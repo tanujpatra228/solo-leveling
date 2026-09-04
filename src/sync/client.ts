@@ -21,8 +21,11 @@ import {
 } from '../db/repo'
 import type { Identity } from './identity'
 
-/** Matches the Worker's own cap, so a request is never rejected for size. */
-const MAX_ROWS_PER_REQUEST = 200
+/**
+ * Matches the Worker's own cap, so a request is never rejected for size.
+ * Exported so `worker/limits.test.ts` can assert the two never drift apart.
+ */
+export const MAX_ROWS_PER_REQUEST = 200
 
 /** Stops a runaway loop if the server keeps saying there is more. */
 const MAX_ROUNDS_PER_RUN = 20

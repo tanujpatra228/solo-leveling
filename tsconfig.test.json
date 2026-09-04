@@ -9,10 +9,17 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM"],
-    "types": ["node"],
+    "types": ["node", "vite/client"],
     "composite": false,
     "declaration": false,
     "noEmit": true
   },
-  "include": ["worker/**/*.test.ts", "worker/identity.ts", "worker/schedule.ts", "src/sync/identity.ts"]
+  "include": [
+    "worker/**/*.test.ts",
+    "worker/identity.ts",
+    "worker/schedule.ts",
+    "worker/limits.ts",
+    "src/sync/identity.ts",
+    "src/sync/client.ts"
+  ]
 }

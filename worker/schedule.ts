@@ -7,18 +7,10 @@
  * deserves tests and exactly the sort of thing that is painful to test through
  * a network client.
  */
+import { MIN_HOURS_BETWEEN_SENDS } from './limits'
 
 /** How wide a window counts as "now" for a subscription's chosen minute. */
 export const WINDOW_MINUTES = 8
-
-/** A subscription is not sent to twice inside this many hours. */
-export const MIN_HOURS_BETWEEN_SENDS = 12
-
-/** After this many consecutive failures the subscription is deleted. */
-export const MAX_FAILURES = 3
-
-/** Bounded so one cron invocation cannot run away. */
-export const MAX_SUBSCRIPTIONS_PER_RUN = 50
 
 /** Minutes past local midnight, given a UTC instant and an offset ahead of UTC. */
 export function localMinuteOfDay(nowMs: number, tzOffsetMinutes: number): number {

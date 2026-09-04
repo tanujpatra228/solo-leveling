@@ -9,7 +9,8 @@
  */
 import webpush from 'web-push'
 import type { Env } from './index'
-import { MAX_FAILURES, MAX_SUBSCRIPTIONS_PER_RUN, isDue } from './schedule'
+import { MAX_FAILURES, MAX_SUBSCRIPTIONS_PER_RUN } from './limits'
+import { isDue } from './schedule'
 
 interface SubscriptionRow {
   endpoint: string

@@ -13,6 +13,13 @@ import { Hono } from 'hono'
 import { createMiddleware } from 'hono/factory'
 import * as z from 'zod'
 import { authenticate } from './identity'
+import {
+  MAX_ROWS_PER_REQUEST,
+  MAX_ROWS_RETURNED,
+  RATE_MAX_REQUESTS,
+  RATE_WINDOW_SECONDS,
+  ROWS_PER_STATEMENT,
+} from './limits'
 import { sendDailyQuestPush } from './push'
 
 export interface Env {
@@ -24,19 +31,6 @@ export interface Env {
   VAPID_PUBLIC_KEY?: string
   VAPID_SUBJECT?: string
 }
-
-/**
- * D1 allows 50 queries per Worker invocation, so rows are inserted in
- * multi-row statements and the request is capped. The client loops until its
- * outbox is empty rather than sending everything at once.
- */
-const MAX_ROWS_PER_REQUEST = 200
-const ROWS_PER_STATEMENT = 20
-const MAX_ROWS_RETURNED = 500
-
-/** Fixed-window rate limit, counted in D1 because KV allows 1,000 writes a day. */
-const RATE_WINDOW_SECONDS = 900
-const RATE_MAX_REQUESTS = 120
 
 const app = new Hono<{ Bindings: Env; Variables: { hunterId: string } }>()
 
