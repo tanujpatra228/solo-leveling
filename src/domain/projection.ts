@@ -124,7 +124,7 @@ function groupSetsBySession(sets: readonly SetLog[]): Map<string, SetLog[]> {
  * not also be counted. Resolving that here means every downstream calculation
  * sees the corrected history and nothing else has to know the rule.
  */
-function dropSuperseded(sets: readonly SetLog[]): SetLog[] {
+export function dropSuperseded(sets: readonly SetLog[]): SetLog[] {
   const superseded = new Set<string>()
   for (const set of sets) {
     if (set.supersedes) superseded.add(set.supersedes)

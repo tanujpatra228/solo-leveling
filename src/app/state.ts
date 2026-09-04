@@ -21,6 +21,7 @@ import {
   type DailyQuest,
 } from '../domain/quests'
 import {
+  dropSuperseded,
   lastSetsForExercise,
   projectPlayer,
   type Projection,
@@ -132,7 +133,10 @@ export interface AppState extends LoadedData {
     metres?: number
     isWarmup?: boolean
   }) => Promise<void>
-  correctSet: (setId: string, patch: { weight?: number; reps?: number; rpe?: number }) => Promise<void>
+  correctSet: (
+    setId: string,
+    patch: { weight?: number; reps?: number; rpe?: number; isWarmup?: boolean },
+  ) => Promise<void>
   finishGate: () => Promise<void>
 
   targetFor: (exerciseId: string) => NextTarget | null
@@ -489,7 +493,12 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async startGate(routineId, bodyweightKg) {
-    const session = await repo.startSession({ routineId, bodyweightKg })
+    // Tonnage for every usesBodyweight exercise is fed straight from this
+    // number (projection.ts), so an unset bodyweight understates XP silently
+    // rather than erroring. Default from the most recent body-metric entry
+    // here, in the one place it cannot be forgotten by a call site.
+    const resolved = bodyweightKg ?? get().projection?.latestBodyMetric?.weightKg ?? undefined
+    const session = await repo.startSession({ routineId, bodyweightKg: resolved })
     await get().refresh()
     return session.id
   },
@@ -499,11 +508,16 @@ export const useApp = create<AppState>((set, get) => ({
     const sessionId = state.activeSessionId
     if (!sessionId) return
 
-    const existing = state.sets.filter((s) => s.sessionId === sessionId)
+    // The log is append-only, so a corrected set leaves both its original and
+    // its replacement in `state.sets` at the same order. Counting live
+    // (non-superseded) rows and taking one past the highest survives that;
+    // `existing.length` would double-count the superseded row and skip a slot.
+    const live = dropSuperseded(state.sets.filter((s) => s.sessionId === sessionId))
+    const nextOrder = live.reduce((max, s) => Math.max(max, s.order + 1), 0)
     const created = await repo.addSet({
       sessionId,
       exerciseId: input.exerciseId,
-      order: existing.length,
+      order: nextOrder,
       weight: input.weight,
       reps: input.reps,
       rpe: input.rpe,
@@ -621,17 +635,23 @@ export const useApp = create<AppState>((set, get) => ({
     const exercise = state.exercises.find((e) => e.id === exerciseId)
     if (!exercise) return null
 
-    const routine = state.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(state.today))
-    const plannedSets =
-      routine?.blocks
-        .flatMap((b) => b.items)
-        .find((item) => item.exerciseId === exerciseId)?.sets ?? 3
+    // A session's targets belong to the routine it was started against, not
+    // today's date — the two disagree whenever a session crosses the 04:00
+    // rollover. Only fall back to the day-of-week lookup when there is no
+    // active session, or the active one has no routine (Instant Dungeon Key).
+    const activeSession = state.sessions.find((s) => s.id === state.activeSessionId)
+    const routine = activeSession?.routineId
+      ? state.routines.find((r) => r.id === activeSession.routineId)
+      : state.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(state.today))
 
-    return computeNextTarget(exercise, plannedSets, {
+    const blockItem = routine?.blocks.flatMap((b) => b.items).find((item) => item.exerciseId === exerciseId)
+
+    return computeNextTarget(exercise, blockItem?.sets ?? 3, {
       lastSets: lastSetsForExercise(exerciseId, state.sessions, state.sets),
       age: state.projection?.age ?? undefined,
       equipmentAccess: state.profile?.equipmentAccess,
       resolveExercise: (id) => state.exercises.find((e) => e.id === id),
+      repRangeOverride: blockItem?.repRange,
     })
   },
 
