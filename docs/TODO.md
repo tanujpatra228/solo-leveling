@@ -2,17 +2,17 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
-## Where the build stands (M1 landed 2026-09-04)
+## Where the build stands (M2 landed 2026-09-04)
 
 Done: the whole domain engine, the data model, the storage layer, the platform adapters, the
-identity and sync client, the Worker with D1 and the cron trigger, and the service worker. M1's
-eleven corrections are landed and verified — see below. 415 tests pass and every TypeScript
-project typechecks clean. `pnpm run build` still fails: `index.html` points at `/src/main.tsx`,
-which does not exist yet. That is M2.
+identity and sync client, the Worker with D1 and the cron trigger, the service worker, and now the
+app shell: entry point, router, the System component vocabulary, identity persistence, the
+Awakening Test, the Double Dungeon, and the minimal Status Window. `pnpm run build` succeeds.
+448 tests pass and every TypeScript project typechecks clean.
 
-Not started: the React user interface. Every screen still needs building, along with the icons,
-the setup script and the CI workflow. The engine behind those screens is finished and tested, so
-what remains is presentation work on top of a working core.
+Not started: session logging, the rest timer, targets, and everything past the E-Rank window. The
+engine behind those screens is finished and tested, so what remains is presentation work on top of
+a working core.
 
 The sequenced plan lives in `docs/implementation-plan.md`, and the verified Cloudflare limits and
 resource budget live in `infrastructure.md`. Read both before starting. Milestone M4 in the plan
@@ -51,16 +51,21 @@ Commits 1-3 of M3 (G1-G6) need no UI and can land before M2.
 - [x] Dexie schema + repositories
 - [x] Exercise library seeded from the real training week, with aliases
 - [x] Seed the 6 routines including Thursday and Friday supersets
-- [ ] Awakening Test onboarding (sex, bodyweight, height, age, training years, units, equipment)
-- [ ] Optional skippable tape and body-fat step at end of onboarding
-- [ ] F1 **Persist the Hunter Secret.** `createIdentity()` is never called and the secret is stored
-      nowhere, so an identity would not survive a reload and System Link could never pair. New Dexie
-      `identity` store, minted on first launch, kept by `clearAll()` unless explicitly forgotten
-- [ ] F4 `parseHeightToCm` for imperial height entry; `parseWeightToKg` has no length equivalent
-- [ ] F5 The Double Dungeon must branch on `useReducedMotion()`, not CSS - the global reduced-motion
+- [x] Awakening Test onboarding (sex, bodyweight, height, age, training years, units, equipment)
+- [x] Optional skippable tape step at end of onboarding (waist, neck, hip; body-fat % deferred to
+      the M5 Physique panel, along with a live Navy-formula estimate)
+- [x] F1 **Persist the Hunter Secret.** `createIdentity()` was never called and the secret was
+      stored nowhere, so an identity would not survive a reload and System Link could never pair.
+      New Dexie `identity` store, minted on first launch, kept by `clearAll()` unless explicitly
+      forgotten
+- [x] F4 `parseHeightToCm` for imperial height entry; `parseWeightToKg` had no length equivalent
+- [x] F5 The Double Dungeon branches on `useReducedMotion()`, not CSS — the global reduced-motion
       rule in `index.css` would make a keyframe-driven sequence flash instead of degrade
-- [ ] F6 Vitest collects `*.test.ts` only, so any component test must stay non-JSX or the include
-      pattern changes. Deferred deliberately: the onboarding step machine is pure and tested instead
+- [x] F6 (deferred, correctly) Vitest collects `*.test.ts` only, so a component test would need to
+      stay non-JSX or the include pattern would need to change. Sidestepped rather than fixed: the
+      onboarding step machine is pure and tested instead, and the components that read it are thin
+      and untested by design. Still open for the rest timer in M3, the first real candidate for a
+      DOM testing stack
 - [ ] Session logging UI (log sets, weight, reps, RPE, warmup flag)
 - [ ] Rest timer with Screen Wake Lock
 - [ ] G1 `targetFor` resolves the routine by today's day of week, not the active session's
@@ -89,13 +94,13 @@ Commits 1-3 of M3 (G1-G6) need no UI and can land before M2.
 - [ ] PWA manifest verified on device, Workbox precache confirmed, install prompt (Android)
 - [x] F2 (closed) `public/` held only `_headers`: the favicon, apple-touch-icon and all three manifest icons
       referenced by `index.html` and `vite.config.ts` do not exist yet (M4, unless the build refuses)
-- [ ] Double Dungeon first-launch sequence
+- [x] Double Dungeon first-launch sequence
 
 ## Phase 1 — Game layer
 - [x] XP formula and level curve, calibrated to about level 50 per year
 - [x] Five stats: derived half (28-day rolling window)
 - [x] Five stats: allocated half (3 points per level) biasing quest generation
-- [ ] Status Window home screen
+- [x] Status Window home screen (minimal E-Rank window; quests, roster and fatigue detail are M5)
 - [x] Daily Quest generation and completion (engine; screen pending)
 - [x] Streak tracking, rest tokens, illness and travel declaration, streak freeze
 - [x] Penalty Quest on missed daily (adds work, never deletes progress)

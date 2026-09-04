@@ -93,6 +93,18 @@ Three of these are tighter than they look:
 - **128 MB is per isolate, not per request**, and one isolate serves many concurrent requests. So
   per-request memory has to be a small fraction of it. Hence streaming.
 
+**The client bundle is a separate number from the Worker's script size**, and not subject to that
+3 MB limit at all — it is a static asset, served free and unlimited, never touching the Worker's
+invocation budget. M2 set its own target anyway: **≤ 200 KB gzipped for the initial route**, a
+first-paint budget for a phone on a gym connection rather than a platform limit. Measured at the
+end of M2, via `vite build`'s own reporter: **194.80 KB JS + 5.23 KB CSS ≈ 200.03 KB gzipped** —
+essentially at the line (a byte-exact `gzip -9` recompression of the same files measures 197.49 KB,
+so the true figure depends on which gzip implementation is asked; either way there is no real
+headroom left). The standards table (252 rows, ~15.5 KB raw) is bundled rather than fetched so
+rank works offline on first run; if a later milestone's screens push this over budget for real, the
+documented fallback is moving that table to a dynamically imported chunk loaded after first paint —
+rank is not needed to render the boot window.
+
 ### D1
 
 | Resource | Cloudflare free | Our cap | Expected real use |
@@ -294,8 +306,17 @@ Verified by running it:
 - A full sync round trip works against local D1: rows push and come back on pull **byte-identical**
   to what was sent, deduplicate on resend with `seq` unchanged, a malformed row is rejected with
   400 before anything is written, and a different licence key sees nothing.
-- The bundle is 94.76 KiB gzipped, against a 3 MB limit.
-- 415 unit tests pass; all TypeScript projects typecheck.
+- The Worker's own bundle is 94.76 KiB gzipped, against a 3 MB limit.
+- `pnpm run build` succeeds. The client's initial-route bundle is ≈200 KB gzipped — see section 3.
+- `pnpm run cf:dev` serves the built app: `/awaken` returns the shell through the SPA fallback and
+  `/api/health` still reaches the Worker, confirmed against genuinely populated `dist/` output for
+  the first time (M1 exercised this against an empty `dist/`).
+- Onboarding completes both ways: every optional field blank (prefer-not-to-say, no standards
+  table, physique skipped) landing on an *Unranked* status window, and every field answered landing
+  on a ranked one. The Hunter Secret survives a reload and survives `clearAll()`.
+- The Double Dungeon plays once per device and does not replay on reload; skipping it still marks
+  it seen.
+- 448 unit tests pass; all TypeScript projects typecheck.
 
 **Not yet verified, and honestly flagged:**
 
@@ -306,3 +327,6 @@ Verified by running it:
   tested, but no notification has been delivered to a real device from this code.
 - Whether cron invocations count toward the daily request limit. Undocumented, so we assume they
   do. At one invocation a day it makes no practical difference.
+- **Installability and a real Lighthouse pass.** Icons are placeholders and the manifest has not
+  been exercised on a device. M4.
+- **Usable one-handed in a gym.** No test answers this; only actually using it does. M4.
