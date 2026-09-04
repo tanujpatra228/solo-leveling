@@ -96,6 +96,12 @@ export interface AppState extends LoadedData {
    */
   recompute: () => void
   /**
+   * Whether the programme schedules anything on a day. Derived from the
+   * routines rather than stored, so adding a Sunday routine later makes Sunday
+   * a training day with no other change.
+   */
+  isRestDay: (day: DayKey) => boolean
+  /**
    * Issues whatever the System owes for today: the Daily Quest, a Penalty
    * Quest for an unfinished yesterday, and a Recovery Quest on a workload
    * spike. Idempotent, so it is safe to call on every load.
@@ -245,7 +251,7 @@ export const useApp = create<AppState>((set, get) => ({
   earnedTitleIds: [],
   absences: [],
   projection: null,
-  streak: { current: 0, longest: 0, forgivenDays: [], todayPending: true },
+  streak: { current: 0, longest: 0, forgivenDays: [], todayPending: true, todayIsRest: false },
   advisories: [],
   dungeonBreaks: [],
   messages: [],
@@ -287,10 +293,17 @@ export const useApp = create<AppState>((set, get) => ({
     get().recompute()
   },
 
+  isRestDay(day) {
+    const routines = get().routines
+    if (routines.length === 0) return false
+    return !routines.some((r) => r.dayOfWeek === dayOfWeekForKey(day))
+  },
+
   recompute() {
     const state = get()
     const today = toDayKey(Date.now())
-    const streak = computeStreak(state.quests, today, state.absences)
+    const isRestDay = get().isRestDay
+    const streak = computeStreak(state.quests, today, state.absences, isRestDay)
 
     const projection = projectPlayer({
       today,
@@ -378,7 +391,10 @@ export const useApp = create<AppState>((set, get) => ({
     const existing = state.quests.filter((q) => q.dayKey === today)
     const level = state.projection?.player.level ?? 1
 
-    if (!existing.some((q) => q.type === 'daily')) {
+    // Nothing is owed on a day the programme never scheduled. Issuing a quest
+    // the hunter cannot clear would turn a planned rest day into tomorrow's
+    // penalty, which is the opposite of what a rest day is for.
+    if (!get().isRestDay(today) && !existing.some((q) => q.type === 'daily')) {
       const quest = generateDailyQuest({ dayKey: today, level, allocated: state.allocated })
       await repo.putQuest({
         id: `daily-${today}`,
@@ -401,7 +417,9 @@ export const useApp = create<AppState>((set, get) => ({
       yesterdayDaily.status === 'issued' &&
       !existing.some((q) => q.type === 'penalty')
     ) {
-      const forgiven = state.absences.includes(yesterday)
+      // A rest day is forgiven without spending anything: the hunter did not
+      // miss it, the System never asked.
+      const forgiven = state.absences.includes(yesterday) || get().isRestDay(yesterday)
       if (forgiven) {
         await repo.setQuestStatus(yesterdayDaily.id, 'forgiven')
       } else if (state.progress.restTokens > 0) {
