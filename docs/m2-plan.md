@@ -1,5 +1,12 @@
 # M2 — App shell and the Awakening Test
 
+> **Correction, 5 September 2026.** This plan proposed moving the 252-row strength-standards table
+> to a lazily loaded chunk if the bundle overshot its budget. That remedy does not work:
+> `standards.data.ts` measures **3,733 bytes gzipped**, under 2% of the shipped JavaScript. The
+> claim was made twice without measuring it. See `docs/m4-plan.md` H1 and H2 for the measured
+> breakdown and the re-derived budget.
+
+
 The milestone where this stops being a library and starts being an app. It adds the entry point, the
 router, the reusable System window vocabulary, and onboarding — ending on the E-Rank window and the
 Player line.
