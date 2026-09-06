@@ -7,7 +7,7 @@
 import { bestE1rm, countHardSets, epley, isHardSet, tonnage, workIntervalMinutes } from './e1rm'
 import { computeFatigue, tonnagePerDay, type FatigueState } from './fatigue'
 import { checkDeload, type DeloadVerdict } from './deload'
-import { gateDifficulty, resolveBosses } from './gates'
+import { gateDifficulty, resolveBosses, resolveRepRecords } from './gates'
 import { computeOverallRank, rankBarbellLift, rankPullupByReps, standardsTableFor, type LiftRank, type OverallRank } from './rank'
 import { activeShadowCap, deriveStats, questBiasFromAllocation, unspentPoints, type DerivedStatsInput, type QuestBias } from './stats'
 import { addStats, ZERO_STATS } from './stats'
@@ -185,6 +185,15 @@ export function projectPlayer(input: ProjectionInput): Projection {
       if (boss.killed) prExerciseIds.push(boss.exerciseId)
       const previous = runningBestE1rm.get(boss.exerciseId) ?? 0
       if (boss.e1rmKg > previous) runningBestE1rm.set(boss.exerciseId, boss.e1rmKg)
+    }
+
+    // The rep-count equivalent, for bodyweight movements resolveBosses can
+    // never credit (weight 0 always estimates a 1RM of 0) — read against the
+    // running best *before* the loop below updates it, same as the e1RM
+    // bosses above (F4, docs/m5-plan.md).
+    const repRecords = resolveRepRecords(sessionSets, usesBodyweight, (id) => bestRepsByExercise.get(id) ?? 0)
+    for (const record of repRecords) {
+      if (record.killed && !prExerciseIds.includes(record.exerciseId)) prExerciseIds.push(record.exerciseId)
     }
 
     for (const set of sessionSets) {

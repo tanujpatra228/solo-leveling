@@ -161,6 +161,44 @@ export function resolveBosses(
   return results
 }
 
+export interface RepRecordResult {
+  exerciseId: string
+  reps: number
+  previousBestReps: number
+  /** True when this beat the previous best. */
+  killed: boolean
+}
+
+/**
+ * The rep-count equivalent of a boss kill, for a bodyweight movement that
+ * carries no load at all. `resolveBosses` needs a weight to estimate a 1RM —
+ * `epley(0, reps)` is always 0 — so a hunter whose programme is pushups,
+ * pull-ups and abs work sets no records there ever, and no PR bonus with it
+ * (F4, docs/m5-plan.md). Unlike `resolveBosses`, this does not cap at 12
+ * reps: a bodyweight ladder's rep ranges routinely run past that.
+ */
+export function resolveRepRecords(
+  sets: readonly SetLog[],
+  isBodyweightOnly: (exerciseId: string) => boolean,
+  previousBestReps: (exerciseId: string) => number,
+): RepRecordResult[] {
+  const bestByExercise = new Map<string, number>()
+
+  for (const set of sets) {
+    if (set.isWarmup || set.reps <= 0 || set.weight > 0) continue
+    if (!isBodyweightOnly(set.exerciseId)) continue
+    const current = bestByExercise.get(set.exerciseId) ?? 0
+    if (set.reps > current) bestByExercise.set(set.exerciseId, set.reps)
+  }
+
+  const results: RepRecordResult[] = []
+  for (const [exerciseId, reps] of bestByExercise) {
+    const previous = previousBestReps(exerciseId)
+    results.push({ exerciseId, reps, previousBestReps: previous, killed: reps > previous })
+  }
+  return results
+}
+
 /* ------------------------------------------------------------------ */
 /* Dungeon Break                                                       */
 /* ------------------------------------------------------------------ */

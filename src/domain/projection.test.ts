@@ -242,6 +242,37 @@ describe('records are credited on the day they were set', () => {
   })
 })
 
+describe('a bodyweight rep record pays a PR bonus too (F4, docs/m5-plan.md)', () => {
+  // Diamond Pushups: usesBodyweight, weight always 0. resolveBosses alone can
+  // never credit this — epley(0, reps) is always 0 — so before the fix, a
+  // programme of pushups, pull-ups and abs work set no records ever.
+  const sessions = [session('s1', '2026-03-01', 1000), session('s2', '2026-03-04', 2000)]
+  const sets = [
+    set('s1', 'diamond-pushups', 0, 10, 0, 1000),
+    // More reps, same zero weight: a record.
+    set('s2', 'diamond-pushups', 0, 15, 0, 2000),
+  ]
+  const projection = projectPlayer(baseInput({ sessions, sets }))
+
+  it('credits both the first performance and the later rep record', () => {
+    const byId = new Map(projection.sessionSummaries.map((s) => [s.session.id, s]))
+    expect(byId.get('s1')!.prExerciseIds).toContain('diamond-pushups')
+    expect(byId.get('s2')!.prExerciseIds).toContain('diamond-pushups')
+  })
+
+  it('pays XP for the session carrying the rep record, same as any other', () => {
+    // computeSessionXp's own PR-bonus arithmetic (XP_PER_PR * exercisePRs) is
+    // covered in xp.test.ts; what matters here is that a bodyweight rep
+    // record reaches `prExerciseIds` at all, which is the F4 bug itself.
+    const byId = new Map(projection.sessionSummaries.map((s) => [s.session.id, s]))
+    expect(byId.get('s2')!.xp).toBeGreaterThan(0)
+  })
+
+  it('keeps the all-time best rep count, not the most recent', () => {
+    expect(projection.bestRepsByExercise.get('diamond-pushups')).toBe(15)
+  })
+})
+
 describe('superseded sets are excluded', () => {
   const sessions = [session('s1', '2026-03-06', 1000)]
   const original = set('s1', 'barbell-squat', 200, 5, 0, 1000)

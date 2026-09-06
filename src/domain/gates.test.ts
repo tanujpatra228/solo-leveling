@@ -11,6 +11,7 @@ import {
   gateStateFor,
   resolveBosses,
   resolveDungeonBreaks,
+  resolveRepRecords,
 } from './gates'
 import type { Exercise, SetLog } from './types'
 
@@ -128,6 +129,61 @@ describe('boss kills', () => {
   it('reports one result per exercise touched', () => {
     const results = resolveBosses([set('squat', 100, 5), set('bench', 80, 5)], () => 0)
     expect(results).toHaveLength(2)
+  })
+})
+
+describe('rep records (F4, docs/m5-plan.md)', () => {
+  function set(exerciseId: string, weight: number, reps: number, isWarmup = false): SetLog {
+    return {
+      id: `${exerciseId}-${weight}-${reps}`,
+      sessionId: 's',
+      exerciseId,
+      order: 0,
+      weight,
+      reps,
+      isWarmup,
+      completedAt: 0,
+    }
+  }
+  const bodyweightOnly = () => true
+
+  it('registers a kill when a bodyweight movement beats its old rep record', () => {
+    // Before this fix, resolveBosses alone could never credit this: weight 0
+    // always estimates a 1RM of 0, so a pushup set never beat any record.
+    const results = resolveRepRecords([set('pushups', 0, 25)], bodyweightOnly, () => 20)
+    expect(results[0]!.killed).toBe(true)
+    expect(results[0]!.reps).toBe(25)
+  })
+
+  it('does not register a kill for matching the old record', () => {
+    const results = resolveRepRecords([set('pushups', 0, 20)], bodyweightOnly, () => 20)
+    expect(results[0]!.killed).toBe(false)
+  })
+
+  it('ignores an exercise carrying external load, even at zero reps recorded here', () => {
+    // Once a bodyweight movement has load hung off it (add_external_load),
+    // resolveBosses is the right tool and this must not also fire.
+    const results = resolveRepRecords([set('pullup', 20, 5)], bodyweightOnly, () => 0)
+    expect(results).toHaveLength(0)
+  })
+
+  it('ignores an exercise that is not a bodyweight movement at all', () => {
+    const results = resolveRepRecords([set('leg-curl', 0, 15)], () => false, () => 0)
+    expect(results).toHaveLength(0)
+  })
+
+  it('ignores warmups', () => {
+    const results = resolveRepRecords([set('pushups', 0, 30, true)], bodyweightOnly, () => 20)
+    expect(results).toHaveLength(0)
+  })
+
+  it('does not cap at 12 reps the way resolveBosses does — bodyweight ladders run past it', () => {
+    const results = resolveRepRecords([set('pushups', 0, 20)], bodyweightOnly, () => 15)
+    expect(results[0]!.killed).toBe(true)
+  })
+
+  it('reports nothing for an empty set of sets', () => {
+    expect(resolveRepRecords([], bodyweightOnly, () => 0)).toHaveLength(0)
   })
 })
 
