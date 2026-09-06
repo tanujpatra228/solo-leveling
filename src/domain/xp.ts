@@ -3,7 +3,8 @@
  *
  * The brief fixes the shape of both: XP is
  *
- *   tonnage/K + hardSetValue * hardSets + prValue * exercisePRs + gateClearBonus
+ *   tonnage/K + hardSetValue * hardSets + workMinuteValue * workMinutes
+ *     + prValue * exercisePRs + gateClearBonus
  *
  * multiplied by the fatigue multiplier, and the level curve is
  *
@@ -20,6 +21,15 @@ import type { Rank } from './types'
 export const XP_TONNAGE_DIVISOR = 12
 
 export const XP_PER_HARD_SET = 20
+
+/**
+ * Decided rate (docs/substitution-plan.md §5 commit 2): a minute of
+ * work-interval effort — a treadmill or rowing block with no reps — is priced
+ * like one hard set, since both are roughly a unit of hard effort. Defined
+ * from `XP_PER_HARD_SET` rather than as its own literal so the two move
+ * together if the hard-set rate is ever retuned.
+ */
+export const XP_PER_MINUTE_OF_WORK = XP_PER_HARD_SET
 
 /** A personal record on one exercise. A boss kill. */
 export const XP_PER_PR = 50
@@ -51,6 +61,7 @@ export const LEVEL_THRESHOLD_EPSILON = 1e-6
 export interface XpBreakdown {
   fromTonnage: number
   fromHardSets: number
+  fromWorkMinutes: number
   fromPRs: number
   fromGateClear: number
   /** Before the fatigue multiplier is applied. */
@@ -62,6 +73,9 @@ export interface XpBreakdown {
 export interface XpInput {
   tonnageKg: number
   hardSets: number
+  /** Minutes of work-interval sets — time/distance exercises with no reps.
+   *  Defaults to 0 so every pre-existing caller is unaffected. */
+  workMinutes?: number
   /** Number of distinct exercises that set a new record this session. */
   exercisePRs: number
   /** Rank of the gate cleared, or null if this was not a full gate clear. */
@@ -72,13 +86,15 @@ export interface XpInput {
 export function computeSessionXp(input: XpInput): XpBreakdown {
   const fromTonnage = input.tonnageKg / XP_TONNAGE_DIVISOR
   const fromHardSets = XP_PER_HARD_SET * input.hardSets
+  const fromWorkMinutes = XP_PER_MINUTE_OF_WORK * (input.workMinutes ?? 0)
   const fromPRs = XP_PER_PR * input.exercisePRs
   const fromGateClear = input.gateRank ? GATE_CLEAR_BONUS[input.gateRank] : 0
-  const subtotal = fromTonnage + fromHardSets + fromPRs + fromGateClear
+  const subtotal = fromTonnage + fromHardSets + fromWorkMinutes + fromPRs + fromGateClear
 
   return {
     fromTonnage,
     fromHardSets,
+    fromWorkMinutes,
     fromPRs,
     fromGateClear,
     subtotal,

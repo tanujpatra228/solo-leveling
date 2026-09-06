@@ -8,6 +8,7 @@ import {
   loadForReps,
   tonnage,
   topSet,
+  workIntervalMinutes,
 } from './e1rm'
 import type { SetLog } from './types'
 
@@ -19,6 +20,7 @@ function set(partial: Partial<SetLog> & { weight: number; reps: number }): SetLo
     order: partial.order ?? 0,
     weight: partial.weight,
     reps: partial.reps,
+    seconds: partial.seconds,
     rpe: partial.rpe,
     isWarmup: partial.isWarmup ?? false,
     completedAt: partial.completedAt ?? 0,
@@ -159,5 +161,48 @@ describe('hard sets', () => {
       set({ weight: 100, reps: 5, rpe: 9 }),
     ]
     expect(countHardSets(sets)).toBe(2)
+  })
+
+  it('excludes a set with no reps and no seconds — nothing happened', () => {
+    expect(isHardSet(set({ weight: 0, reps: 0 }))).toBe(false)
+  })
+
+  it('counts a work-interval set with no reps as hard, since it is a treadmill interval, not an empty row', () => {
+    expect(isHardSet(set({ weight: 0, reps: 0, seconds: 1200 }))).toBe(true)
+  })
+
+  it('excludes a work-interval set logged as easy', () => {
+    expect(isHardSet(set({ weight: 0, reps: 0, seconds: 1200, rpe: 5 }))).toBe(false)
+  })
+})
+
+describe('workIntervalMinutes', () => {
+  it('converts a treadmill set to minutes', () => {
+    const sets = [set({ weight: 0, reps: 0, seconds: 1200 })]
+    expect(workIntervalMinutes(sets)).toBe(20)
+  })
+
+  it('sums across several work-interval sets', () => {
+    const sets = [set({ weight: 0, reps: 0, seconds: 600 }), set({ weight: 0, reps: 0, seconds: 300 })]
+    expect(workIntervalMinutes(sets)).toBe(15)
+  })
+
+  it('excludes warmups', () => {
+    const sets = [set({ weight: 0, reps: 0, seconds: 1200, isWarmup: true })]
+    expect(workIntervalMinutes(sets)).toBe(0)
+  })
+
+  it('excludes a set logged as easy', () => {
+    const sets = [set({ weight: 0, reps: 0, seconds: 1200, rpe: 5 })]
+    expect(workIntervalMinutes(sets)).toBe(0)
+  })
+
+  it('ignores a rep-based set even if it happens to carry seconds, since it is already priced as a hard set', () => {
+    const sets = [set({ weight: 100, reps: 5, seconds: 30 })]
+    expect(workIntervalMinutes(sets)).toBe(0)
+  })
+
+  it('is zero for an empty list', () => {
+    expect(workIntervalMinutes([])).toBe(0)
   })
 })

@@ -3,6 +3,7 @@ import {
   GATE_CLEAR_BONUS,
   STAT_POINTS_PER_LEVEL,
   XP_DAILY_QUEST,
+  XP_PER_MINUTE_OF_WORK,
   computeSessionXp,
   cumulativeXpForLevel,
   levelFromTotalXp,
@@ -95,6 +96,30 @@ describe('computeSessionXp', () => {
 
   it('pays more for a harder gate', () => {
     expect(GATE_CLEAR_BONUS.S).toBeGreaterThan(GATE_CLEAR_BONUS.E)
+  })
+
+  it('pays a per-minute rate for work-interval sets, on top of the other terms', () => {
+    const xp = computeSessionXp({
+      tonnageKg: 0,
+      hardSets: 0,
+      workMinutes: 20,
+      exercisePRs: 0,
+      gateRank: null,
+      fatigueMultiplier: 1,
+    })
+    expect(xp.fromWorkMinutes).toBe(XP_PER_MINUTE_OF_WORK * 20)
+    expect(xp.total).toBe(XP_PER_MINUTE_OF_WORK * 20)
+  })
+
+  it('defaults workMinutes to zero when omitted, so every existing caller is unaffected', () => {
+    const xp = computeSessionXp({
+      tonnageKg: 100,
+      hardSets: 1,
+      exercisePRs: 0,
+      gateRank: null,
+      fatigueMultiplier: 1,
+    })
+    expect(xp.fromWorkMinutes).toBe(0)
   })
 })
 

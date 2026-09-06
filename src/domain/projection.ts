@@ -4,7 +4,7 @@
  * knowing — a change to the XP constants is a recalculation, not a migration,
  * and `PlayerState` is therefore never synced between devices.
  */
-import { bestE1rm, countHardSets, epley, isHardSet, tonnage } from './e1rm'
+import { bestE1rm, countHardSets, epley, isHardSet, tonnage, workIntervalMinutes } from './e1rm'
 import { computeFatigue, tonnagePerDay, type FatigueState } from './fatigue'
 import { checkDeload, type DeloadVerdict } from './deload'
 import { gateDifficulty, resolveBosses } from './gates'
@@ -206,11 +206,18 @@ export function projectPlayer(input: ProjectionInput): Projection {
                 s.weight +
                 (session.bodyweightKg !== undefined ? session.bodyweightKg * bodyweightFactor(s.exerciseId) : 0),
               e1rmKg: runningBestE1rm.get(s.exerciseId) ?? 0,
+              workMinutes: (s.seconds ?? 0) / 60,
             })),
         ).rank
       : null
 
+    // Includes work-interval sets (a treadmill block counts as one hard set
+    // here, for the finish-gate summary's "N hard sets" line). XP must not
+    // count them twice, so computeSessionXp below is fed the rep-based count
+    // separately and prices the interval through workMinutes instead.
     const hardSets = countHardSets(sessionSets)
+    const repHardSets = countHardSets(sessionSets.filter((s) => s.reps > 0))
+    const workMinutes = workIntervalMinutes(sessionSets)
 
     // XP is banked at the fatigue multiplier that applied on the day, so the
     // multiplier is read per session rather than applied once at the end.
@@ -222,7 +229,8 @@ export function projectPlayer(input: ProjectionInput): Projection {
 
     const xp = computeSessionXp({
       tonnageKg: sessionTonnage,
-      hardSets,
+      hardSets: repHardSets,
+      workMinutes,
       exercisePRs: prExerciseIds.length,
       gateRank,
       fatigueMultiplier: fatigueThen.xpMultiplier,

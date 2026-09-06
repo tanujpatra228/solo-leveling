@@ -54,6 +54,24 @@ describe('gate difficulty', () => {
     expect(result.meanIntensity).toBeGreaterThan(0)
   })
 
+  it('scores a cardio block by its minutes, since reps and weight are both zero for time-based work', () => {
+    // Before commit 2, a treadmill block with reps: 0, weightKg: 0 scored zero
+    // tonnage and read as a free session — see substitution-plan.md §0.
+    const zeroMinutes = gateDifficulty([
+      { exerciseId: 'treadmill-intervals', sets: 1, reps: 0, weightKg: 0, e1rmKg: 0, workMinutes: 0 },
+    ])
+    const twentyMinutes = gateDifficulty([
+      { exerciseId: 'treadmill-intervals', sets: 1, reps: 0, weightKg: 0, e1rmKg: 0, workMinutes: 20 },
+    ])
+    expect(zeroMinutes.score).toBe(0)
+    expect(twentyMinutes.score).toBeGreaterThan(0)
+  })
+
+  it('treats an omitted workMinutes as zero, so every pre-existing plan item is unaffected', () => {
+    const result = gateDifficulty([{ exerciseId: 'curl', sets: 2, reps: 10, weightKg: 10, e1rmKg: 30 }])
+    expect(Number.isNaN(result.score)).toBe(false)
+  })
+
   it('reports zero for an empty plan without dividing by zero, and gives it no rank', () => {
     // No planned work is not an E-rank session — it is no session at all.
     // computeSessionXp only pays a gate-clear bonus when a rank comes back,

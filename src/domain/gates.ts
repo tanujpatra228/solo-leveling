@@ -9,6 +9,7 @@
 import { epley } from './e1rm'
 import { DUNGEON_BREAK_DAYS, addDaysToKey, daysBetweenKeys } from './time'
 import { RANK_ORDER, type DayKey, type Equipment, type Exercise, type Rank, type SetLog } from './types'
+import { XP_PER_MINUTE_OF_WORK, XP_TONNAGE_DIVISOR } from './xp'
 
 /* ------------------------------------------------------------------ */
 /* Gate difficulty                                                     */
@@ -21,7 +22,20 @@ export interface PlannedWork {
   weightKg: number
   /** Best known estimated max for this exercise, for the intensity term. */
   e1rmKg: number
+  /** Minutes of work-interval effort — a time/distance exercise logs `reps: 0`
+   *  and `weightKg: 0`, so without this a cardio block scores as free work.
+   *  Defaults to 0. See docs/substitution-plan.md §5 commit 2. */
+  workMinutes?: number
 }
+
+/**
+ * kg-equivalent tonnage per minute of work-interval effort. Chosen so a
+ * cardio block scores through the same tonnage term rather than a second,
+ * disagreeing scale: at this rate, `workMinutes * WORK_MINUTE_TONNAGE_KG` fed
+ * through `computeSessionXp`'s tonnage term pays exactly
+ * `XP_PER_MINUTE_OF_WORK` per minute, the same rate the XP side pays it.
+ */
+export const WORK_MINUTE_TONNAGE_KG = XP_PER_MINUTE_OF_WORK * XP_TONNAGE_DIVISOR
 
 export interface GateDifficulty {
   /** Null for an empty plan — no work was asked for, so there is no rank to give it. */
@@ -66,7 +80,7 @@ export function gateDifficulty(plan: readonly PlannedWork[]): GateDifficulty {
   let intensityCount = 0
 
   for (const item of plan) {
-    tonnage += item.weightKg * item.reps * item.sets
+    tonnage += item.weightKg * item.reps * item.sets + (item.workMinutes ?? 0) * WORK_MINUTE_TONNAGE_KG
 
     if (item.e1rmKg > 0 && item.weightKg > 0) {
       intensitySum += Math.min(1.2, item.weightKg / item.e1rmKg)

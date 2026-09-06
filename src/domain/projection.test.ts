@@ -151,6 +151,26 @@ describe('gateDifficulty reads the bodyweight-adjusted weight, not the raw set w
   })
 })
 
+describe('time-based work pays XP through the per-minute term', () => {
+  // Before commit 2, `isHardSet` rejected `reps <= 0` outright, so a
+  // treadmill interval earned zero XP and zero gate credit — see
+  // substitution-plan.md §0.
+  it('a treadmill interval with no reps earns XP, not the historical zero', () => {
+    const sessions = [session('s1', TODAY, 1000, null)]
+    const sets = [set('s1', 'treadmill-intervals', 0, 0, 0, 1000, { seconds: 1200, rpe: 8 })]
+    const projection = projectPlayer(baseInput({ sessions, sets }))
+    expect(projection.sessionSummaries[0]!.xp).toBeCloseTo(20 * 20, 6) // 20 min * 20 XP/min
+  })
+
+  it('counts the interval as a hard set for display, without also charging it the flat hard-set rate', () => {
+    const sessions = [session('s1', TODAY, 1000, null)]
+    const sets = [set('s1', 'treadmill-intervals', 0, 0, 0, 1000, { seconds: 1200, rpe: 8 })]
+    const projection = projectPlayer(baseInput({ sessions, sets }))
+    expect(projection.sessionSummaries[0]!.hardSets).toBe(1)
+    expect(projection.sessionSummaries[0]!.xp).toBeCloseTo(400, 6)
+  })
+})
+
 describe('an open session pays nothing until it is finished', () => {
   // Regression for the bug where opening a gate paid a full E-rank
   // gate-clear bonus (200 XP) before a single set was logged: an empty plan

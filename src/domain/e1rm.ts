@@ -94,15 +94,37 @@ export function tonnage(
  * A hard set is a working set taken near enough to failure to drive adaptation.
  * With no RPE logged we assume the set was hard, because the alternative is
  * silently under-counting the volume of someone who does not log RPE.
+ *
+ * A time or distance exercise logs `reps: 0` (see the gate entry form), so
+ * `reps <= 0` alone would reject every cardio set. A set with no reps still
+ * counts as hard once it carries a work interval — see
+ * docs/substitution-plan.md §5 commit 2.
  */
 export const HARD_SET_MIN_RPE = 7
 
 export function isHardSet(set: SetLog): boolean {
   if (set.isWarmup) return false
-  if (set.reps <= 0) return false
+  if (set.reps <= 0 && (set.seconds ?? 0) <= 0) return false
   return set.rpe === undefined || set.rpe >= HARD_SET_MIN_RPE
 }
 
 export function countHardSets(sets: readonly SetLog[]): number {
   return sets.reduce((count, set) => (isHardSet(set) ? count + 1 : count), 0)
+}
+
+/**
+ * Minutes of qualifying work-interval sets — time or distance exercises,
+ * which log `reps: 0` and carry their duration in `seconds` instead. Priced
+ * separately from `countHardSets` (see `XP_PER_MINUTE_OF_WORK`), so a
+ * rep-based set is excluded here even if it happens to carry a `seconds`
+ * value, to avoid paying it twice.
+ */
+export function workIntervalMinutes(sets: readonly SetLog[]): number {
+  let minutes = 0
+  for (const set of sets) {
+    if (set.reps > 0) continue
+    if (!isHardSet(set)) continue
+    minutes += (set.seconds ?? 0) / 60
+  }
+  return minutes
 }
