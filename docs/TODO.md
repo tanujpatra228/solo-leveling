@@ -37,6 +37,21 @@ target `infrastructure.md` set at M2 (which was already "at the line" before thi
 failed the build — there is no automated gate on this number — but it is drifting and worth a
 code-splitting pass before it drifts further.
 
+## Two bugs found on a real device, fixed 2026-09-06
+
+Both from a phone screenshot of the deployed Status Window, right after the visuals pass below.
+
+- [x] **Two design systems, not one.** `sharp` was a `SystemWindow` variant only the Status Window
+      opted into — every other window (Gate, Awakening, Double Dungeon, the rest-timer bar) stayed
+      `rounded-lg`. Nobody was ever going to opt out, so the variant is gone: `SystemWindow` is
+      always square-cornered now, faint glow by default and `shadow-system-strong` reserved for
+      `strong`. The rest-timer sticky bar's `rounded-t-lg` matched it
+- [x] **`StatRow`'s meter stopped a third of the way across the card, empty space after it.**
+      `StatBar`'s root is itself a flex row; nested as a plain flex *item* inside `StatRow`'s row
+      (no `flex-1`), it shrank to its own content's width — and its meter div has no in-flow
+      children (the fill bars are absolutely positioned), so that content measured ~0. Not
+      conditional content, just a missing `min-w-0 flex-1` wrapper around `<StatBar>`
+
 ## System visuals, in progress 2026-09-06
 
 Working through `docs/system-visuals-plan.md` in sequence. Landed so far (steps 1-5, 7):

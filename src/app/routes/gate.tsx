@@ -359,7 +359,7 @@ function ActiveGateScreen({
       </SystemWindow>
 
       {restTimer.state ? (
-        <div className="sticky bottom-14 z-30 mx-auto flex w-full max-w-md items-center gap-4 rounded-t-lg border border-panel-edge bg-panel px-4 py-3 shadow-system">
+        <div className="sticky bottom-14 z-30 mx-auto flex w-full max-w-md items-center gap-4 rounded-none border border-panel-edge bg-panel px-4 py-3 shadow-system">
           <div className="relative size-14 shrink-0">
             <SegmentedRing pct={restTimer.state.pct} tone={restTimer.state.remaining <= 10 ? 'warn' : 'system'} />
             <span className="absolute inset-0 grid place-items-center font-system text-xs text-system tabular-nums">

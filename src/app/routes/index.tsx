@@ -54,7 +54,7 @@ function HomeScreen() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
-      <SystemWindow title="Status Window" strong sharp>
+      <SystemWindow title="Status Window" strong>
         <div className="flex items-center justify-between gap-3">
           <RankBadge rank={player.rank} />
           <span className="font-system text-[11px] text-ink-faint uppercase">
