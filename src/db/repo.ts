@@ -300,6 +300,26 @@ export async function endSession(sessionId: string, at?: number): Promise<void> 
   await enqueue('sessions', sessionId)
 }
 
+/**
+ * Discards an open session outright: deletes the session row, every set
+ * logged against it, and any outbox entries pointing at either, so nothing
+ * tries to sync a session that was abandoned rather than finished. Unlike
+ * `endSession`, this is not "finish with whatever was done" — it is "this
+ * session never happened", for a hunter who opened a gate by mistake or is
+ * clearing a stuck row left behind by an earlier crash.
+ */
+export async function abandonSession(sessionId: string): Promise<void> {
+  const setIds = await db.sets.where('sessionId').equals(sessionId).primaryKeys()
+  await db.transaction('rw', db.sessions, db.sets, db.outbox, async () => {
+    await db.sessions.delete(sessionId)
+    await db.sets.bulkDelete(setIds)
+    await db.outbox.bulkDelete([
+      `sessions:${sessionId}`,
+      ...setIds.map((id) => `sets:${id}`),
+    ])
+  })
+}
+
 /** Appends one set. The row is never updated after this. */
 export async function addSet(input: {
   sessionId: string

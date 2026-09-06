@@ -262,7 +262,9 @@ function ActiveGateScreen({
   exerciseById: Map<string, Exercise>
 }) {
   const finishGate = useApp((s) => s.finishGate)
+  const abandonGate = useApp((s) => s.abandonGate)
   const [finishing, setFinishing] = useState(false)
+  const [abandoning, setAbandoning] = useState(false)
   const restTimer = useRestTimer()
 
   async function finish() {
@@ -273,20 +275,41 @@ function ActiveGateScreen({
     setFinishing(false)
   }
 
+  async function abandon() {
+    if (abandoning) return
+    if (!window.confirm('Discard this gate? Anything logged in it is deleted, not just left unfinished.')) {
+      return
+    }
+    restTimer.clear()
+    setAbandoning(true)
+    await abandonGate()
+    setAbandoning(false)
+  }
+
   return (
     <>
       <SystemWindow
         title={routine.name}
         strong
         footer={
-          <button
-            type="button"
-            onClick={() => void finish()}
-            disabled={finishing}
-            className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
-          >
-            Finish Gate
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => void finish()}
+              disabled={finishing || abandoning}
+              className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+            >
+              Finish Gate
+            </button>
+            <button
+              type="button"
+              onClick={() => void abandon()}
+              disabled={finishing || abandoning}
+              className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
+            >
+              Abandon gate
+            </button>
+          </div>
         }
       >
         <div className="flex flex-col gap-4">
@@ -353,7 +376,13 @@ function ActiveBlockItem({
   exercise: Exercise
   onSetLogged: () => void
 }) {
-  const target = useApp((s) => s.targetFor(item.exerciseId))
+  // Select the precomputed map itself, not a call through targetFor: a
+  // selector that calls a store method returns a fresh object every read,
+  // which Zustand v5's Object.is-based subscription treats as a change on
+  // every render — an infinite loop that crashes with React #185 the moment
+  // a session opens. See docs/engineering-standards.md rule 13.
+  const targetsByExerciseId = useApp((s) => s.targetsByExerciseId)
+  const target = targetsByExerciseId[item.exerciseId] ?? null
   const sets = useApp((s) => s.sets)
   const logged = useMemo(() => liveSessionSets(sets, sessionId, item.exerciseId), [sets, sessionId, item.exerciseId])
 

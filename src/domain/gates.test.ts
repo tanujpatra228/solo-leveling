@@ -54,9 +54,13 @@ describe('gate difficulty', () => {
     expect(result.meanIntensity).toBeGreaterThan(0)
   })
 
-  it('reports zero for an empty plan without dividing by zero', () => {
+  it('reports zero for an empty plan without dividing by zero, and gives it no rank', () => {
+    // No planned work is not an E-rank session — it is no session at all.
+    // computeSessionXp only pays a gate-clear bonus when a rank comes back,
+    // so a null rank here is what stops an open-but-empty session from
+    // banking XP before a single set is logged.
     const result = gateDifficulty([])
-    expect(result.rank).toBe('E')
+    expect(result.rank).toBeNull()
     expect(result.meanIntensity).toBe(0)
     expect(Number.isNaN(result.score)).toBe(false)
   })

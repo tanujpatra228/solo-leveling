@@ -2,6 +2,31 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
+## Bugs found on a real device after M3, fixed 2026-09-06
+
+Both reproduced by clicking Start Gate on `/gate`.
+
+- [x] **`/gate` crashed with React #185** the instant a session opened. `targetFor` called
+      `computeNextTarget` fresh on every read, and a Zustand v5 selector that calls a store method
+      returns a new object every render — `useSyncExternalStore`'s `Object.is` check never settles,
+      so the component re-renders forever. Fixed by computing every exercise's target once in
+      `recompute()` (`targetsByExerciseId`), so `targetFor` and the map itself are stable references
+      until the next real state change. Also added `abandonGate` (deletes an open session and its
+      sets outright) since a session stuck open behind the old crash had no other way out.
+      Written up as engineering-standards rule 13, with `scripts/check-render-rules.mjs` enforcing
+      the mechanical half of it in `pnpm run build`.
+- [x] **Opening a gate paid a full E-rank gate-clear bonus (200 XP) before any set was logged.** Two
+      defects combined: `gateDifficulty([])` scored 0 but still returned the initialiser rank `'E'`
+      (an empty plan is not an E-rank session — it is no session), and `projectPlayer` walked every
+      session with no `endedAt` filter, so an open session banked XP, tonnage, PRs and a gate rank
+      immediately rather than waiting for Finish Gate. Fixing only one hid the other. Written up as
+      engineering-standards rule 15.
+
+Regression tests: `src/domain/gates.test.ts` (empty plan → null rank), `src/domain/projection.test.ts`
+("an open session pays nothing until it is finished"), `src/app/state.test.ts` (the same through the
+real store actions, plus a `targetFor` reference-stability test standing in for a render test — see
+rule 14, not yet built).
+
 ## Where the build stands (M3 landed 2026-09-04)
 
 All seven commits of `docs/m3-plan.md` are in. The engine, store, and rest-timer corrections

@@ -137,6 +137,51 @@ describe('a single logged session', () => {
   })
 })
 
+describe('an open session pays nothing until it is finished', () => {
+  // Regression for the bug where opening a gate paid a full E-rank
+  // gate-clear bonus (200 XP) before a single set was logged: an empty plan
+  // gave gateDifficulty a phantom 'E' rank, and the projection walk counted
+  // the session at all despite endedAt being null. Fixed at both spots —
+  // fixing only one still lets the other pay the bonus early.
+  const openEmpty: SessionLog = { ...session('s1', TODAY, 1000), endedAt: null }
+
+  it('an open session with no sets logged yet earns no XP, tonnage, or gate rank', () => {
+    const projection = projectPlayer(baseInput({ sessions: [openEmpty], sets: [] }))
+    expect(projection.player.xp).toBe(0)
+    expect(projection.totalTonnageKg).toBe(0)
+    expect(projection.sessionSummaries).toHaveLength(0)
+  })
+
+  it('an open session with real sets already logged still pays nothing until Finish Gate', () => {
+    const sets = [set('s1', 'barbell-squat', 100, 5, 0, 1000, { rpe: 8 })]
+    const projection = projectPlayer(baseInput({ sessions: [openEmpty], sets }))
+    expect(projection.player.xp).toBe(0)
+    expect(projection.totalTonnageKg).toBe(0)
+    expect(projection.sessionSummaries).toHaveLength(0)
+    // The set is real work, but crediting it as a record or a best e1RM
+    // before the session ends would let a still-open session's progress
+    // leak into rank and shadow-extraction eligibility early.
+    expect(projection.bestE1rmByExercise.has('barbell-squat')).toBe(false)
+  })
+
+  it('the same session pays out normally once ended', () => {
+    const sets = [set('s1', 'barbell-squat', 100, 5, 0, 1000, { rpe: 8 })]
+    const ended: SessionLog = { ...openEmpty, endedAt: 2000 }
+    const projection = projectPlayer(baseInput({ sessions: [ended], sets }))
+    expect(projection.player.xp).toBeGreaterThan(0)
+    expect(projection.totalTonnageKg).toBe(500)
+    expect(projection.sessionSummaries).toHaveLength(1)
+  })
+
+  it('does not inflate the 28-day adherence window that feeds derived stats', () => {
+    // sessionsLogged28 / completedPlannedSessions28 (stats.ts) must not count
+    // a session that only exists because Start Gate was clicked.
+    const withOpen = projectPlayer(baseInput({ sessions: [openEmpty], sets: [] }))
+    const withNone = projectPlayer(baseInput({ sessions: [], sets: [] }))
+    expect(withOpen.player.derived).toEqual(withNone.player.derived)
+  })
+})
+
 describe('records are credited on the day they were set', () => {
   const sessions = [
     session('s1', '2026-03-01', 1000),

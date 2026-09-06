@@ -139,7 +139,17 @@ export function projectPlayer(input: ProjectionInput): Projection {
 
   const liveSets = dropSuperseded(input.sets)
   const setsBySession = groupSetsBySession(liveSets)
-  const sessionsChronological = [...input.sessions].sort((a, b) => a.startedAt - b.startedAt)
+
+  // A session only counts toward XP, tonnage, records, gate rank and the
+  // derived-stats window below once it has actually finished. An open session
+  // is real work in progress — logged sets still show immediately on the gate
+  // screen, which reads the raw log directly — but paying it out here before
+  // Finish Gate would mean opening a session banks a gate-clear bonus (and,
+  // with an empty plan, a phantom rank — see gateDifficulty) before a single
+  // set is logged, and a session cut short would be credited as though it had
+  // been finished, which is exactly backwards.
+  const endedSessions = input.sessions.filter((s) => s.endedAt !== null)
+  const sessionsChronological = [...endedSessions].sort((a, b) => a.startedAt - b.startedAt)
 
   /* ---- walk the log forward once, accumulating XP and records ---- */
   const runningBestE1rm = new Map<string, number>()
@@ -241,7 +251,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
 
   /* ---- the 28-day window that feeds the derived stats ---- */
   const window28 = new Set(rollingWindow(input.today, 28))
-  const sessionsIn28 = input.sessions.filter((s) => window28.has(s.dayKey))
+  const sessionsIn28 = endedSessions.filter((s) => window28.has(s.dayKey))
   const setsIn28 = sessionsIn28.flatMap((s) => setsBySession.get(s.id) ?? [])
   const workingSetsIn28 = setsIn28.filter((s) => !s.isWarmup)
 

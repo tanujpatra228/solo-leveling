@@ -24,7 +24,8 @@ export interface PlannedWork {
 }
 
 export interface GateDifficulty {
-  rank: Rank
+  /** Null for an empty plan — no work was asked for, so there is no rank to give it. */
+  rank: Rank | null
   plannedTonnageKg: number
   /** Mean fraction of estimated max the working sets sit at, 0 to 1. */
   meanIntensity: number
@@ -54,6 +55,12 @@ export const GATE_SCORE_THRESHOLDS: Record<Exclude<Rank, 'E'>, number> = {
 export const ASSUMED_INTENSITY_WITHOUT_HISTORY = 0.7
 
 export function gateDifficulty(plan: readonly PlannedWork[]): GateDifficulty {
+  // No planned work is not the same as an E-rank session — it is no session
+  // at all, and every caller reads a rank back as proof the work happened.
+  if (plan.length === 0) {
+    return { rank: null, plannedTonnageKg: 0, meanIntensity: 0, score: 0 }
+  }
+
   let tonnage = 0
   let intensitySum = 0
   let intensityCount = 0

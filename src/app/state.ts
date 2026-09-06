@@ -138,7 +138,23 @@ export interface AppState extends LoadedData {
     patch: { weight?: number; reps?: number; rpe?: number; isWarmup?: boolean },
   ) => Promise<void>
   finishGate: () => Promise<void>
+  /**
+   * Discards the open session outright rather than finishing it — for a gate
+   * opened by mistake, or a stuck row left behind by an earlier crash. See
+   * `repo.abandonSession`.
+   */
+  abandonGate: () => Promise<void>
 
+  /**
+   * One target per exercise, computed once in `recompute()` rather than on
+   * demand. A `useApp((s) => s.targetFor(id))` selector that computed fresh on
+   * every call broke Zustand v5's `useSyncExternalStore`-based subscription:
+   * a new object every render means the snapshot is never `Object.is`-stable,
+   * which is an infinite re-render (React error #185) the instant a screen
+   * reads it. Reading from a precomputed map keeps the same reference across
+   * renders that are not caused by an actual state change.
+   */
+  targetsByExerciseId: Record<string, NextTarget>
   targetFor: (exerciseId: string) => NextTarget | null
 
   completeDailyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
@@ -261,6 +277,7 @@ export const useApp = create<AppState>((set, get) => ({
   dungeonBreaks: [],
   messages: [],
   activeSessionId: null,
+  targetsByExerciseId: {},
 
   pushMessage(message) {
     set((state) => ({ messages: [...state.messages, { ...message, id: messageId() }] }))
@@ -376,6 +393,33 @@ export const useApp = create<AppState>((set, get) => ({
 
     const activeSession = state.sessions.find((s) => s.endedAt === null) ?? null
 
+    // A session's targets belong to the routine it was started against, not
+    // today's date — the two disagree whenever a session crosses the 04:00
+    // rollover. Only fall back to the day-of-week lookup when there is no
+    // active session, or the active one has no routine (Instant Dungeon Key).
+    const targetRoutine = activeSession?.routineId
+      ? state.routines.find((r) => r.id === activeSession.routineId)
+      : state.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(today))
+
+    // Computed once here rather than on demand by `targetFor`: every call
+    // site reads the same object for the same exercise until the next
+    // recompute, which is what keeps the selector Object.is-stable across
+    // renders (see the AppState doc comment on targetFor).
+    const targetsByExerciseId: Record<string, NextTarget> = {}
+    for (const exercise of state.exercises) {
+      const blockItem = targetRoutine?.blocks
+        .flatMap((b) => b.items)
+        .find((item) => item.exerciseId === exercise.id)
+
+      targetsByExerciseId[exercise.id] = computeNextTarget(exercise, blockItem?.sets ?? 3, {
+        lastSets: lastSetsForExercise(exercise.id, state.sessions, state.sets),
+        age: projection.age ?? undefined,
+        equipmentAccess: state.profile?.equipmentAccess,
+        resolveExercise,
+        repRangeOverride: blockItem?.repRange,
+      })
+    }
+
     set({
       today,
       projection,
@@ -383,6 +427,7 @@ export const useApp = create<AppState>((set, get) => ({
       advisories: activeAdvisories(allAdvisories, state.settings.dismissedAdvisories),
       dungeonBreaks: resolveDungeonBreaks(openGates, today),
       activeSessionId: activeSession?.id ?? null,
+      targetsByExerciseId,
     })
   },
 
@@ -630,29 +675,15 @@ export const useApp = create<AppState>((set, get) => ({
     await get().refresh()
   },
 
+  async abandonGate() {
+    const sessionId = get().activeSessionId
+    if (!sessionId) return
+    await repo.abandonSession(sessionId)
+    await get().refresh()
+  },
+
   targetFor(exerciseId) {
-    const state = get()
-    const exercise = state.exercises.find((e) => e.id === exerciseId)
-    if (!exercise) return null
-
-    // A session's targets belong to the routine it was started against, not
-    // today's date — the two disagree whenever a session crosses the 04:00
-    // rollover. Only fall back to the day-of-week lookup when there is no
-    // active session, or the active one has no routine (Instant Dungeon Key).
-    const activeSession = state.sessions.find((s) => s.id === state.activeSessionId)
-    const routine = activeSession?.routineId
-      ? state.routines.find((r) => r.id === activeSession.routineId)
-      : state.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(state.today))
-
-    const blockItem = routine?.blocks.flatMap((b) => b.items).find((item) => item.exerciseId === exerciseId)
-
-    return computeNextTarget(exercise, blockItem?.sets ?? 3, {
-      lastSets: lastSetsForExercise(exerciseId, state.sessions, state.sets),
-      age: state.projection?.age ?? undefined,
-      equipmentAccess: state.profile?.equipmentAccess,
-      resolveExercise: (id) => state.exercises.find((e) => e.id === id),
-      repRangeOverride: blockItem?.repRange,
-    })
+    return get().targetsByExerciseId[exerciseId] ?? null
   },
 
   todaysDailyQuest() {
