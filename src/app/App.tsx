@@ -24,6 +24,20 @@ export function App() {
     void useApp.getState().load()
   }, [])
 
+  // The other active trigger (F3, the other is after `finishGate`). Fires
+  // once the app is usable, and again every time it comes back to the
+  // foreground — never on a timer, and `syncNow` itself no-ops with sync
+  // disabled or no in-flight run already coalescing this one.
+  useEffect(() => {
+    if (!ready) return
+    useApp.getState().syncNow()
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') useApp.getState().syncNow()
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [ready])
+
   if (!ready) return <BootScreen />
   if (doubleDungeonSeenAt === null) return <DoubleDungeon />
 

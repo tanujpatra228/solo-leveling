@@ -970,6 +970,10 @@ export const useApp = create<AppState>((set, get) => ({
     }
 
     await get().refresh()
+    // One of the two active triggers (F3, the other is app foreground). Not
+    // awaited: a finished gate must show its summary at once, not after a
+    // network round trip.
+    get().syncNow()
   },
 
   async abandonGate() {

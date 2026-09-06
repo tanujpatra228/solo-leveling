@@ -3,7 +3,14 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      // Only vite-plugin-pwa's real build resolves this specifier. See
+      // src/testing/pwa-register-stub.ts.
+      'virtual:pwa-register/react': fileURLToPath(
+        new URL('./src/testing/pwa-register-stub.ts', import.meta.url),
+      ),
+    },
   },
   test: {
     // The domain layer is pure, so it needs no DOM. Repository tests opt into

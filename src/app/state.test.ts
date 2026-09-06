@@ -668,6 +668,36 @@ describe('syncNow — coalescing and backoff (M6 commit 1, F3)', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
+  it('finishGate triggers a sync attempt once sync is enabled (m6-plan commit 2)', async () => {
+    await useApp.getState().updateSettings({ syncEnabled: true })
+    vi.stubGlobal('navigator', { onLine: true })
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ seq: 1, received: 0, hasMore: false, rows: { sessions: [], sets: [], bodyMetrics: [] } }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 8 })
+    await useApp.getState().finishGate()
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled())
+  })
+
+  it('finishGate contacts nothing while sync is disabled, which is the default', async () => {
+    vi.stubGlobal('navigator', { onLine: true })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 8 })
+    await useApp.getState().finishGate()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('backs off exponentially on repeated failures and gives up rather than retrying forever', async () => {
     await useApp.getState().updateSettings({ syncEnabled: true })
     vi.stubGlobal('navigator', { onLine: true })
