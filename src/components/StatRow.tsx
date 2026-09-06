@@ -7,7 +7,13 @@ import type { LucideIcon } from 'lucide-react'
 import { SystemIcon } from './SystemIcon'
 import { StatBar, type StatBarProps } from './StatBar'
 
-export function StatRow({ icon, ...bar }: StatBarProps & { icon: LucideIcon }) {
+export interface StatRowProps extends StatBarProps {
+  icon: LucideIcon
+  /** Present only while there are unspent points to spend, per caller. */
+  onAllocate?: () => void
+}
+
+export function StatRow({ icon, onAllocate, ...bar }: StatRowProps) {
   return (
     <div className="flex items-center gap-2">
       <SystemIcon icon={icon} size={16} />
@@ -24,6 +30,16 @@ export function StatRow({ icon, ...bar }: StatBarProps & { icon: LucideIcon }) {
       <div className="min-w-0 flex-1">
         <StatBar {...bar} />
       </div>
+      {onAllocate ? (
+        <button
+          type="button"
+          onClick={onAllocate}
+          aria-label={`Allocate a point to ${bar.label}`}
+          className="shrink-0 rounded-full border border-panel-edge px-2 py-0.5 font-system text-xs text-mana"
+        >
+          +
+        </button>
+      ) : null}
     </div>
   )
 }

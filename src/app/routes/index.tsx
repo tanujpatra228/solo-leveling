@@ -8,13 +8,17 @@
  */
 import { createRoute, redirect } from '@tanstack/react-router'
 import { Brain, Dumbbell, Footprints, HeartPulse, Radar } from 'lucide-react'
+import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
+import { DeloadPanel } from '../../components/DeloadPanel'
+import { FatiguePanel } from '../../components/FatiguePanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
+import { VolumePanel } from '../../components/VolumePanel'
 import type { HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
 import { rootRoute } from './root'
@@ -42,6 +46,9 @@ const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
 
 function HomeScreen() {
   const projection = useApp((s) => s.projection)
+  const advisories = useApp((s) => s.advisories)
+  const allocatePoint = useApp((s) => s.allocatePoint)
+  const resetAllocation = useApp((s) => s.resetAllocation)
 
   if (!projection) {
     return (
@@ -52,6 +59,7 @@ function HomeScreen() {
   }
 
   const { player } = projection
+  const unspent = player.unspentStatPoints
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
@@ -69,7 +77,21 @@ function HomeScreen() {
 
         <DailyQuestPanel />
 
+        <StreakPanel />
+
         <SystemPanel className="mt-3 flex flex-col gap-2">
+          {unspent > 0 ? (
+            <div className="flex items-center justify-between font-system text-[11px] text-mana uppercase">
+              <span>{unspent} point{unspent === 1 ? '' : 's'} to spend</span>
+              <button
+                type="button"
+                onClick={() => void resetAllocation()}
+                className="text-ink-faint underline normal-case"
+              >
+                Reset allocation
+              </button>
+            </div>
+          ) : null}
           {STAT_ORDER.map((key) => (
             <StatRow
               key={key}
@@ -78,11 +100,15 @@ function HomeScreen() {
               derived={player.derived[key]}
               allocated={player.allocated[key]}
               total={player.total[key]}
+              onAllocate={unspent > 0 ? () => void allocatePoint(key) : undefined}
             />
           ))}
         </SystemPanel>
 
-        <StreakPanel />
+        <FatiguePanel fatigue={projection.fatigue} />
+        <VolumePanel volume={projection.volume} />
+        <DeloadPanel deload={projection.deload} />
+        <AdvisoriesPanel advisories={advisories} />
       </SystemWindow>
     </main>
   )
