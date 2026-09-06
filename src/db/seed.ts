@@ -118,7 +118,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [8, 20],
-    progressionLadder: ['incline-pushups', 'pike-pushups', 'diamond-pushups'],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
     cue: 'Hands together under the sternum. Elbows brush the ribs.',
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — see docs/substitution-plan.md §7.
@@ -312,7 +312,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [10, 20],
-    progressionLadder: ['incline-pushups', 'pike-pushups', 'diamond-pushups'],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
     cue: 'The higher the hands, the easier it is. Lower the hands as this gets easy.',
     usesBodyweight: true,
     // Reasoned, not measured, and the honest weak spot: this genuinely varies
@@ -330,7 +330,11 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [8, 15],
-    progressionLadder: ['incline-pushups', 'pike-pushups', 'diamond-pushups'],
+    // Its own ladder, not the horizontal_push line: front_delts via a vertical
+    // press is a different pattern and muscle than a pushup. Nothing else in
+    // the library is a bodyweight vertical_push progression yet, so this rung
+    // is alone until commit 4 seeds a fallback for that gap.
+    progressionLadder: ['pike-pushups'],
     cue: 'Hips high, head travels between the hands. This one is a shoulder press.',
     usesBodyweight: true,
     // Reasoned, not measured — torso vertical, most of the load on the shoulders. See §7.
