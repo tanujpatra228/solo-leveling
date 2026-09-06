@@ -214,6 +214,44 @@ function messageId(): string {
   return crypto.randomUUID()
 }
 
+const SUBSTITUTION_REASON_LABEL: Record<SubstitutionReason, string> = {
+  occupied: 'station occupied',
+  unavailable: 'unavailable',
+  injury: 'injury',
+  preference: 'preference',
+}
+
+/**
+ * "N of M blocks as prescribed", plus one line per substitution made this
+ * session. The System should never quietly re-describe what the hunter did —
+ * see docs/substitution-plan.md §5 commit 8. Reads the log itself
+ * (`SetLog.substitutedFor`) rather than `activeSubstitutions`, which is
+ * already cleared by the time `finishGate` gets here.
+ */
+function summarizeSubstitutions(routineId: string, sessionId: string, state: AppState): string {
+  const routine = state.routines.find((r) => r.id === routineId)
+  if (!routine) return ''
+
+  const totalBlocks = routine.blocks.flatMap((b) => b.items).length
+  const substitutions = new Map<string, { substituteId: string; reason: SubstitutionReason }>()
+  for (const set of state.sets) {
+    if (set.sessionId !== sessionId || !set.substitutedFor) continue
+    substitutions.set(set.substitutedFor, {
+      substituteId: set.exerciseId,
+      reason: set.substitutionReason ?? 'occupied',
+    })
+  }
+  if (substitutions.size === 0) return ''
+
+  const asPrescribed = totalBlocks - substitutions.size
+  const nameFor = (id: string) => state.exercises.find((e) => e.id === id)?.name ?? id
+  const lines = Array.from(substitutions.entries()).map(
+    ([plannedId, sub]) =>
+      `${nameFor(plannedId)} → ${nameFor(sub.substituteId)}, ${SUBSTITUTION_REASON_LABEL[sub.reason]}.`,
+  )
+  return `${asPrescribed} of ${totalBlocks} blocks as prescribed. ${lines.join(' ')}`
+}
+
 async function loadAll(): Promise<LoadedData> {
   const [
     profile,
@@ -734,9 +772,10 @@ export const useApp = create<AppState>((set, get) => ({
         gatesCleared: after.progress.gatesCleared + 1,
         gold: after.progress.gold + 25,
       })
+      const substitutionLine = summarizeSubstitutions(session.routineId, sessionId, after)
       get().pushMessage({
         title: `[Gate cleared. Rank ${summary.gateRank ?? 'E'}.]`,
-        body: `${Math.round(summary.tonnageKg)} kg moved across ${summary.hardSets} hard sets. ${Math.round(summary.xp)} experience gained.`,
+        body: `${Math.round(summary.tonnageKg)} kg moved across ${summary.hardSets} hard sets. ${Math.round(summary.xp)} experience gained.${substitutionLine ? ` ${substitutionLine}` : ''}`,
         tone: 'good',
       })
     }

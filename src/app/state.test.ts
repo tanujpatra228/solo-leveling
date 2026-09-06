@@ -401,6 +401,41 @@ describe('substituteExercise records the choice for the open session (substituti
   })
 })
 
+describe('finishGate summarizes substitutions (substitution-plan.md §5 commit 8)', () => {
+  it('names the swap and its reason in the gate-cleared message', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+    await useApp.getState().logSet({
+      exerciseId: 'leg-raises',
+      weight: 0,
+      reps: 15,
+      substitutedFor: 'hanging-leg-raises',
+      substitutionReason: 'occupied',
+    })
+
+    await useApp.getState().finishGate()
+
+    // .at(-1) rather than .find: messages persist across tests in this file,
+    // so an earlier test's own "Gate cleared" message would otherwise win.
+    const summary = useApp.getState().messages.filter((m) => m.title.includes('Gate cleared')).at(-1)
+    expect(summary).toBeDefined()
+    // saturday-cardio-abs has 4 blocks; one was substituted.
+    expect(summary!.body).toContain('3 of 4 blocks as prescribed')
+    expect(summary!.body).toContain('Hanging Leg Raises → Leg Raises, station occupied.')
+  })
+
+  it('says nothing extra when nothing was substituted, so an ordinary gate reads exactly as before', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    await useApp.getState().logSet({ exerciseId: 'leg-raises', weight: 0, reps: 15 })
+
+    await useApp.getState().finishGate()
+
+    const summary = useApp.getState().messages.filter((m) => m.title.includes('Gate cleared')).at(-1)
+    expect(summary).toBeDefined()
+    expect(summary!.body).not.toContain('blocks as prescribed')
+  })
+})
+
 describe('substitutesByExerciseId (commit 7)', () => {
   async function awaken(): Promise<void> {
     await useApp.getState().completeAwakening({
