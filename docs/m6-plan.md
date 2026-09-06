@@ -155,6 +155,19 @@ Append-only means conflicts should not arise; corrections are new rows that supe
 `dropSuperseded` has to survive a merge where the superseding row arrives before the row it
 supersedes. That ordering case is the one worth an explicit test.
 
+**Commit 6's run, written down.** `dropSuperseded` needed no fix — it already collects every
+`supersedes` reference from the whole array before filtering, in a first pass that does not care
+what order it meets rows in, so a correction ahead of the row it replaces was already safe. Landed
+an explicit test for exactly that case (`projection.test.ts`), and a live run against the deployed
+Worker: pushed a session, two sets, and a correction from one Dexie database (device A), pulled the
+same rows into a second, genuinely separate Dexie database (device B, same Hunter Secret) through
+the real `/api/sync`, and ran `projectPlayer` over device B's copy twice — once in the order the
+pull returned it, once with the sets array reversed. Device A (1,620 kg tonnage, 425 XP) matched
+device B both ways. "Two browser profiles" in the verification list below is closer to a live
+acceptance check than a permanent suite entry — the two-Dexie-instance run is not something that
+belongs in `pnpm test`, since it needs the network and a throwaway hunter — so the lasting artifact
+is the domain-level test, not a kept integration test.
+
 ## 3. Verification
 
 - Two browser profiles with the same Hunter Secret converge on the same set of rows, and both

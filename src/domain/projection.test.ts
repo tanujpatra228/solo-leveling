@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  dropSuperseded,
   emptyProjectionInput,
   historyForExercise,
   lastSetsForExercise,
@@ -286,6 +287,20 @@ describe('superseded sets are excluded', () => {
     const projection = projectPlayer(baseInput({ sessions, sets: [original, correction] }))
     expect(projection.totalTonnageKg).toBe(500)
     expect(projection.bestE1rmByExercise.get('barbell-squat')).toBeCloseTo(100 * (1 + 5 / 30), 6)
+  })
+
+  it('drops the same row whichever order the two arrive in (M6 commit 6)', () => {
+    // A synced pull can hand back a superseding row before the row it
+    // supersedes — nothing about the wire protocol or `applyRemoteRows`'s
+    // bulkPut guarantees insertion order survives a round trip through a
+    // second device. dropSuperseded must not depend on it: it first
+    // collects every `supersedes` reference from the whole array, then
+    // filters, so which element it meets first never matters.
+    const inOriginalOrder = dropSuperseded([original, correction])
+    const inReverseOrder = dropSuperseded([correction, original])
+
+    expect(inOriginalOrder.map((s) => s.id)).toEqual(['correction'])
+    expect(inReverseOrder.map((s) => s.id)).toEqual(['correction'])
   })
 })
 
