@@ -475,7 +475,7 @@ describe('substitutesByExerciseId (commit 7)', () => {
   })
 })
 
-describe('Daily Quest per-item progress (F2, m5-plan commit 4)', () => {
+describe('Daily Quest per-item progress (F2)', () => {
   // Seeded directly rather than through ensureQuestsForToday, which skips a
   // rest day — `today` is real wall-clock (recompute() derives it from
   // Date.now() on every refresh, so overriding it does not stick), and
@@ -556,7 +556,7 @@ describe('Daily Quest per-item progress (F2, m5-plan commit 4)', () => {
   })
 })
 
-describe('a level change announces itself as a window notification (m5-plan commit 8)', () => {
+describe('a level change announces itself as a window notification', () => {
   // `messages` is ephemeral UI state, not persisted to Dexie, so nothing
   // clears it between tests in this file, and other, unrelated tests
   // legitimately cross a level and leave their own "[Level up." message

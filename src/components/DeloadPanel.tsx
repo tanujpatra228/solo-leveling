@@ -1,6 +1,6 @@
 /**
- * The deload prompt, shown only when `projection.deload.due` (docs/m5-plan.md
- * §2). `markDeload` already exists as a store action with no UI.
+ * The deload prompt, shown only when `projection.deload.due`, wired to the
+ * `markDeload` store action.
  */
 import { useState } from 'react'
 import { useApp } from '../app/state'

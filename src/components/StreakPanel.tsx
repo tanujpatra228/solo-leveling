@@ -1,7 +1,7 @@
 /**
  * The streak, rest tokens, and the forgiveness controls over the store
  * actions that already exist (`declareAbsence`, `spendRestToken`) — no new
- * domain work, just wiring (docs/m5-plan.md commit 6).
+ * domain work, just wiring.
  *
  * The controls show only while today's own daily-quest row is still
  * `issued`. `streak.todayPending` looks like the right flag but isn't: it

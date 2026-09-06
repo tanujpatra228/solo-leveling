@@ -1,7 +1,7 @@
 /**
- * The dismissible advisory list already in the store — `dismissAdvisory` has
- * no UI yet (docs/m5-plan.md §2). `state.advisories` is already the active
- * (undismissed) list, computed in `recompute()`.
+ * The dismissible advisory list, wired to the `dismissAdvisory` store action.
+ * `state.advisories` is already the active (undismissed) list, computed in
+ * `recompute()`.
  */
 import { useApp } from '../app/state'
 import type { Advisory, AdvisorySeverity } from '../domain/advisories'

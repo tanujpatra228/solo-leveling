@@ -190,7 +190,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
     // The rep-count equivalent, for bodyweight movements resolveBosses can
     // never credit (weight 0 always estimates a 1RM of 0) — read against the
     // running best *before* the loop below updates it, same as the e1RM
-    // bosses above (F4, docs/m5-plan.md).
+    // bosses above (F4).
     const repRecords = resolveRepRecords(sessionSets, usesBodyweight, (id) => bestRepsByExercise.get(id) ?? 0)
     for (const record of repRecords) {
       if (record.killed && !prExerciseIds.includes(record.exerciseId)) prExerciseIds.push(record.exerciseId)

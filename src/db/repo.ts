@@ -101,7 +101,7 @@ const DEFAULT_PROGRESS: Progress = {
  * otherwise a shipped correction to the library (a fixed `bodyweightFactor`,
  * a new fallback) never reaches a device that was already seeded before it
  * existed; it just keeps reading the old row back through Zod's default
- * forever (F1, `docs/m5-plan.md`). Routines will become user-editable, so
+ * forever (F1). Routines will become user-editable, so
  * they stay add-only (`bulkAdd` of whatever id is missing) — overwriting one
  * on every load would silently discard a hunter's edit.
  */

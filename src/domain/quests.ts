@@ -43,7 +43,7 @@ export interface DailyQuest {
  * entered by the hunter, never inferred from logged sets inside a gate — 40
  * sit-ups inside a gate are not the Daily Quest's sit-ups unless the hunter
  * says so, and guessing would either double-count the day's work or quietly
- * complete a quest nobody did (F2, docs/m5-plan.md).
+ * complete a quest nobody did (F2).
  */
 export interface DailyQuestPayload extends DailyQuest {
   progress: Partial<Record<DailyItemKind, number>>

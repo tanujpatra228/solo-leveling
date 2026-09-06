@@ -87,7 +87,7 @@ describe('computeFatigue', () => {
     expect(state.gauge).toBeGreaterThanOrEqual(0)
   })
 
-  describe('the first four weeks (F3, docs/m5-plan.md)', () => {
+  describe('the first four weeks (F3)', () => {
     it('reports insufficient_data with a multiplier of 1 in week one, not danger', () => {
       // A brand-new hunter, one week in, training hard every day. The 28-day
       // chronic window is mostly empty — chronic ≈ acute / 4 — so before the

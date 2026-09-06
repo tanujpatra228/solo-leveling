@@ -242,7 +242,7 @@ describe('records are credited on the day they were set', () => {
   })
 })
 
-describe('a bodyweight rep record pays a PR bonus too (F4, docs/m5-plan.md)', () => {
+describe('a bodyweight rep record pays a PR bonus too (F4)', () => {
   // Diamond Pushups: usesBodyweight, weight always 0. resolveBosses alone can
   // never credit this — epley(0, reps) is always 0 — so before the fix, a
   // programme of pushups, pull-ups and abs work set no records ever.

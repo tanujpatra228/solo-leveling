@@ -132,7 +132,7 @@ describe('boss kills', () => {
   })
 })
 
-describe('rep records (F4, docs/m5-plan.md)', () => {
+describe('rep records (F4)', () => {
   function set(exerciseId: string, weight: number, reps: number, isWarmup = false): SetLog {
     return {
       id: `${exerciseId}-${weight}-${reps}`,

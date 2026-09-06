@@ -1,7 +1,7 @@
 /**
- * The fatigue gauge: `SegmentedRing` driven by `projection.fatigue.gauge`,
- * with its band and message (docs/system-visuals-plan.md's ring construction,
- * repurposed here for its originally-planned use — docs/m5-plan.md §2).
+ * The fatigue gauge: `SegmentedRing` (docs/system-visuals-plan.md's ring
+ * construction) driven by `projection.fatigue.gauge`, with its band and
+ * message — its originally-planned use, finally landing here.
  */
 import { SegmentedRing } from './SegmentedRing'
 import { SystemPanel } from './SystemPanel'

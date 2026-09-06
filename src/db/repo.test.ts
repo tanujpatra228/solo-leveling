@@ -1,8 +1,8 @@
 /**
- * `ensureSeeded`'s exercises-vs-routines asymmetry (F1, `docs/m5-plan.md`
- * commit 1). Exercises are upserted unconditionally so a shipped correction
- * reaches a device seeded before it existed; routines stay add-only so a
- * hunter's edit is never silently discarded.
+ * `ensureSeeded`'s exercises-vs-routines asymmetry (F1). Exercises are
+ * upserted unconditionally so a shipped correction reaches a device seeded
+ * before it existed; routines stay add-only so a hunter's edit is never
+ * silently discarded.
  */
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'

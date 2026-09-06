@@ -2,6 +2,35 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
+## M5 — The game layer, landed 2026-09-07
+
+All eight commits of `docs/m5-plan.md` (now `git rm`'d — detail recoverable at the commit below,
+summary in `docs/implementation-plan.md` §4). 595 tests passing, typecheck and `check:render` clean.
+
+- [x] **Commit 1** (F1) `ensureSeeded` upserts exercises unconditionally (`bulkPut`), keeping
+      routines add-only, so a shipped correction reaches a device seeded before it existed (`8f2cdfe`)
+- [x] **Commit 2** (F3) Fatigue holds `insufficient_data` until the chronic window spans four real
+      weeks of training, not just a non-zero denominator — a normal first week no longer reads as
+      `danger` (`5338931`)
+- [x] **Commit 3** (F4) `resolveRepRecords`, the rep-count equivalent of a boss kill for a bodyweight
+      movement `resolveBosses` can never credit (`6f5ea7b`)
+- [x] **Commit 4** (F2) Daily Quest per-item progress: `completeDailyQuest`'s `progressByKind`
+      parameter, declared but ignored, now merges into the stored payload and completes once every
+      item is met (`c35ed90`)
+- [x] **Commit 5** The Daily Quest panel (`af73ad2`)
+- [x] **Commit 6** Streak panel with the forgiveness controls (`a24ea25`)
+- [x] **Commit 7** Allocation, fatigue ring, volume bars, deload prompt, advisories (`f7c6592`)
+- [x] **Commit 8** Level-up window, caught centrally in `recompute()` regardless of which action
+      changed the level (`68593c7`)
+
+**Also landed same day, not part of the eight:** the rest-timer countdown ring (`SegmentedRing`
+repurposed — fills as time runs out, warns under 10s remaining), and two design-system bugs found
+on a real device screenshot — `SystemWindow`'s `sharp` corners made the one-true-look instead of an
+opt-in, and `StatRow`'s meter (a flex row nested as a plain flex item) stopped a third of the way
+across the card.
+
+**Bundle, measured:** 205.33 KB JS + 5.86 KB CSS gzipped — still pending M4 H1/H2's real budget.
+
 ## Exercise substitution, landed 2026-09-06
 
 All eight commits of the substitution plan (git history, deleted; see `3edda1e`-style note below)
@@ -83,8 +112,9 @@ H1/H2 (bundle sourcemap attribution, still open) lands a real budget rather than
       its first real caller: the rest timer in `gate.tsx` now shows a 12-arc ring that fills as
       the rest elapses, shifting to `warn` under 10s remaining, with the `m:ss` digits centred
       inside. `useRestTimer`/`rest-timer.ts` gained `totalSec`/`elapsedPct` to drive it
-- [ ] The fatigue reading itself still has no caller on the Status Window, and the rank badge
-      restyle / gate diamond remain unbuilt for the same reason — nothing calls them yet
+- [x] The fatigue reading got its Status Window caller in M5 commit 7 (`FatiguePanel`, driven by
+      `projection.fatigue.gauge`) — see the M5 entry above
+- [ ] The rank badge restyle and gate diamond remain unbuilt — nothing calls them yet
 - [ ] Step 8's phone verification (60fps with all glow enabled, `prefers-reduced-motion` /
       glow-reduction check) — needs a real device, not something reasoning from this machine can
       settle
@@ -262,8 +292,10 @@ Step-by-step plan: docs/m4-plan.md
 - [x] XP formula and level curve, calibrated to about level 50 per year
 - [x] Five stats: derived half (28-day rolling window)
 - [x] Five stats: allocated half (3 points per level) biasing quest generation
-- [x] Status Window home screen (minimal E-Rank window; quests, roster and fatigue detail are M5)
-- [x] Daily Quest generation and completion (engine; screen pending)
+- [x] Status Window home screen, grown into the full window: Daily Quest panel, streak and
+      forgiveness controls, stat allocation, fatigue ring, volume bars, deload prompt, advisories
+      (M5, landed 2026-09-07 — roster detail stays for M7's shadow/tower screens)
+- [x] Daily Quest generation and completion, with per-item progress entered by hand (M5 commit 4)
 - [x] Streak tracking, rest tokens, illness and travel declaration, streak freeze
 - [x] Penalty Quest on missed daily (adds work, never deletes progress)
 

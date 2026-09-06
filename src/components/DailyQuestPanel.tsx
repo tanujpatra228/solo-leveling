@@ -1,7 +1,7 @@
 /**
  * The Daily Quest, with per-item progress entered by hand — never inferred
  * from logged sets inside a gate. 40 sit-ups inside a gate are not the Daily
- * Quest's sit-ups unless the hunter says so (F2, docs/m5-plan.md).
+ * Quest's sit-ups unless the hunter says so (F2).
  *
  * Renders nothing once there is no quest for today, which is the honest
  * state on a rest day — the System asks for nothing and shows nothing.

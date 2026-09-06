@@ -1,6 +1,6 @@
 /**
  * One `SystemMeter` per muscle against its landmark, worst deficit first —
- * `projection.volume` is already sorted that way (docs/m5-plan.md §2).
+ * `projection.volume` is already sorted that way.
  */
 import { SystemMeter, type MeterTone } from './SystemMeter'
 import { SystemPanel } from './SystemPanel'

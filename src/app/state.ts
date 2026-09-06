@@ -202,7 +202,7 @@ export interface AppState extends LoadedData {
    * entering 40 then 60 more totals 100, not 60) and completes the quest
    * once every item has met its target. Safe to call with no argument just
    * to re-check completion. Progress is entered by the hunter; nothing here
-   * ever infers it from sets logged inside a gate (F2, docs/m5-plan.md).
+   * ever infers it from sets logged inside a gate (F2).
    */
   completeDailyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
   todaysDailyQuest: () => DailyQuestPayload | null
@@ -536,7 +536,7 @@ export const useApp = create<AppState>((set, get) => ({
     // `recompute` is the one choke point every XP-changing action passes
     // through — `refresh` calls it, and `logSet`/`correctSet` call it
     // directly — so this is the single place a level change can be caught,
-    // regardless of which action caused it (m5-plan commit 8). Guarded on
+    // regardless of which action caused it. Guarded on
     // a previous projection existing, so the very first computation (app
     // boot, or before a profile exists) never reads as "leveled up".
     const previousLevel = state.projection?.player.level ?? null

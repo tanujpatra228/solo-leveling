@@ -174,7 +174,7 @@ export interface RepRecordResult {
  * carries no load at all. `resolveBosses` needs a weight to estimate a 1RM —
  * `epley(0, reps)` is always 0 — so a hunter whose programme is pushups,
  * pull-ups and abs work sets no records there ever, and no PR bonus with it
- * (F4, docs/m5-plan.md). Unlike `resolveBosses`, this does not cap at 12
+ * (F4). Unlike `resolveBosses`, this does not cap at 12
  * reps: a bodyweight ladder's rep ranges routinely run past that.
  */
 export function resolveRepRecords(

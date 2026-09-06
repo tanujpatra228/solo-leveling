@@ -128,7 +128,7 @@ function messageFor(band: FatigueBand, acwr: number | null): string {
  * week one, so chronic ≈ acute / 4 and the ratio sits near 4.0 — past the
  * danger threshold for a perfectly normal first week. `null`, or fewer than
  * four weeks between it and `today`, holds the reading at `insufficient_data`
- * instead (F3, docs/m5-plan.md).
+ * instead (F3).
  */
 export function computeFatigue(
   tonnageByDay: Map<DayKey, number>,

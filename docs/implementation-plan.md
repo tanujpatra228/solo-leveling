@@ -306,13 +306,43 @@ checklist comes back clean.
 *Budget impact:* none beyond the deploy itself. Static assets are free and uncounted.
 
 ### M5 — The game layer
-Status Window as the home screen, Daily Quest with per-item progress, streak and forgiveness
-controls, stat allocation with its effect on next-cycle quest generation shown, XP and level-up
-windows, fatigue gauge, volume mana bars, deload prompt, and the dismissible advisories.
 
-*Acceptance:* the daily quest scales with level as specified; the penalty quest adds work and
-never removes progress; a rest token forgives yesterday and holds the streak.
-*Budget impact:* none.
+Landed as eight commits, in order. Four were corrections found reading the engine and store before
+touching UI, same shape as M3's findings: `ensureSeeded` only ever `bulkAdd`'d exercises missing by
+id, so a device seeded before a correction (the `bodyweightFactor` fix in `5ce8d44`) kept reading
+the old row forever — now upserted unconditionally, with routines staying add-only since those will
+become user-editable. The fatigue gauge read a brand-new hunter's first week as `danger` — the
+28-day chronic window was mostly empty, so acute/chronic sat near 4.0 — held to `insufficient_data`
+now until the chronic window actually spans four weeks of training. A bodyweight movement (weight
+always 0) could never win a boss kill through `resolveBosses`, so a pushups-and-pull-ups programme
+set no PRs ever; `resolveRepRecords` is the rep-count equivalent. And `completeDailyQuest`'s
+`progressByKind` parameter was declared but ignored — the quest was all-or-nothing; it now merges
+entered progress additively into the stored payload and pays out once every item is met.
+
+The remaining four built the Status Window into the home screen: the Daily Quest panel with its
+per-item entry controls, the streak panel with the forgiveness controls
+(`declareAbsence`/`spendRestToken`) wired in, stat allocation plus the fatigue ring
+(`SegmentedRing`'s first real caller, having landed uncalled with the visuals work), the weekly
+volume bars and the deload prompt and the dismissible advisories, and a level-up window —
+`recompute()` is the one choke point every XP-changing action passes through, so it is also the one
+place a level change can be caught regardless of which action caused it.
+
+A same-day addition, not part of the eight: the segmented-ring construction turned out to fit a
+rest-timer countdown as well as a fatigue gauge, so `useRestTimer` gained `elapsedPct` and the gate
+screen's rest timer shows a ring that fills as time runs out.
+
+Two defects found on a real device screenshot mid-milestone, fixed alongside: `SystemWindow` had
+grown two design systems — `sharp` was an opt-in only the Status Window used, so it was made the
+only look; and `StatRow`'s meter stopped a third of the way across the card because `StatBar`, a
+flex row in its own right, shrank to fit its own content as a plain flex item one level up.
+
+*Acceptance:* the daily quest scales with level as specified; the penalty quest adds work and never
+removes progress and now carries the hunter's actual recorded progress rather than an assumed zero;
+a rest token forgives yesterday and holds the streak; a level change announces itself once,
+regardless of which action caused it. 595 tests passing, typecheck and `check:render` clean.
+*Budget impact:* the initial-route bundle measured 205.33 KB JS + 5.86 KB CSS gzipped after this
+milestone (M4's own visuals-work measurement was 203.37 KB JS just before it) — still pending M4
+H1/H2's real, measured budget rather than the invented 200 KB line.
 
 ### M6 — Sync and System Link
 The Hunter License Key screen with the loss warning stated before it matters, QR rendering, QR

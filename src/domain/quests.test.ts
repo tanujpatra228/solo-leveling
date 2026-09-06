@@ -81,7 +81,7 @@ describe('the Daily Quest scales toward canon', () => {
   })
 })
 
-describe('Daily Quest per-item progress (F2, docs/m5-plan.md)', () => {
+describe('Daily Quest per-item progress (F2)', () => {
   const quest = generateDailyQuest({ dayKey: '2026-03-01', level: 20, allocated: ZERO_STATS })
 
   it('is not complete with no progress entered at all', () => {
