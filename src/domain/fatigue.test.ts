@@ -7,7 +7,7 @@ import {
   tonnagePerDay,
   xpMultiplierFor,
 } from './fatigue'
-import { rollingWindow } from './time'
+import { addDaysToKey, rollingWindow } from './time'
 import type { DayKey, SetLog } from './types'
 
 /** Builds a tonnage-per-day map with the same figure on every day in a window. */
@@ -27,9 +27,12 @@ describe('the safe band comes from the brief', () => {
 
 describe('computeFatigue', () => {
   const today: DayKey = '2026-03-28'
+  // A full 28-day chronic window's worth of training behind `today` — the
+  // earliest day `rollingWindow(today, 28)` reaches.
+  const fullHistory: DayKey = addDaysToKey(today, -27)
 
   it('gives an ACWR of 1 for a perfectly steady four weeks', () => {
-    const state = computeFatigue(flatLoad(today, 28, 1000), today)
+    const state = computeFatigue(flatLoad(today, 28, 1000), today, fullHistory)
     expect(state.acwr).toBeCloseTo(1, 10)
     expect(state.band).toBe('optimal')
     expect(state.xpMultiplier).toBe(1)
@@ -39,7 +42,7 @@ describe('computeFatigue', () => {
     // Acute week doubled: 7 days at 2000, the previous 21 at 1000.
     const map = flatLoad(today, 28, 1000)
     for (const day of rollingWindow(today, 7)) map.set(day, 2000)
-    const state = computeFatigue(map, today)
+    const state = computeFatigue(map, today, fullHistory)
     // acute 14000, chronic total 35000, chronic weekly 8750 -> 1.6
     expect(state.acuteTonnage).toBe(14_000)
     expect(state.chronicWeeklyTonnage).toBe(8750)
@@ -49,32 +52,28 @@ describe('computeFatigue', () => {
   it('issues a Recovery Quest above 1.5 and cuts the multiplier', () => {
     const map = flatLoad(today, 28, 1000)
     for (const day of rollingWindow(today, 7)) map.set(day, 3000)
-    const state = computeFatigue(map, today)
+    const state = computeFatigue(map, today, fullHistory)
     expect(state.acwr!).toBeGreaterThan(ACWR_DANGER)
     expect(state.needsRecoveryQuest).toBe(true)
     expect(state.xpMultiplier).toBeLessThan(1)
   })
 
   it('does not issue a Recovery Quest inside the safe band', () => {
-    const state = computeFatigue(flatLoad(today, 28, 1000), today)
+    const state = computeFatigue(flatLoad(today, 28, 1000), today, fullHistory)
     expect(state.needsRecoveryQuest).toBe(false)
   })
 
   it('reports no ratio at all with no chronic load, rather than infinity', () => {
-    const map = new Map<DayKey, number>()
-    map.set(today, 5000)
-    // Only one day of history, so the chronic window is that same single day.
-    const state = computeFatigue(new Map(), today)
+    const state = computeFatigue(new Map(), today, today)
     expect(state.acwr).toBeNull()
     expect(state.band).toBe('insufficient_data')
     expect(state.xpMultiplier).toBe(1)
-    expect(map.size).toBe(1)
   })
 
   it('calls a light week undertrained rather than punishing it', () => {
     const map = flatLoad(today, 28, 1000)
     for (const day of rollingWindow(today, 7)) map.set(day, 200)
-    const state = computeFatigue(map, today)
+    const state = computeFatigue(map, today, fullHistory)
     expect(state.band).toBe('undertrained')
     // Fatigue may only ever cost XP, never pay it.
     expect(state.xpMultiplier).toBe(1)
@@ -83,9 +82,44 @@ describe('computeFatigue', () => {
   it('keeps the gauge inside 0 to 100', () => {
     const map = flatLoad(today, 28, 1000)
     for (const day of rollingWindow(today, 7)) map.set(day, 100_000)
-    const state = computeFatigue(map, today)
+    const state = computeFatigue(map, today, fullHistory)
     expect(state.gauge).toBeLessThanOrEqual(100)
     expect(state.gauge).toBeGreaterThanOrEqual(0)
+  })
+
+  describe('the first four weeks (F3, docs/m5-plan.md)', () => {
+    it('reports insufficient_data with a multiplier of 1 in week one, not danger', () => {
+      // A brand-new hunter, one week in, training hard every day. The 28-day
+      // chronic window is mostly empty — chronic ≈ acute / 4 — so before the
+      // fix this reads as a ~4.0 spike well past ACWR_DANGER.
+      const trainingStart = addDaysToKey(today, -6)
+      const map = new Map<DayKey, number>()
+      for (const day of rollingWindow(today, 7)) map.set(day, 1000)
+
+      const state = computeFatigue(map, today, trainingStart)
+      expect(state.band).toBe('insufficient_data')
+      expect(state.acwr).toBeNull()
+      expect(state.xpMultiplier).toBe(1)
+      expect(state.needsRecoveryQuest).toBe(false)
+    })
+
+    it('holds insufficient_data through day 26, and computes for real on day 27', () => {
+      const map = flatLoad(today, 28, 1000)
+
+      const almost = computeFatigue(map, today, addDaysToKey(today, -26))
+      expect(almost.band).toBe('insufficient_data')
+      expect(almost.acwr).toBeNull()
+
+      const exact = computeFatigue(map, today, addDaysToKey(today, -27))
+      expect(exact.band).toBe('optimal')
+      expect(exact.acwr).toBeCloseTo(1, 10)
+    })
+
+    it('is insufficient_data with no training-start date at all', () => {
+      const state = computeFatigue(flatLoad(today, 28, 1000), today, null)
+      expect(state.band).toBe('insufficient_data')
+      expect(state.acwr).toBeNull()
+    })
   })
 })
 

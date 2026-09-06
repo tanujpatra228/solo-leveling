@@ -152,6 +152,10 @@ export function projectPlayer(input: ProjectionInput): Projection {
   // been finished, which is exactly backwards.
   const endedSessions = input.sessions.filter((s) => s.endedAt !== null)
   const sessionsChronological = [...endedSessions].sort((a, b) => a.startedAt - b.startedAt)
+  // The anchor fatigue's four-week gate and the deload check both need: the
+  // stored value if the hunter already has one, else the first session ever
+  // logged, so a fresh install with unsynced history still gets a real date.
+  const trainingStartDayKey = input.trainingStartDayKey ?? sessionsChronological[0]?.dayKey ?? null
 
   /* ---- walk the log forward once, accumulating XP and records ---- */
   const runningBestE1rm = new Map<string, number>()
@@ -225,7 +229,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
       session.dayKey,
       (runningTonnageByDay.get(session.dayKey) ?? 0) + sessionTonnage,
     )
-    const fatigueThen = computeFatigue(runningTonnageByDay, session.dayKey)
+    const fatigueThen = computeFatigue(runningTonnageByDay, session.dayKey, trainingStartDayKey)
 
     const xp = computeSessionXp({
       tonnageKg: sessionTonnage,
@@ -261,7 +265,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
     (id) => setsBySession.get(id) ?? [],
     bodyweightFactor,
   )
-  const fatigue = computeFatigue(tonnageByDay, input.today)
+  const fatigue = computeFatigue(tonnageByDay, input.today, trainingStartDayKey)
 
   /* ---- the 28-day window that feeds the derived stats ---- */
   const window28 = new Set(rollingWindow(input.today, 28))
@@ -362,8 +366,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
   const deload = checkDeload({
     today: input.today,
     lastDeloadDayKey: input.lastDeloadDayKey,
-    trainingStartDayKey:
-      input.trainingStartDayKey ?? sessionsChronological[0]?.dayKey ?? null,
+    trainingStartDayKey,
     acwr: fatigue.acwr,
     recentE1rmBySession: recentE1rm,
   })

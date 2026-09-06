@@ -15,7 +15,7 @@
  */
 import { tonnage } from './e1rm'
 import type { DayKey, SetLog } from './types'
-import { rollingWindow } from './time'
+import { daysBetweenKeys, rollingWindow } from './time'
 
 export const ACWR_SAFE_LOW = 0.8
 export const ACWR_SAFE_HIGH = 1.3
@@ -122,15 +122,29 @@ function messageFor(band: FatigueBand, acwr: number | null): string {
 /**
  * The fatigue reading as of `today`. `today` is passed in rather than read from
  * the clock so this stays a pure function.
+ *
+ * `trainingStartDayKey` gates the ratio on actual history, not just a
+ * non-zero denominator: in week one, the 28-day chronic window contains only
+ * week one, so chronic ≈ acute / 4 and the ratio sits near 4.0 — past the
+ * danger threshold for a perfectly normal first week. `null`, or fewer than
+ * four weeks between it and `today`, holds the reading at `insufficient_data`
+ * instead (F3, docs/m5-plan.md).
  */
-export function computeFatigue(tonnageByDay: Map<DayKey, number>, today: DayKey): FatigueState {
+export function computeFatigue(
+  tonnageByDay: Map<DayKey, number>,
+  today: DayKey,
+  trainingStartDayKey: DayKey | null,
+): FatigueState {
   const acute = sumWindow(tonnageByDay, rollingWindow(today, ACUTE_WINDOW_DAYS))
   const chronicTotal = sumWindow(tonnageByDay, rollingWindow(today, CHRONIC_WINDOW_DAYS))
   const chronicWeekly = chronicTotal / 4
 
-  // With no chronic load the ratio is either undefined or infinite, and neither
-  // is a useful thing to show someone in their first week.
-  const acwr = chronicWeekly > 0 ? acute / chronicWeekly : null
+  const chronicWindowComplete =
+    trainingStartDayKey !== null && daysBetweenKeys(trainingStartDayKey, today) >= CHRONIC_WINDOW_DAYS - 1
+
+  // With no chronic load, or with less than four weeks of training behind
+  // today, the ratio is either undefined or not yet meaningful.
+  const acwr = chronicWeekly > 0 && chronicWindowComplete ? acute / chronicWeekly : null
   const band = bandFor(acwr)
 
   return {
