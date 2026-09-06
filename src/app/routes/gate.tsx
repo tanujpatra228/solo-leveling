@@ -15,13 +15,23 @@
  */
 import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
-import { ChoiceGroup } from '../../components/ChoiceGroup'
+import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
 import { dropSuperseded } from '../../domain/projection'
 import type { NextTarget, ProgressionKind } from '../../domain/progression'
+import type { SubstituteCandidate } from '../../domain/substitution'
 import { addDaysToKey, dayKeyStart, dayOfWeekForKey } from '../../domain/time'
-import type { Block, BlockItem, DayKey, Exercise, Routine, SessionLog, SetLog } from '../../domain/types'
+import type {
+  Block,
+  BlockItem,
+  DayKey,
+  Exercise,
+  Routine,
+  SessionLog,
+  SetLog,
+  SubstitutionReason,
+} from '../../domain/types'
 import { useApp } from '../state'
 import { useRestTimer } from '../useRestTimer'
 import { rootRoute } from './root'
@@ -336,7 +346,8 @@ function ActiveGateScreen({
                       sessionId={session.id}
                       item={item}
                       exercise={exercise}
-                      onSetLogged={() => restTimer.start(item.restSec, exercise.name)}
+                      exerciseById={exerciseById}
+                      onSetLogged={(loggedExercise) => restTimer.start(item.restSec, loggedExercise.name)}
                     />
                   )
                 })}
@@ -369,20 +380,38 @@ function ActiveBlockItem({
   sessionId,
   item,
   exercise,
+  exerciseById,
   onSetLogged,
 }: {
   sessionId: string
   item: BlockItem
   exercise: Exercise
-  onSetLogged: () => void
+  exerciseById: Map<string, Exercise>
+  onSetLogged: (loggedExercise: Exercise) => void
 }) {
-  // Select the map, never a call through targetFor. Whether a store method
-  // returns a stable reference is knowledge held in another file and one edit
-  // away from being false again, which is why rule 13 is a bright line.
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  // Select the maps, never a call through targetFor or a fresh substitutesFor
+  // call. Whether a store method returns a stable reference is knowledge held
+  // in another file and one edit away from being false again — rule 13.
   const targetsByExerciseId = useApp((s) => s.targetsByExerciseId)
-  const target = targetsByExerciseId[item.exerciseId] ?? null
+  const substitutesByExerciseId = useApp((s) => s.substitutesByExerciseId)
+  const activeSubstitutions = useApp((s) => s.activeSubstitutions)
+  const substituteExercise = useApp((s) => s.substituteExercise)
+  const clearSubstitution = useApp((s) => s.clearSubstitution)
   const sets = useApp((s) => s.sets)
-  const logged = useMemo(() => liveSessionSets(sets, sessionId, item.exerciseId), [sets, sessionId, item.exerciseId])
+
+  const activeSub = activeSubstitutions[item.exerciseId]
+  // A block never blocks on an unresolvable id — the store only ever stamps
+  // this from a real candidate — but falling back to the planned exercise
+  // keeps the screen rendering if that assumption is ever wrong.
+  const effectiveExercise = activeSub ? (exerciseById.get(activeSub.substituteId) ?? exercise) : exercise
+
+  const target = targetsByExerciseId[effectiveExercise.id] ?? null
+  const logged = useMemo(
+    () => liveSessionSets(sets, sessionId, effectiveExercise.id),
+    [sets, sessionId, effectiveExercise.id],
+  )
 
   if (!target) return null
 
@@ -391,11 +420,42 @@ function ActiveBlockItem({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="min-w-0 text-sm font-medium text-ink">{exercise.name}</span>
-        <span className="shrink-0 font-system text-xs text-ink-soft tabular-nums">
-          {logged.length}/{item.sets} sets
+        <span className="min-w-0 text-sm font-medium text-ink">
+          {effectiveExercise.name}
+          {activeSub ? (
+            <span className="ml-1 font-system text-[10px] text-system-dim uppercase"> · swapped</span>
+          ) : null}
+        </span>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="font-system text-xs text-ink-soft tabular-nums">
+            {logged.length}/{item.sets} sets
+          </span>
+          <button
+            type="button"
+            onClick={() => setSheetOpen((open) => !open)}
+            className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase"
+          >
+            Swap
+          </button>
         </span>
       </div>
+
+      {sheetOpen ? (
+        <SwapSheet
+          plannedExercise={exercise}
+          activeSub={activeSub}
+          candidates={substitutesByExerciseId[item.exerciseId] ?? []}
+          onChoose={(substituteId, reason) => {
+            substituteExercise(item.exerciseId, substituteId, reason)
+            setSheetOpen(false)
+          }}
+          onRevert={() => {
+            clearSubstitution(item.exerciseId)
+            setSheetOpen(false)
+          }}
+          onClose={() => setSheetOpen(false)}
+        />
+      ) : null}
 
       <p className={`text-xs ${KIND_TONE_CLASS[target.kind]}`}>{target.reason}</p>
       {target.cue ? <p className="text-[11px] text-ink-soft/80">{target.cue}</p> : null}
@@ -409,9 +469,135 @@ function ActiveBlockItem({
       ) : null}
 
       {remaining > 0 ? (
-        <SetEntryRow exercise={exercise} setIndex={logged.length} target={target} onLogged={onSetLogged} />
+        <SetEntryRow
+          exercise={effectiveExercise}
+          setIndex={logged.length}
+          target={target}
+          substitutedFor={activeSub ? item.exerciseId : undefined}
+          substitutionReason={activeSub?.reason}
+          onLogged={() => onSetLogged(effectiveExercise)}
+        />
       ) : (
         <p className="font-system text-[11px] text-good uppercase">Done</p>
+      )}
+    </div>
+  )
+}
+
+const REASON_OPTIONS: ChoiceOption<SubstitutionReason>[] = [
+  { value: 'occupied', label: 'Occupied' },
+  { value: 'unavailable', label: 'Unavailable' },
+  { value: 'injury', label: 'Injury' },
+  { value: 'preference', label: 'Preference' },
+]
+
+/**
+ * Opened from every block, per docs/substitution-plan.md §5 commit 7. Assumes
+ * the planned exercise's own equipment is the problem (`candidates` already
+ * excludes it — see `substitutesByExerciseId`), so the common case is two
+ * taps: Swap, then pick. "Also occupied" narrows further client-side, since
+ * the base ranking already did the one query that matters.
+ */
+function SwapSheet({
+  plannedExercise,
+  activeSub,
+  candidates,
+  onChoose,
+  onRevert,
+  onClose,
+}: {
+  plannedExercise: Exercise
+  activeSub: { substituteId: string; reason: SubstitutionReason } | undefined
+  candidates: SubstituteCandidate[]
+  onChoose: (substituteId: string, reason: SubstitutionReason) => void
+  onRevert: () => void
+  onClose: () => void
+}) {
+  const [reason, setReason] = useState<SubstitutionReason[]>(['occupied'])
+  const [alsoBlocked, setAlsoBlocked] = useState<string[]>([])
+
+  const equipmentOptions = useMemo(() => {
+    const tags = new Set<string>()
+    for (const candidate of candidates) {
+      for (const eq of candidate.exercise.equipment) tags.add(eq)
+    }
+    return Array.from(tags)
+      .sort()
+      .map((eq) => ({ value: eq, label: eq.replace('_', ' ') }))
+  }, [candidates])
+
+  const visible = candidates.filter((c) => !c.exercise.equipment.some((eq) => alsoBlocked.includes(eq)))
+
+  return (
+    <div className="flex flex-col gap-3 rounded border border-panel-edge/70 bg-void-soft/60 p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="min-w-0 font-system text-[11px] tracking-[0.12em] text-ink-faint uppercase">
+          Swap {plannedExercise.name}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 font-system text-[10px] text-ink-faint uppercase underline"
+        >
+          Close
+        </button>
+      </div>
+
+      {activeSub ? (
+        <button
+          type="button"
+          onClick={onRevert}
+          className="rounded border border-panel-edge px-3 py-2 text-left text-xs text-ink-soft"
+        >
+          Revert to {plannedExercise.name} — the prescribed movement
+        </button>
+      ) : null}
+
+      <ChoiceGroup<SubstitutionReason>
+        label="Why"
+        options={REASON_OPTIONS}
+        value={reason}
+        onChange={setReason}
+      />
+
+      {equipmentOptions.length > 0 ? (
+        <ChoiceGroup<string>
+          label="Also occupied"
+          options={equipmentOptions}
+          value={alsoBlocked}
+          onChange={setAlsoBlocked}
+          multi
+        />
+      ) : null}
+
+      {visible.length === 0 ? (
+        <p className="text-xs text-ink-faint">
+          Nothing else fits your gym right now. Close this and keep going as prescribed, or come back once
+          something frees up.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {visible.map((candidate) => (
+            <li key={candidate.exercise.id}>
+              <button
+                type="button"
+                onClick={() => onChoose(candidate.exercise.id, reason[0] ?? 'occupied')}
+                className="w-full rounded border border-panel-edge px-3 py-2 text-left"
+              >
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="min-w-0 text-sm font-medium text-ink">{candidate.exercise.name}</span>
+                  <span className="shrink-0 font-system text-[10px] text-ink-faint uppercase">
+                    Tier {candidate.tier}
+                  </span>
+                </span>
+                <span className="mt-0.5 block text-[11px] text-ink-soft/80">{candidate.why}</span>
+                <span className="mt-1 block font-system text-[10px] text-ink-faint">
+                  {candidate.exercise.equipment.join(', ')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )
@@ -423,11 +609,15 @@ function SetEntryRow({
   exercise,
   setIndex,
   target,
+  substitutedFor,
+  substitutionReason,
   onLogged,
 }: {
   exercise: Exercise
   setIndex: number
   target: NextTarget
+  substitutedFor?: string
+  substitutionReason?: SubstitutionReason
   onLogged: () => void
 }) {
   const logSet = useApp((s) => s.logSet)
@@ -460,6 +650,8 @@ function SetEntryRow({
       metres: needsMetres && metres !== '' ? Number(metres) : undefined,
       rpe: rpe[0] ? Number(rpe[0]) : undefined,
       isWarmup,
+      substitutedFor,
+      substitutionReason,
     })
     setSubmitting(false)
     onLogged()

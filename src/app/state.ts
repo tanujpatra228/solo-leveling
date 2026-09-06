@@ -23,6 +23,7 @@ import {
   type Projection,
 } from '../domain/projection'
 import { computeNextTarget, type NextTarget } from '../domain/progression'
+import { substitutesFor, type SubstituteCandidate } from '../domain/substitution'
 import { extractShadow, shouldExtract } from '../domain/shadows'
 import { resolveDungeonBreaks, type DungeonBreak, type OpenGate } from '../domain/gates'
 import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
@@ -154,6 +155,8 @@ export interface AppState extends LoadedData {
    * caller logs against the substitute.
    */
   substituteExercise: (plannedId: string, substituteId: string, reason: SubstitutionReason) => void
+  /** Reverts a block to its prescribed exercise for the rest of the session. */
+  clearSubstitution: (plannedId: string) => void
   correctSet: (
     setId: string,
     patch: { weight?: number; reps?: number; rpe?: number; isWarmup?: boolean },
@@ -172,6 +175,17 @@ export interface AppState extends LoadedData {
    */
   targetsByExerciseId: Record<string, NextTarget>
   targetFor: (exerciseId: string) => NextTarget | null
+
+  /**
+   * Ranked swap candidates per exercise in today's routine, computed once
+   * here for the same reason as `targetsByExerciseId` — it is derived from
+   * three slices (exercises, profile, routine) plus session state, so a
+   * component reading it must select this stable map rather than call
+   * `substitutesFor` itself (rule 13). Uses each exercise's own equipment as
+   * the default block; a hunter marking a second station occupied narrows
+   * this list further, client-side, in the swap sheet itself.
+   */
+  substitutesByExerciseId: Record<string, SubstituteCandidate[]>
 
   completeDailyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
   todaysDailyQuest: () => DailyQuest | null
@@ -295,6 +309,7 @@ export const useApp = create<AppState>((set, get) => ({
   messages: [],
   activeSessionId: null,
   activeSubstitutions: {},
+  substitutesByExerciseId: {},
   targetsByExerciseId: {},
 
   pushMessage(message) {
@@ -439,6 +454,19 @@ export const useApp = create<AppState>((set, get) => ({
       })
     }
 
+    // Ranked against each exercise's own equipment as the default block —
+    // the common case per docs/substitution-plan.md §3 — so the swap sheet
+    // needs no store round-trip to narrow further; it filters this list
+    // client-side when a second piece of equipment is also occupied.
+    const substitutesByExerciseId: Record<string, SubstituteCandidate[]> = {}
+    for (const exercise of state.exercises) {
+      substitutesByExerciseId[exercise.id] = substitutesFor(exercise, {
+        exercises: state.exercises,
+        equipmentAccess: state.profile?.equipmentAccess ?? [],
+        routine: targetRoutine ?? null,
+      })
+    }
+
     set({
       today,
       projection,
@@ -447,6 +475,7 @@ export const useApp = create<AppState>((set, get) => ({
       dungeonBreaks: resolveDungeonBreaks(openGates, today),
       activeSessionId: activeSession?.id ?? null,
       targetsByExerciseId,
+      substitutesByExerciseId,
     })
   },
 
@@ -633,6 +662,14 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({
       activeSubstitutions: { ...s.activeSubstitutions, [plannedId]: { substituteId, reason } },
     }))
+  },
+
+  clearSubstitution(plannedId) {
+    set((s) => {
+      const next = { ...s.activeSubstitutions }
+      delete next[plannedId]
+      return { activeSubstitutions: next }
+    })
   },
 
   async logSet(input) {

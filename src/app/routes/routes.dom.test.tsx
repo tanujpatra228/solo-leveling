@@ -59,6 +59,36 @@ function expectRendered(html: string): void {
   expect(html.length).toBeGreaterThan(0)
 }
 
+/** Like `mountAt`, but keeps the container mounted so a test can click into it. */
+async function mountInteractive(path: string): Promise<{ container: HTMLDivElement; unmount: () => Promise<void> }> {
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: [path] }),
+  })
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = createRoot(container)
+
+  await act(async () => {
+    root.render(<RouterProvider router={router} />)
+  })
+
+  return {
+    container,
+    unmount: async () => {
+      await act(async () => root.unmount())
+      container.remove()
+    },
+  }
+}
+
+async function click(element: Element | null | undefined): Promise<void> {
+  if (!element) throw new Error('nothing to click — the button this test expected is not in the tree')
+  await act(async () => {
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+  })
+}
+
 async function awaken(): Promise<void> {
   await useApp.getState().completeAwakening({
     profile: {
@@ -107,5 +137,61 @@ describe('every route mounts', () => {
     expect(useApp.getState().activeSessionId).not.toBeNull()
 
     expectRendered(await mountAt('/gate'))
+  })
+})
+
+describe('the swap sheet (substitution-plan.md §5 commit 7, rule 14)', () => {
+  it('opens from a block\'s Swap button and lists ranked candidates without crashing', async () => {
+    await useApp.getState().completeAwakening({
+      profile: {
+        sex: 'male',
+        birthYear: 1998,
+        heightCm: 178,
+        unitPref: 'metric',
+        trainingYears: 2,
+        // Full-ish access, so Cable Crunch's block has real answers to show.
+        equipmentAccess: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'pullup_bar', 'bench'],
+      },
+      bodyweightKg: 72,
+    })
+    await useApp.getState().startGate('saturday-cardio-abs')
+
+    const { container, unmount } = await mountInteractive('/gate')
+    const swapButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Swap')
+    await click(swapButton)
+
+    expectRendered(container.innerHTML)
+    // Every candidate row carries its tier badge; a rendered, non-empty sheet
+    // has at least one, distinguishing this from the empty-result state below.
+    // (Bottom-nav tabs are also <li>s, so counting those would prove nothing.)
+    expect(container.textContent).toContain('Tier ')
+
+    await unmount()
+  })
+
+  it('shows the empty-result state, rather than crashing, for a block with genuinely no answer', async () => {
+    await useApp.getState().completeAwakening({
+      profile: {
+        sex: 'male',
+        birthYear: 1998,
+        heightCm: 178,
+        unitPref: 'metric',
+        trainingYears: 2,
+        // Bodyweight-only: Pull-ups' block has no answer at all — see the
+        // exception list in substitution.test.ts's coverage guarantee.
+        equipmentAccess: ['bodyweight'],
+      },
+      bodyweightKg: 72,
+    })
+    await useApp.getState().startGate('tuesday-back-biceps')
+
+    const { container, unmount } = await mountInteractive('/gate')
+    const swapButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Swap')
+    await click(swapButton)
+
+    expectRendered(container.innerHTML)
+    expect(container.textContent).not.toContain('Tier ')
+
+    await unmount()
   })
 })

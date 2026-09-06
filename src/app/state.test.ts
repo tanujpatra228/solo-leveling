@@ -385,4 +385,56 @@ describe('substituteExercise records the choice for the open session (substituti
 
     expect(useApp.getState().activeSubstitutions).toEqual({})
   })
+
+  it('clearSubstitution removes just that one planned exercise\'s choice', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+    useApp.getState().substituteExercise('cable-crunch', 'situps', 'occupied')
+
+    useApp.getState().clearSubstitution('hanging-leg-raises')
+
+    expect(useApp.getState().activeSubstitutions['hanging-leg-raises']).toBeUndefined()
+    expect(useApp.getState().activeSubstitutions['cable-crunch']).toEqual({
+      substituteId: 'situps',
+      reason: 'occupied',
+    })
+  })
+})
+
+describe('substitutesByExerciseId (commit 7)', () => {
+  async function awaken(): Promise<void> {
+    await useApp.getState().completeAwakening({
+      profile: {
+        sex: 'male',
+        birthYear: 1998,
+        heightCm: 178,
+        unitPref: 'metric',
+        trainingYears: 2,
+        equipmentAccess: ['barbell', 'dumbbell', 'machine', 'cable', 'bodyweight', 'pullup_bar', 'bench'],
+      },
+      bodyweightKg: 72,
+    })
+  }
+
+  it('ranks candidates for every prescribed exercise in today\'s routine, using its own equipment as the default block', async () => {
+    await awaken()
+    await useApp.getState().startGate('saturday-cardio-abs')
+
+    const candidates = useApp.getState().substitutesByExerciseId['cable-crunch'] ?? []
+    const ids = candidates.map((c) => c.exercise.id)
+    expect(ids).toContain('machine-abs-crunch')
+    expect(ids).toContain('situps')
+    expect(ids).toContain('leg-raises')
+    expect(ids).not.toContain('cable-fly')
+    expect(ids).not.toContain('cable-crunch')
+  })
+
+  it('demotes Leg Raises for Hanging Leg Raises, since both are already in today\'s routine', async () => {
+    await awaken()
+    await useApp.getState().startGate('saturday-cardio-abs')
+
+    const candidates = useApp.getState().substitutesByExerciseId['hanging-leg-raises'] ?? []
+    const legRaises = candidates.find((c) => c.exercise.id === 'leg-raises')
+    expect(legRaises?.demoted).toBe(true)
+  })
 })
