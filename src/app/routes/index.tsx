@@ -12,6 +12,7 @@ import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { StatRow } from '../../components/StatRow'
+import { StreakPanel } from '../../components/StreakPanel'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
 import type { HunterClass, StatKey } from '../../domain/types'
@@ -41,7 +42,6 @@ const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
 
 function HomeScreen() {
   const projection = useApp((s) => s.projection)
-  const streak = useApp((s) => s.streak)
 
   if (!projection) {
     return (
@@ -82,13 +82,7 @@ function HomeScreen() {
           ))}
         </SystemPanel>
 
-        <SystemPanel className="mt-3 flex items-center justify-between font-system text-[11px] text-ink-soft">
-          <span>
-            Streak {streak.current}
-            {streak.longest > streak.current ? ` · best ${streak.longest}` : ''}
-          </span>
-          <span>{player.gold} gold</span>
-        </SystemPanel>
+        <StreakPanel />
       </SystemWindow>
     </main>
   )
