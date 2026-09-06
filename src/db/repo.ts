@@ -94,15 +94,20 @@ const DEFAULT_PROGRESS: Progress = {
 }
 
 /**
- * Puts the exercise library and routines in place. Safe to call on every start:
- * it only fills gaps, so a hunter who has edited a routine does not have it
- * overwritten on the next launch.
+ * Puts the exercise library and routines in place. Safe to call on every start.
+ *
+ * Exercises and routines differ on purpose. Exercises are seed data the
+ * hunter never edits, so they are upserted unconditionally (`bulkPut`) —
+ * otherwise a shipped correction to the library (a fixed `bodyweightFactor`,
+ * a new fallback) never reaches a device that was already seeded before it
+ * existed; it just keeps reading the old row back through Zod's default
+ * forever (F1, `docs/m5-plan.md`). Routines will become user-editable, so
+ * they stay add-only (`bulkAdd` of whatever id is missing) — overwriting one
+ * on every load would silently discard a hunter's edit.
  */
 export async function ensureSeeded(): Promise<void> {
   await db.transaction('rw', db.exercises, db.routines, db.settings, db.progress, async () => {
-    const existingExerciseIds = new Set(await db.exercises.toCollection().primaryKeys())
-    const missingExercises = SEED_EXERCISES.filter((e) => !existingExerciseIds.has(e.id))
-    if (missingExercises.length > 0) await db.exercises.bulkAdd(missingExercises as Exercise[])
+    await db.exercises.bulkPut(SEED_EXERCISES as Exercise[])
 
     const existingRoutineIds = new Set(await db.routines.toCollection().primaryKeys())
     const missingRoutines = SEED_ROUTINES.filter((r) => !existingRoutineIds.has(r.id))
