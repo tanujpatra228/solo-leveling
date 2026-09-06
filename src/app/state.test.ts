@@ -298,7 +298,7 @@ describe('announceBodyweightFactorRegradeIfNeeded', () => {
   })
 })
 
-describe('substituteExercise records the choice for the open session (substitution-plan.md §5 commit 6)', () => {
+describe('substituteExercise records the choice for the open session (commit 9de7140)', () => {
   it('is readable from activeSubstitutions once recorded', async () => {
     await useApp.getState().startGate('saturday-cardio-abs')
     useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
@@ -401,7 +401,7 @@ describe('substituteExercise records the choice for the open session (substituti
   })
 })
 
-describe('finishGate summarizes substitutions (substitution-plan.md §5 commit 8)', () => {
+describe('finishGate summarizes substitutions (commit 4d6f484)', () => {
   it('names the swap and its reason in the gate-cleared message', async () => {
     await useApp.getState().startGate('saturday-cardio-abs')
     useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')

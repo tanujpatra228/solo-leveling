@@ -197,9 +197,9 @@ export function computeNextTarget(
     const nextRung = currentRung >= 0 ? ladder[currentRung + 1] : ladder[0]
     const nextExercise = nextRung !== undefined ? ctx.resolveExercise?.(nextRung) : undefined
     // A fallback exists only to be swapped onto for one session — mastering a
-    // variation must not silently rewrite the programme onto it. See
-    // docs/substitution-plan.md §2. Falls through to hold_add_rep below, same
-    // as a ladder with nothing left to advance to.
+    // variation must not silently rewrite the programme onto it. See commit
+    // 5d33216. Falls through to hold_add_rep below, same as a ladder with
+    // nothing left to advance to.
     if (nextRung !== undefined && nextRung !== exercise.id && nextExercise?.role !== 'fallback') {
       const nextName = nextExercise?.name ?? nextRung
       return {

@@ -97,8 +97,7 @@ export function tonnage(
  *
  * A time or distance exercise logs `reps: 0` (see the gate entry form), so
  * `reps <= 0` alone would reject every cardio set. A set with no reps still
- * counts as hard once it carries a work interval — see
- * docs/substitution-plan.md §5 commit 2.
+ * counts as hard once it carries a work interval — see commit 27c12f0.
  */
 export const HARD_SET_MIN_RPE = 7
 

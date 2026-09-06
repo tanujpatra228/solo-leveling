@@ -2,6 +2,41 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
+## Exercise substitution, landed 2026-09-06
+
+All eight commits of the substitution plan (git history, deleted; see `3edda1e`-style note below)
+are in — not a milestone from `implementation-plan.md`, but a full feature written and shipped the
+same day it was found needed, from a real Saturday Cardio and Abs Gate where two stations in a row
+were occupied.
+
+- [x] **C1** `bodyweightFactor` per exercise, replacing "full bodyweight for any `usesBodyweight`
+      movement" (a sit-up does not move 72 kg — commit `5ce8d44`). Re-grades history, since the
+      projection is derived, never stored (rule 4); announced once via a System window comparing the
+      level before and after.
+- [x] **C2** XP for time/distance work at 20 XP/minute — `isHardSet` rejected `reps <= 0` outright,
+      so a treadmill interval earned zero XP and zero gate credit (`27c12f0`).
+- [x] **C3** One progression ladder per movement pattern, fixing Incline/Pike/Diamond Pushups
+      disagreeing with Pushups' own ladder (`66d39f5`).
+- [x] **C4** `role: 'prescribed' | 'fallback'` on `ExerciseSchema`, plus 16 seeded fallbacks for the
+      equipment deserts the audit found (`5d33216`).
+- [x] **C5** `substitutesFor`, the pure ranking function: excludes anything needing blocked
+      equipment, tiers the rest by pattern/muscle match, ranks by ladder adjacency and rep-range
+      overlap, demotes anything already in today's routine (`d07154c`).
+- [x] **C6** `SetLog.substitutedFor`/`substitutionReason`, and the `substituteExercise` store action
+      (`9de7140`).
+- [x] **C7** The Swap control on every block in `ActiveGateScreen` (`6b2b0eb`).
+- [x] **C8** The substitution count in the finish-gate summary (`4d6f484`).
+
+**Known gap, not yet fixed:** `repo.ensureSeeded()` only `bulkAdd`s exercises missing by id — it
+never updates a row already in Dexie. A real device seeded before C1/C4 will not pick up the
+corrected `bodyweightFactor` values or the new fallback exercises until exercise seeding upserts
+unconditionally (safe, unlike routines, since exercises are never hand-edited).
+
+**Also known:** the initial-route bundle is 200.76 KB JS + 5.52 KB CSS gzipped, over the 200 KB
+target `infrastructure.md` set at M2 (which was already "at the line" before this feature). Nothing
+failed the build — there is no automated gate on this number — but it is drifting and worth a
+code-splitting pass before it drifts further.
+
 ## Bugs found on a real device after M3, fixed 2026-09-06
 
 Both reproduced by clicking Start Gate on `/gate`.

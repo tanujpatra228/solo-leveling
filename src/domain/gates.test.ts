@@ -55,8 +55,8 @@ describe('gate difficulty', () => {
   })
 
   it('scores a cardio block by its minutes, since reps and weight are both zero for time-based work', () => {
-    // Before commit 2, a treadmill block with reps: 0, weightKg: 0 scored zero
-    // tonnage and read as a free session — see substitution-plan.md §0.
+    // Before commit 27c12f0, a treadmill block with reps: 0, weightKg: 0
+    // scored zero tonnage and read as a free session.
     const zeroMinutes = gateDifficulty([
       { exerciseId: 'treadmill-intervals', sets: 1, reps: 0, weightKg: 0, e1rmKg: 0, workMinutes: 0 },
     ])

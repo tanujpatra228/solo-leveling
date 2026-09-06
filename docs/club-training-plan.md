@@ -63,10 +63,11 @@ next rep target.
 **And it earns zero XP today.** Club work is naturally logged as time (the standard protocol is 45
 seconds of work, 15 seconds of rest), and `isHardSet` rejects any set with `reps <= 0` while the
 entry form sends `reps: 0` for `time` units. This is the same defect that makes `treadmill-intervals`
-worth nothing, recorded in `docs/substitution-plan.md` section 0.
+worth nothing — see the "Exercise substitution" entry in `docs/TODO.md`.
 
-**So this feature depends on commit 2 of the substitution plan.** Seeding club exercises before the
-cardio XP fix would add movements that pay nothing, which reads as the feature being broken.
+**This feature depended on commit 2 of the substitution plan (the cardio XP fix), which has since
+landed as commit `27c12f0`.** Seeding club exercises before that fix would have added movements that
+pay nothing, which would have read as this feature being broken. That blocker is now clear.
 
 ## 3. The exercises to seed
 
@@ -117,7 +118,8 @@ Each block is a single item, 2–3 sets of 45 seconds, `restSec: 15`.
 Club exercises are `role: 'prescribed'` — they are part of the programme, not stand-ins.
 
 But the club is a single shared object in a gym, so it will be occupied, and the coverage guarantee
-in `docs/substitution-plan.md` section 4 now has to cover a new `mobility / shoulders` group. The
+built in commit `5d33216` (see `src/domain/substitution.test.ts`) now has to cover a new
+`mobility / shoulders` group. The
 fallbacks are easy and need nothing: band dislocates where a band exists, and otherwise arm circles
 and shoulder CARs, both `role: 'fallback'`, both bodyweight.
 
@@ -133,7 +135,7 @@ a new game subsystem for it is not, and rule 16 applies.
 
 ## 8. Sequence
 
-1. Commit 2 of `docs/substitution-plan.md` — XP for time-based work. **Blocking.**
+1. ~~Commit 2 of the substitution plan — XP for time-based work.~~ **Done, landed as `27c12f0`.**
 2. `club` equipment, `mobility` pattern, volume exclusion, and the `advance_variation` preference.
 3. Seed the six club exercises with their ladder.
 4. Add the three routine blocks.

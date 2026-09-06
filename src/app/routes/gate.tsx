@@ -492,7 +492,7 @@ const REASON_OPTIONS: ChoiceOption<SubstitutionReason>[] = [
 ]
 
 /**
- * Opened from every block, per docs/substitution-plan.md §5 commit 7. Assumes
+ * Opened from every block, per commit 6b2b0eb (docs/TODO.md). Assumes
  * the planned exercise's own equipment is the problem (`candidates` already
  * excludes it — see `substitutesByExerciseId`), so the common case is two
  * taps: Swap, then pick. "Also occupied" narrows further client-side, since

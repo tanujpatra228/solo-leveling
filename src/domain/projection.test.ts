@@ -152,9 +152,8 @@ describe('gateDifficulty reads the bodyweight-adjusted weight, not the raw set w
 })
 
 describe('time-based work pays XP through the per-minute term', () => {
-  // Before commit 2, `isHardSet` rejected `reps <= 0` outright, so a
-  // treadmill interval earned zero XP and zero gate credit — see
-  // substitution-plan.md §0.
+  // Before commit 27c12f0, `isHardSet` rejected `reps <= 0` outright, so a
+  // treadmill interval earned zero XP and zero gate credit.
   it('a treadmill interval with no reps earns XP, not the historical zero', () => {
     const sessions = [session('s1', TODAY, 1000, null)]
     const sets = [set('s1', 'treadmill-intervals', 0, 0, 0, 1000, { seconds: 1200, rpe: 8 })]

@@ -24,7 +24,7 @@ export interface PlannedWork {
   e1rmKg: number
   /** Minutes of work-interval effort — a time/distance exercise logs `reps: 0`
    *  and `weightKg: 0`, so without this a cardio block scores as free work.
-   *  Defaults to 0. See docs/substitution-plan.md §5 commit 2. */
+   *  Defaults to 0. See commit 27c12f0. */
   workMinutes?: number
 }
 

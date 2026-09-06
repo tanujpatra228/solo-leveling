@@ -23,7 +23,7 @@ export const XP_TONNAGE_DIVISOR = 12
 export const XP_PER_HARD_SET = 20
 
 /**
- * Decided rate (docs/substitution-plan.md §5 commit 2): a minute of
+ * Decided rate (commit 27c12f0): a minute of
  * work-interval effort — a treadmill or rowing block with no reps — is priced
  * like one hard set, since both are roughly a unit of hard effort. Defined
  * from `XP_PER_HARD_SET` rather than as its own literal so the two move

@@ -86,7 +86,7 @@ export interface Progress {
    *  skip — both count. `null` means it has never run. */
   doubleDungeonSeenAt: number | null
   /** When the bodyweightFactor tonnage correction was announced. `null` means
-   *  it has never shown — see docs/substitution-plan.md §5 commit 1. */
+   *  it has never shown — see commit 5ce8d44. */
   bodyweightFactorAnnouncedAt: number | null
   updatedAt: number
 }
@@ -136,9 +136,9 @@ export class SystemDatabase extends Dexie {
     })
 
     // Adds an index on SetLog.substitutedFor, for a future "how often did I
-    // substitute this exercise" query. See docs/substitution-plan.md §5
-    // commit 6. Every other table carries its v1 definition forward
-    // unchanged, per Dexie's own versioning model.
+    // substitute this exercise" query. See commit 9de7140. Every other table
+    // carries its v1 definition forward unchanged, per Dexie's own versioning
+    // model.
     this.version(2).stores({
       sets: 'id, sessionId, exerciseId, [exerciseId+completedAt], completedAt, substitutedFor',
     })

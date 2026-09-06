@@ -105,7 +105,7 @@ describe('substitutesFor', () => {
     expect(candidates.some((c) => c.exercise.id === 'machine-abs-crunch')).toBe(false)
   })
 
-  describe('the coverage guarantee (substitution-plan.md §4)', () => {
+  describe('the coverage guarantee (the equipment-desert audit behind commit 5d33216)', () => {
     const prescribed = SEED_EXERCISES.filter((e) => e.role === 'prescribed')
 
     it('every prescribed exercise returns a candidate when its own equipment is blocked', () => {

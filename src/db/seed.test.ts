@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { SEED_EXERCISES, SEED_EXERCISE_BY_ID, SEED_ROUTINES } from './seed'
 
 describe('progression ladders', () => {
-  // Regression for the pushup-ladder bug (substitution-plan.md §4): three
+  // Regression for the pushup-ladder bug (fixed in commit 66d39f5): three
   // exercises carried ['incline-pushups', 'pike-pushups', 'diamond-pushups']
   // while Pushups carried a different array, so mastering Incline Pushups
   // advanced onto Pike Pushups — a pattern and muscle change dressed as a
@@ -52,10 +52,11 @@ describe('the library', () => {
   })
 })
 
-describe('the fallback library (substitution-plan.md §5 commit 4)', () => {
+describe('the fallback library (commit 5d33216)', () => {
   it('a routine may only reference a prescribed exercise', () => {
-    // A fallback in a routine is a seed bug (§2) — it would be a default the
-    // hunter never chose, not a stand-in for the evening a station is taken.
+    // A fallback in a routine is a seed bug (commit 5d33216) — it would be a
+    // default the hunter never chose, not a stand-in for the evening a
+    // station is taken.
     for (const routine of SEED_ROUTINES) {
       for (const block of routine.blocks) {
         for (const item of block.items) {
@@ -69,9 +70,10 @@ describe('the fallback library (substitution-plan.md §5 commit 4)', () => {
     }
   })
 
-  // The (pattern, primary muscle) groups §4 audited as deserts. A fallback
-  // whose primary muscle names none of these fills no gap the audit found,
-  // which is exactly the case this test exists to catch.
+  // The (pattern, primary muscle) groups the equipment-desert audit (commit
+  // 5d33216) found. A fallback whose primary muscle names none of these
+  // fills no gap the audit found, which is exactly the case this test exists
+  // to catch.
   const GROUPS_FROM_AUDIT = new Set([
     'chest',
     'triceps',
@@ -98,7 +100,7 @@ describe('the fallback library (substitution-plan.md §5 commit 4)', () => {
   })
 
   for (const exercise of fallbacks) {
-    it(`${exercise.id} names at least one group from the §4 audit`, () => {
+    it(`${exercise.id} names at least one group from the audit (commit 5d33216)`, () => {
       const matches = exercise.primaryMuscles.some((m) => GROUPS_FROM_AUDIT.has(m))
       expect(matches, `${exercise.id}'s primary muscles (${exercise.primaryMuscles.join(', ')}) name no audited gap`).toBe(true)
     })

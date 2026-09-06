@@ -140,7 +140,7 @@ describe('every route mounts', () => {
   })
 })
 
-describe('the swap sheet (substitution-plan.md §5 commit 7, rule 14)', () => {
+describe('the swap sheet (commit 6b2b0eb, rule 14)', () => {
   it('opens from a block\'s Swap button and lists ranked candidates without crashing', async () => {
     await useApp.getState().completeAwakening({
       profile: {

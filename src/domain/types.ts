@@ -100,7 +100,7 @@ export type LoadUnit = z.infer<typeof LoadUnitSchema>
  * Why a hunter swapped off the planned exercise. Tracked as a reason rather
  * than just the fact of a swap because 'occupied' is a logistics signal about
  * the gym, while 'injury' should eventually raise an advisory rather than be
- * forgotten. See docs/substitution-plan.md §5 commit 6.
+ * forgotten. See commit 9de7140.
  */
 export const SubstitutionReasonSchema = z.enum(['occupied', 'unavailable', 'injury', 'preference'])
 export type SubstitutionReason = z.infer<typeof SubstitutionReasonSchema>
@@ -185,7 +185,7 @@ export const ExerciseSchema = z.object({
    * sheet. `fallback` exists only to be swapped onto when a prescribed
    * exercise's equipment is occupied — never in a routine, never advanced onto
    * by mastering a variation. Defaults to `prescribed` so the existing library
-   * needs no edit. See docs/substitution-plan.md §2.
+   * needs no edit. See commit 5d33216.
    */
   role: z.enum(['prescribed', 'fallback']).default('prescribed'),
 })
@@ -254,7 +254,7 @@ export const SetLogSchema = z.object({
    * The planned exercise's id, when this set stood in for something else —
    * a logged fact, not a routine edit (standards rule 4). Absent on every
    * row written before substitution existed, which this optional field
-   * tolerates (rule 3). See docs/substitution-plan.md §1.
+   * tolerates (rule 3). See commit 9de7140.
    */
   substitutedFor: z.string().optional(),
   /** Why the swap happened. 'injury' is recorded separately from the others

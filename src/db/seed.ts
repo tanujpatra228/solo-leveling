@@ -127,7 +127,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
     cue: 'Hands together under the sternum. Elbows brush the ribs.',
     usesBodyweight: true,
-    // Reasoned from segment mass, not measured — see docs/substitution-plan.md §7.
+    // Reasoned from segment mass, not measured — see docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.66,
     role: 'prescribed',
   },
@@ -154,7 +154,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     name: 'Pull-ups',
     // 'Chin-ups' is deliberately not an alias here — commit 4 seeds it as its
     // own fallback exercise with biceps as the primary mover, which an
-    // overhand Pull-up does not represent. See docs/substitution-plan.md §5.
+    // overhand Pull-up does not represent. See commit 5d33216.
     aliases: ['Pullups', 'Pull Ups'],
     pattern: 'vertical_pull',
     primaryMuscles: ['lats'],
@@ -166,7 +166,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     standardLift: 'pullup',
     cue: 'Full hang at the bottom. Chest to the bar, no kipping.',
     usesBodyweight: true,
-    // Reasoned, not measured — a dead hang moves nearly all of it. See §7.
+    // Reasoned, not measured — a dead hang moves nearly all of it. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.95,
     role: 'prescribed',
   },
@@ -284,7 +284,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['leg-raises', 'hanging-leg-raises'],
     cue: 'Press the lower back into the floor. Stop before it arches.',
     usesBodyweight: true,
-    // Reasoned from segment mass, not measured — legs only. See §7.
+    // Reasoned from segment mass, not measured — legs only. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.3,
     role: 'prescribed',
   },
@@ -337,7 +337,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'The higher the hands, the easier it is. Lower the hands as this gets easy.',
     usesBodyweight: true,
     // Reasoned, not measured, and the honest weak spot: this genuinely varies
-    // with bench height, and one number is wrong at both ends. See §7.
+    // with bench height, and one number is wrong at both ends. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.5,
     role: 'prescribed',
   },
@@ -359,7 +359,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['pike-pushups'],
     cue: 'Hips high, head travels between the hands. This one is a shoulder press.',
     usesBodyweight: true,
-    // Reasoned, not measured — torso vertical, most of the load on the shoulders. See §7.
+    // Reasoned, not measured — torso vertical, most of the load on the shoulders. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.7,
     role: 'prescribed',
   },
@@ -526,7 +526,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['leg-raises', 'hanging-leg-raises'],
     cue: 'Stop the swing before each rep. Curl the pelvis rather than just lifting the legs.',
     usesBodyweight: true,
-    // Reasoned from segment mass, not measured — legs, with the trunk stabilising. See §7.
+    // Reasoned from segment mass, not measured — legs, with the trunk stabilising. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.35,
     role: 'prescribed',
   },
@@ -563,7 +563,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Body in one line from head to heels.',
     usesBodyweight: true,
     // The most commonly cited figure for a standard pushup (~64% of bodyweight),
-    // but not independently verified against a primary source here — see §7.
+    // but not independently verified against a primary source here — see
+    // docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.64,
     role: 'prescribed',
   },
@@ -580,7 +581,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [15, 40],
     cue: 'Sit down between the heels. Full depth every rep.',
     usesBodyweight: true,
-    // Reasoned, not measured — trunk plus most of the legs. See §7.
+    // Reasoned, not measured — trunk plus most of the legs. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.65,
     role: 'prescribed',
   },
@@ -597,7 +598,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [15, 40],
     cue: 'Do not yank on the neck. Lead with the ribs.',
     usesBodyweight: true,
-    // Reasoned, not measured — the trunk, not the whole body. See §7.
+    // Reasoned, not measured — the trunk, not the whole body. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.45,
     role: 'prescribed',
   },
@@ -605,7 +606,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
   /* ---------------- Fallback library ----------------
    * Never prescribed, never a routine default, never promoted by mastering
    * one. Exists only so `substitutesFor` (commit 5) has an answer for the
-   * groups audited as deserts in docs/substitution-plan.md §4. Two entries
+   * groups the equipment-desert audit found (commit 5d33216). Two entries
    * from that table are deliberately absent: Skipping (needs a jump rope,
    * which is not in EquipmentSchema) and Plate Raise (needs a loose plate,
    * same gap) — both would have to be tagged with equipment they do not
@@ -618,7 +619,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     pattern: 'horizontal_pull',
     primaryMuscles: ['upper_back'],
     secondaryMuscles: ['lats', 'biceps', 'rear_delts'],
-    // §4's minimum implement is "a bar, rings, or a table edge" — a squat
+    // The audit's minimum implement is "a bar, rings, or a table edge" — a squat
     // rack or Smith machine bar is the closest match the equipment
     // vocabulary has, so this tag is approximate rather than exact.
     equipment: ['pullup_bar', 'bodyweight'],
@@ -628,7 +629,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Bar at hip height. Body straight, pull the chest to the bar.',
     usesBodyweight: true,
     // Reasoned, not measured — a lower bar and shallower body angle move
-    // less than a dead hang. See §7's method, extended to fallbacks here.
+    // less than a dead hang. Same reasoned-not-measured method as commit
+    // 5ce8d44, extended to fallbacks here.
     bodyweightFactor: 0.55,
     role: 'fallback',
   },
@@ -637,7 +639,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     name: 'Chin-ups',
     aliases: ['Chinups', 'Underhand Pull-ups'],
     // Modelled with biceps as the primary mover (not lats, as Pull-ups is)
-    // so it can actually fill the isolation/biceps gap in §4 — an identical
+    // so it can actually fill the isolation/biceps gap the audit found — an identical
     // exercise to Pull-ups here would not help when the curl station, not
     // the bar, is what is occupied.
     pattern: 'vertical_pull',
@@ -649,7 +651,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [4, 12],
     cue: 'Underhand, shoulder width. Chin clears the bar.',
     usesBodyweight: true,
-    // Reasoned, not measured — close to a dead hang, same as Pull-ups. See §7.
+    // Reasoned, not measured — close to a dead hang, same as Pull-ups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.9,
     role: 'fallback',
   },
@@ -698,7 +700,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 20],
     cue: 'Face down on a bench or the floor. Thumbs up, squeeze the shoulder blades, not the lower back.',
     usesBodyweight: true,
-    // Reasoned, not measured — only the arms move against gravity. See §7.
+    // Reasoned, not measured — only the arms move against gravity. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.15,
     role: 'fallback',
   },
@@ -765,7 +767,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 20],
     cue: 'One foot down, hips square. Squeeze at the top, control the lower.',
     usesBodyweight: true,
-    // Reasoned, not measured — one leg carries the hips, not the whole body. See §7.
+    // Reasoned, not measured — one leg carries the hips, not the whole body. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.35,
     role: 'fallback',
   },
@@ -782,7 +784,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [3, 10],
     cue: 'Kneeling, ankles anchored. Lower under control for as long as possible and catch yourself at the bottom.',
     usesBodyweight: true,
-    // Reasoned, not measured — the torso and hips lower under the hamstrings' control. See §7.
+    // Reasoned, not measured — the torso and hips lower under the hamstrings' control. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.8,
     role: 'fallback',
   },
@@ -799,7 +801,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 20],
     cue: 'Rear foot elevated if you have something to put it on. Front shin stays vertical.',
     usesBodyweight: true,
-    // Reasoned, not measured — one leg carries nearly the whole body through the rep. See §7.
+    // Reasoned, not measured — one leg carries nearly the whole body through the rep. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.85,
     role: 'fallback',
   },
@@ -837,7 +839,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Genuinely unsourced — how much a two-footed raise is worth versus a
     // loaded barbell calf raise is not something this estimate is confident
-    // about. Flagged rather than presented as measured. See §7.
+    // about. Flagged rather than presented as measured. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.9,
     role: 'fallback',
   },
@@ -886,7 +888,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 30],
     cue: 'Chest to the floor, full jump at the top. Keep the pace honest.',
     usesBodyweight: true,
-    // Reasoned, not measured — full body through the rep, close to a pushup-plus-jump. See §7.
+    // Reasoned, not measured — full body through the rep, close to a pushup-plus-jump. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.7,
     role: 'fallback',
   },

@@ -109,9 +109,10 @@ describe('tonnage', () => {
   })
 
   it('adds only the moved fraction for a partial-bodyweight movement, not the whole mass', () => {
-    // The substitution-plan finding: a sit-up does not move the full body, it
-    // moves the trunk. 3 sets of 20 sit-ups at a 72 kg bodyweight and a 0.45
-    // factor score 1,944 kg, not 4,320 — see docs/substitution-plan.md §8.
+    // The finding behind commit 5ce8d44: a sit-up does not move the full
+    // body, it moves the trunk. 3 sets of 20 sit-ups at a 72 kg bodyweight
+    // and a 0.45 factor score 1,944 kg, not 4,320 — see docs/TODO.md's
+    // Exercise substitution entry.
     const sets = [
       set({ exerciseId: 'situps', weight: 0, reps: 20 }),
       set({ exerciseId: 'situps', weight: 0, reps: 20 }),

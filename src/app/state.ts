@@ -86,7 +86,7 @@ export interface AppState extends LoadedData {
   /**
    * Swaps chosen for the open session, keyed by the planned exercise's id.
    * Lives only in the store, not Dexie — the choice is good for this session
-   * only (rule: see docs/substitution-plan.md §5 commit 6). Cleared on
+   * only (commit 9de7140). Cleared on
    * `startGate`, `finishGate` and `abandonGate`.
    */
   activeSubstitutions: Record<string, { substituteId: string; reason: SubstitutionReason }>
@@ -117,7 +117,7 @@ export interface AppState extends LoadedData {
    * Shows the bodyweightFactor tonnage correction exactly once, comparing the
    * level under the old full-bodyweight measurement against the corrected
    * one. Gated on `Progress.bodyweightFactorAnnouncedAt`, in the same shape
-   * as `doubleDungeonSeenAt`. See docs/substitution-plan.md §5 commit 1.
+   * as `doubleDungeonSeenAt`. See commit 5ce8d44.
    */
   announceBodyweightFactorRegradeIfNeeded: () => Promise<void>
   dismissMessage: (id: string) => void
@@ -224,7 +224,7 @@ const SUBSTITUTION_REASON_LABEL: Record<SubstitutionReason, string> = {
 /**
  * "N of M blocks as prescribed", plus one line per substitution made this
  * session. The System should never quietly re-describe what the hunter did —
- * see docs/substitution-plan.md §5 commit 8. Reads the log itself
+ * see commit 4d6f484. Reads the log itself
  * (`SetLog.substitutedFor`) rather than `activeSubstitutions`, which is
  * already cleared by the time `finishGate` gets here.
  */
@@ -493,7 +493,7 @@ export const useApp = create<AppState>((set, get) => ({
     }
 
     // Ranked against each exercise's own equipment as the default block —
-    // the common case per docs/substitution-plan.md §3 — so the swap sheet
+    // the common case (see commit d07154c) — so the swap sheet
     // needs no store round-trip to narrow further; it filters this list
     // client-side when a second piece of equipment is also occupied.
     const substitutesByExerciseId: Record<string, SubstituteCandidate[]> = {}

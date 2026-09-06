@@ -1,7 +1,8 @@
 /**
  * Ranks candidates to swap onto when a planned exercise's equipment is
- * occupied. Pure — no store, no React, no ambient clock. See
- * docs/substitution-plan.md §3 for the design.
+ * occupied. Pure — no store, no React, no ambient clock. Landed as commit
+ * d07154c; see docs/TODO.md's Exercise substitution entry for the design
+ * rationale.
  */
 import type { Equipment, Exercise, Routine } from './types'
 
