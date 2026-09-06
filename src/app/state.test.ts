@@ -297,3 +297,92 @@ describe('announceBodyweightFactorRegradeIfNeeded', () => {
     expect(useApp.getState().messages).toHaveLength(messagesBefore + 1)
   })
 })
+
+describe('substituteExercise records the choice for the open session (substitution-plan.md §5 commit 6)', () => {
+  it('is readable from activeSubstitutions once recorded', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+
+    expect(useApp.getState().activeSubstitutions['hanging-leg-raises']).toEqual({
+      substituteId: 'leg-raises',
+      reason: 'occupied',
+    })
+  })
+
+  it('logSet stamps substitutedFor and the reason onto the row when given', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    await useApp.getState().logSet({
+      exerciseId: 'leg-raises',
+      weight: 0,
+      reps: 15,
+      substitutedFor: 'hanging-leg-raises',
+      substitutionReason: 'occupied',
+    })
+
+    const logged = useApp.getState().sets.find((s) => s.exerciseId === 'leg-raises')!
+    expect(logged.substitutedFor).toBe('hanging-leg-raises')
+    expect(logged.substitutionReason).toBe('occupied')
+  })
+
+  it('logSet leaves both fields undefined for an ordinary set, so every pre-existing call site is unaffected', async () => {
+    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 8 })
+
+    const logged = useApp.getState().sets.find((s) => s.exerciseId === 'barbell-squat')!
+    expect(logged.substitutedFor).toBeUndefined()
+    expect(logged.substitutionReason).toBeUndefined()
+  })
+
+  it('a substitution neither advances nor resets the planned exercise, and the substitute reads no_history the first time', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+
+    // Before logging anything, both read no_history.
+    expect(useApp.getState().targetFor('hanging-leg-raises')?.kind).toBe('no_history')
+    expect(useApp.getState().targetFor('leg-raises')?.kind).toBe('no_history')
+
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+    await useApp.getState().logSet({
+      exerciseId: 'leg-raises',
+      weight: 0,
+      reps: 15,
+      substitutedFor: 'hanging-leg-raises',
+      substitutionReason: 'occupied',
+    })
+
+    // The substitute now has history of its own...
+    expect(useApp.getState().targetFor('leg-raises')?.kind).not.toBe('no_history')
+    // ...but the planned exercise's own progression is untouched — no set
+    // was ever logged under its id, so it still reads exactly as it did
+    // before the swap, not advanced and not reset.
+    expect(useApp.getState().targetFor('hanging-leg-raises')?.kind).toBe('no_history')
+  })
+
+  it('clears once the gate finishes, since the choice was for that session only', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+    await useApp.getState().logSet({ exerciseId: 'leg-raises', weight: 0, reps: 15 })
+
+    await useApp.getState().finishGate()
+
+    expect(useApp.getState().activeSubstitutions).toEqual({})
+  })
+
+  it('clears when the gate is abandoned', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+
+    await useApp.getState().abandonGate()
+
+    expect(useApp.getState().activeSubstitutions).toEqual({})
+  })
+
+  it('starts empty for a freshly opened gate, even if a previous session recorded one', async () => {
+    await useApp.getState().startGate('saturday-cardio-abs')
+    useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
+    await useApp.getState().abandonGate()
+
+    await useApp.getState().startGate('saturday-cardio-abs')
+
+    expect(useApp.getState().activeSubstitutions).toEqual({})
+  })
+})

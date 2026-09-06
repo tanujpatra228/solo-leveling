@@ -34,6 +34,7 @@ import {
   type Settings,
   type Shadow,
   type StatBlock,
+  type SubstitutionReason,
   type Title,
 } from '../domain/types'
 import { toDayKey } from '../domain/time'
@@ -333,6 +334,8 @@ export async function addSet(input: {
   rpe?: number
   isWarmup?: boolean
   at?: number
+  substitutedFor?: string
+  substitutionReason?: SubstitutionReason
 }): Promise<SetLog> {
   const set: SetLog = SetLogSchema.parse({
     id: newId(),
@@ -346,6 +349,8 @@ export async function addSet(input: {
     rpe: input.rpe,
     isWarmup: input.isWarmup ?? false,
     completedAt: input.at ?? Date.now(),
+    substitutedFor: input.substitutedFor,
+    substitutionReason: input.substitutionReason,
   })
   await db.sets.add(set)
   await enqueue('sets', set.id)

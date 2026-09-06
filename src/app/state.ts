@@ -42,6 +42,7 @@ import type {
   Shadow,
   StatBlock,
   StatKey,
+  SubstitutionReason,
 } from '../domain/types'
 import type { Progress } from '../db/db'
 
@@ -81,6 +82,13 @@ export interface AppState extends LoadedData {
   messages: SystemMessage[]
   /** The session currently being logged, if any. */
   activeSessionId: string | null
+  /**
+   * Swaps chosen for the open session, keyed by the planned exercise's id.
+   * Lives only in the store, not Dexie — the choice is good for this session
+   * only (rule: see docs/substitution-plan.md §5 commit 6). Cleared on
+   * `startGate`, `finishGate` and `abandonGate`.
+   */
+  activeSubstitutions: Record<string, { substituteId: string; reason: SubstitutionReason }>
 
   load: () => Promise<void>
   /** Reads every table and re-derives the projection from it. */
@@ -135,7 +143,17 @@ export interface AppState extends LoadedData {
     seconds?: number
     metres?: number
     isWarmup?: boolean
+    substitutedFor?: string
+    substitutionReason?: SubstitutionReason
   }) => Promise<void>
+  /**
+   * Records that `substituteId` is standing in for `plannedId` for the rest
+   * of the open session. Synchronous and in-memory only — see
+   * `activeSubstitutions`. Does not itself write a `SetLog`; `logSet` still
+   * needs `substitutedFor`/`substitutionReason` passed explicitly when the
+   * caller logs against the substitute.
+   */
+  substituteExercise: (plannedId: string, substituteId: string, reason: SubstitutionReason) => void
   correctSet: (
     setId: string,
     patch: { weight?: number; reps?: number; rpe?: number; isWarmup?: boolean },
@@ -276,6 +294,7 @@ export const useApp = create<AppState>((set, get) => ({
   dungeonBreaks: [],
   messages: [],
   activeSessionId: null,
+  activeSubstitutions: {},
   targetsByExerciseId: {},
 
   pushMessage(message) {
@@ -603,8 +622,17 @@ export const useApp = create<AppState>((set, get) => ({
     // here, in the one place it cannot be forgotten by a call site.
     const resolved = bodyweightKg ?? get().projection?.latestBodyMetric?.weightKg ?? undefined
     const session = await repo.startSession({ routineId, bodyweightKg: resolved })
+    // A swap chosen mid-session belongs to that session alone (§5 commit 6);
+    // starting a new one must not carry a stale choice into it.
+    set({ activeSubstitutions: {} })
     await get().refresh()
     return session.id
+  },
+
+  substituteExercise(plannedId, substituteId, reason) {
+    set((s) => ({
+      activeSubstitutions: { ...s.activeSubstitutions, [plannedId]: { substituteId, reason } },
+    }))
   },
 
   async logSet(input) {
@@ -628,6 +656,8 @@ export const useApp = create<AppState>((set, get) => ({
       seconds: input.seconds,
       metres: input.metres,
       isWarmup: input.isWarmup ?? false,
+      substitutedFor: input.substitutedFor,
+      substitutionReason: input.substitutionReason,
     })
     // Appended in memory rather than re-read: repo.addSet already returns the
     // row it wrote, so nothing here touches IndexedDB again.
@@ -651,6 +681,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (!sessionId) return
 
     const session = before.sessions.find((s) => s.id === sessionId)
+    set({ activeSubstitutions: {} })
     await repo.endSession(sessionId)
     await get().refresh()
 
@@ -737,6 +768,7 @@ export const useApp = create<AppState>((set, get) => ({
   async abandonGate() {
     const sessionId = get().activeSessionId
     if (!sessionId) return
+    set({ activeSubstitutions: {} })
     await repo.abandonSession(sessionId)
     await get().refresh()
   },

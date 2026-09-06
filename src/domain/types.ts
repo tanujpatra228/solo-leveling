@@ -96,6 +96,15 @@ export type Equipment = z.infer<typeof EquipmentSchema>
 export const LoadUnitSchema = z.enum(['kg', 'reps', 'time', 'distance'])
 export type LoadUnit = z.infer<typeof LoadUnitSchema>
 
+/**
+ * Why a hunter swapped off the planned exercise. Tracked as a reason rather
+ * than just the fact of a swap because 'occupied' is a logistics signal about
+ * the gym, while 'injury' should eventually raise an advisory rather than be
+ * forgotten. See docs/substitution-plan.md §5 commit 6.
+ */
+export const SubstitutionReasonSchema = z.enum(['occupied', 'unavailable', 'injury', 'preference'])
+export type SubstitutionReason = z.infer<typeof SubstitutionReasonSchema>
+
 export const QuestTypeSchema = z.enum(['daily', 'gate', 'penalty', 'recovery', 'red_gate', 'instant_dungeon'])
 export type QuestType = z.infer<typeof QuestTypeSchema>
 
@@ -241,6 +250,16 @@ export const SetLogSchema = z.object({
   completedAt: TimestampSchema,
   /** Set to the id of an earlier set this one corrects. */
   supersedes: z.string().optional(),
+  /**
+   * The planned exercise's id, when this set stood in for something else —
+   * a logged fact, not a routine edit (standards rule 4). Absent on every
+   * row written before substitution existed, which this optional field
+   * tolerates (rule 3). See docs/substitution-plan.md §1.
+   */
+  substitutedFor: z.string().optional(),
+  /** Why the swap happened. 'injury' is recorded separately from the others
+   *  because it is meant to eventually raise an advisory, not be forgotten. */
+  substitutionReason: SubstitutionReasonSchema.optional(),
 })
 export type SetLog = z.infer<typeof SetLogSchema>
 

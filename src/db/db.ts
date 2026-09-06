@@ -134,6 +134,14 @@ export class SystemDatabase extends Dexie {
       syncState: 'id',
       identity: 'id',
     })
+
+    // Adds an index on SetLog.substitutedFor, for a future "how often did I
+    // substitute this exercise" query. See docs/substitution-plan.md §5
+    // commit 6. Every other table carries its v1 definition forward
+    // unchanged, per Dexie's own versioning model.
+    this.version(2).stores({
+      sets: 'id, sessionId, exerciseId, [exerciseId+completedAt], completedAt, substitutedFor',
+    })
   }
 }
 
