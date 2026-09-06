@@ -237,6 +237,8 @@ export async function getSyncState(): Promise<SyncState> {
       lastSyncedAt: null,
       hunterId: null,
       lastError: null,
+      requestsToday: 0,
+      requestsDayKey: '',
     }
   )
 }

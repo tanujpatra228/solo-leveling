@@ -19,6 +19,8 @@ import {
   getSyncState,
   saveSyncState,
 } from '../db/repo'
+import type { SyncState } from '../db/db'
+import { toDayKey } from '../domain/time'
 import type { Identity } from './identity'
 
 /**
@@ -29,6 +31,15 @@ export const MAX_ROWS_PER_REQUEST = 200
 
 /** Stops a runaway loop if the server keeps saying there is more. */
 const MAX_ROUNDS_PER_RUN = 20
+
+/**
+ * A client-side ceiling on requests per day, well above the ~50/day a normal
+ * training day costs but far under the Worker's 100,000/day free-plan limit
+ * (F5). The gap between "normal" and "the platform's own cap" is wide enough
+ * that a retry-loop or coalescing bug could burn through it for a while
+ * before anyone notices; this stops the client rather than the platform.
+ */
+export const DAILY_REQUEST_CAP = 300
 
 const SyncResponseSchema = z.object({
   seq: z.number().int().nonnegative(),
@@ -77,6 +88,16 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
   let pushed = 0
   let pulled = 0
 
+  // The budget is spent per HTTP request, not per sync run, since a single
+  // run can span many rounds. Carried over in Dexie so a reload mid-day does
+  // not reset a client that is somehow burning through it.
+  const todayKey = toDayKey(Date.now())
+  let requestsUsed = state.requestsDayKey === todayKey ? state.requestsToday : 0
+
+  /** Every return path persists the budget alongside whatever else changed. */
+  const persist = (patch: Partial<Omit<SyncState, 'id' | 'requestsToday' | 'requestsDayKey'>>) =>
+    saveSyncState({ ...patch, requestsToday: requestsUsed, requestsDayKey: todayKey })
+
   try {
     const pending = await collectPendingRows()
 
@@ -95,6 +116,16 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
       let sent = false
 
       while (hasMore && rounds < MAX_ROUNDS_PER_RUN) {
+        if (requestsUsed >= DAILY_REQUEST_CAP) {
+          await persist({ lastError: 'Daily sync request budget reached.' })
+          return {
+            ok: false,
+            pushed,
+            pulled,
+            seq: since,
+            message: 'Daily sync request budget reached. Sync will resume tomorrow.',
+          }
+        }
         rounds += 1
 
         const response = await fetch(`${baseUrl}/api/sync`, {
@@ -108,9 +139,12 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
             changes: !sent && batch ? batch.changes : EMPTY_CHANGES,
           }),
         })
+        // Counted the instant a response arrives, win or lose: a 401 or a 500
+        // still spent one of the Worker's 100,000 daily requests.
+        requestsUsed += 1
 
         if (response.status === 401) {
-          await saveSyncState({ lastError: 'The mirror rejected this Hunter License Key.' })
+          await persist({ lastError: 'The mirror rejected this Hunter License Key.' })
           return {
             ok: false,
             pushed,
@@ -120,11 +154,11 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
           }
         }
         if (response.status === 429) {
-          await saveSyncState({ lastError: 'Rate limited by the mirror.' })
+          await persist({ lastError: 'Rate limited by the mirror.' })
           return { ok: false, pushed, pulled, seq: since, message: 'Rate limited. Will retry later.' }
         }
         if (!response.ok) {
-          await saveSyncState({ lastError: `Mirror returned ${response.status}.` })
+          await persist({ lastError: `Mirror returned ${response.status}.` })
           return {
             ok: false,
             pushed,
@@ -136,7 +170,7 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
 
         const parsed = SyncResponseSchema.safeParse(await response.json())
         if (!parsed.success) {
-          await saveSyncState({ lastError: 'Unreadable response from the mirror.' })
+          await persist({ lastError: 'Unreadable response from the mirror.' })
           return {
             ok: false,
             pushed,
@@ -162,7 +196,7 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
       }
     }
 
-    await saveSyncState({
+    await persist({
       lastServerSeq: since,
       lastSyncedAt: Date.now(),
       hunterId: identity.hunterId,
@@ -172,7 +206,7 @@ export async function runSync(identity: Identity, baseUrl = ''): Promise<SyncOut
     return { ok: true, pushed, pulled, seq: since }
   } catch {
     // Never log the error object: a failed request can carry the body.
-    await saveSyncState({ lastError: 'Could not reach the mirror.' })
+    await persist({ lastError: 'Could not reach the mirror.' })
     return { ok: false, pushed, pulled, seq: since, message: 'Could not reach the mirror.' }
   }
 }

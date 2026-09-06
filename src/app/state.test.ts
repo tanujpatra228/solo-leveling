@@ -9,7 +9,7 @@
  * not just "it doesn't throw".
  */
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { lastSetsForExercise } from '../domain/projection'
 import { dayOfWeekForKey } from '../domain/time'
 import { putQuest, updateProgress, wipeEverything } from '../db/repo'
@@ -630,5 +630,97 @@ describe('a level change announces itself as a window notification', () => {
     expect(levelUp).toBeDefined()
     expect(levelUp!.kind).toBe('window')
     expect(levelUp!.tone).toBe('good')
+  })
+})
+
+describe('syncNow — coalescing and backoff (M6 commit 1, F3)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('logSet performs no network request, on the set-entry path or anywhere near it (F3)', async () => {
+    vi.stubGlobal('navigator', { onLine: true })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 8 })
+
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('coalesces two triggers fired together into one request rather than two', async () => {
+    await useApp.getState().updateSettings({ syncEnabled: true })
+    vi.stubGlobal('navigator', { onLine: true })
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ seq: 1, received: 0, hasMore: false, rows: { sessions: [], sets: [], bodyMetrics: [] } }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    useApp.getState().syncNow()
+    useApp.getState().syncNow()
+
+    await vi.waitFor(() => expect(useApp.getState().syncStatus).toBe('ok'))
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('backs off exponentially on repeated failures and gives up rather than retrying forever', async () => {
+    await useApp.getState().updateSettings({ syncEnabled: true })
+    vi.stubGlobal('navigator', { onLine: true })
+    const fetchMock = vi.fn(async () => {
+      throw new Error('network down')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.useFakeTimers()
+
+    // Fake-indexeddb resolves its own requests through chained zero-delay
+    // timers, so the first attempt needs more than one 0ms tick to reach the
+    // network call — a generous flush here, well short of the first 2s
+    // backoff delay, is what lets that settle before the assertion.
+    useApp.getState().syncNow()
+    await vi.advanceTimersByTimeAsync(500)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(useApp.getState().syncStatus).toBe('failed')
+
+    // Delays double each time: 2s, 4s, 8s, 16s, 32s — five more attempts, six
+    // failures total (2+4+8+16+32 = 62s), then the controller stops
+    // scheduling its own retry. Advanced in one generous step rather than
+    // per-delay, so Dexie's own tick overhead can't push a firing across a
+    // step boundary and be missed.
+    await vi.advanceTimersByTimeAsync(100_000)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
+
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
+  })
+
+  it('a manual trigger after the controller gave up gets a fresh run, not an inherited streak', async () => {
+    await useApp.getState().updateSettings({ syncEnabled: true })
+    vi.stubGlobal('navigator', { onLine: true })
+    let shouldFail = true
+    const fetchMock = vi.fn(async () => {
+      if (shouldFail) throw new Error('network down')
+      return new Response(
+        JSON.stringify({ seq: 1, received: 0, hasMore: false, rows: { sessions: [], sets: [], bodyMetrics: [] } }),
+        { headers: { 'content-type': 'application/json' } },
+      )
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.useFakeTimers()
+
+    useApp.getState().syncNow()
+    await vi.advanceTimersByTimeAsync(100_000)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
+    expect(useApp.getState().syncStatus).toBe('failed')
+
+    shouldFail = false
+    useApp.getState().syncNow()
+    await vi.advanceTimersByTimeAsync(500)
+
+    expect(useApp.getState().syncStatus).toBe('ok')
   })
 })

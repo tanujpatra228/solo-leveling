@@ -54,6 +54,10 @@ export interface SyncState {
   /** SHA-256 of the Hunter Secret, which is the account identifier. */
   hunterId: string | null
   lastError: string | null
+  /** Requests spent against today's client-side budget (F5). Resets when
+   *  `requestsDayKey` no longer matches today. */
+  requestsToday: number
+  requestsDayKey: string
 }
 
 /** Stat points the hunter has assigned by hand. One row, id `state`. */

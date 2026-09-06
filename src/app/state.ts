@@ -30,6 +30,7 @@ import { extractShadow, shouldExtract } from '../domain/shadows'
 import { resolveDungeonBreaks, type DungeonBreak, type OpenGate } from '../domain/gates'
 import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
 import { titleById } from '../domain/titles'
+import { runSync } from '../sync/client'
 import type { Identity } from '../sync/identity'
 import type {
   BodyFatSource,
@@ -64,6 +65,8 @@ export interface SystemMessage {
    */
   kind?: 'toast' | 'window'
 }
+
+export type SyncStatus = 'idle' | 'syncing' | 'ok' | 'failed' | 'offline'
 
 interface LoadedData {
   profile: Profile | null
@@ -100,6 +103,14 @@ export interface AppState extends LoadedData {
    * `startGate`, `finishGate` and `abandonGate`.
    */
   activeSubstitutions: Record<string, { substituteId: string; reason: SubstitutionReason }>
+
+  /**
+   * `idle` before the first attempt this session; `syncing` while a request
+   * is in flight; `ok`/`failed`/`offline` after the most recent attempt.
+   * Never blocks anything — see `syncNow` (F3).
+   */
+  syncStatus: SyncStatus
+  lastSyncedAt: number | null
 
   load: () => Promise<void>
   /** Reads every table and re-derives the projection from it. */
@@ -225,6 +236,15 @@ export interface AppState extends LoadedData {
   spendRestToken: () => Promise<boolean>
   updateSettings: (patch: Partial<Settings>) => Promise<void>
   markDeload: () => Promise<void>
+
+  /**
+   * Fire-and-forget: never returns a promise a caller awaits, so a component
+   * can never accidentally block on the network (F3, rule "no feature awaits
+   * the network"). A run already in flight absorbs this call rather than
+   * starting a second (M6 commit 1's coalescing test). Triggers are app
+   * foreground, after `finishGate`, and this manual call — never per set.
+   */
+  syncNow: () => void
 }
 
 function messageId(): string {
@@ -317,7 +337,77 @@ async function loadAll(): Promise<LoadedData> {
   }
 }
 
+const SYNC_BACKOFF_BASE_MS = 2_000
+const SYNC_MAX_BACKOFF_MS = 5 * 60_000
+/** After this many straight failures, the controller stops scheduling its own
+ *  retries and waits for a fresh trigger (foreground, Finish Gate, or the
+ *  manual button) rather than retrying forever (F3, F5). */
+const SYNC_MAX_AUTO_RETRIES = 6
+
+/**
+ * Coalescing and backoff for `syncNow`, factored out of the store's action
+ * body because both need state that must survive across calls but must
+ * never itself be React/Zustand state — a retry timer handle is not
+ * something any component should be able to read or diff against.
+ */
+function createSyncController(get: () => AppState, set: (patch: Partial<AppState>) => void): () => void {
+  let inFlight: Promise<void> | null = null
+  let failureStreak = 0
+  let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+  function run(isAutoRetry: boolean): void {
+    const state = get()
+    if (!state.settings.syncEnabled || !state.identity || inFlight) return
+
+    // A fresh trigger (not the controller's own scheduled retry) always gets
+    // a full run and a full new backoff budget — otherwise tapping the
+    // manual button after the controller had given up would inherit a stale
+    // streak and refuse to schedule anything on the next failure.
+    if (!isAutoRetry) {
+      failureStreak = 0
+      if (retryTimer) {
+        clearTimeout(retryTimer)
+        retryTimer = null
+      }
+    }
+
+    const identity = state.identity
+    set({ syncStatus: 'syncing' })
+
+    inFlight = (async () => {
+      try {
+        const outcome = await runSync(identity)
+        if (outcome.ok) {
+          failureStreak = 0
+          set({ syncStatus: 'ok', lastSyncedAt: Date.now() })
+          return
+        }
+        if (outcome.message?.startsWith('Offline')) {
+          set({ syncStatus: 'offline' })
+          return
+        }
+
+        set({ syncStatus: 'failed' })
+        failureStreak += 1
+        if (failureStreak < SYNC_MAX_AUTO_RETRIES) {
+          const delay = Math.min(SYNC_BACKOFF_BASE_MS * 2 ** (failureStreak - 1), SYNC_MAX_BACKOFF_MS)
+          retryTimer = setTimeout(() => {
+            retryTimer = null
+            run(true)
+          }, delay)
+        }
+      } finally {
+        inFlight = null
+      }
+    })()
+  }
+
+  return () => run(false)
+}
+
 export const useApp = create<AppState>((set, get) => ({
+  syncNow: createSyncController(get, set),
+
   ready: false,
   identity: null,
   today: toDayKey(Date.now()),
@@ -366,6 +456,8 @@ export const useApp = create<AppState>((set, get) => ({
   activeSubstitutions: {},
   substitutesByExerciseId: {},
   targetsByExerciseId: {},
+  syncStatus: 'idle',
+  lastSyncedAt: null,
 
   pushMessage(message) {
     set((state) => ({ messages: [...state.messages, { ...message, id: messageId() }] }))
@@ -379,7 +471,8 @@ export const useApp = create<AppState>((set, get) => ({
     // Mints the Hunter Secret on a first launch. No network consequence:
     // syncEnabled defaults to false, so this contacts nothing.
     const identity = await repo.ensureIdentity()
-    set({ identity })
+    const syncState = await repo.getSyncState()
+    set({ identity, lastSyncedAt: syncState.lastSyncedAt })
 
     await repo.ensureSeeded()
     await get().refresh()

@@ -5,7 +5,8 @@
  * bodies of round two and three are asserted to carry no rows at all.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { runSync } from './client'
+import { toDayKey } from '../domain/time'
+import { DAILY_REQUEST_CAP, runSync } from './client'
 import type { Identity } from './identity'
 
 const repoMocks = vi.hoisted(() => ({
@@ -20,9 +21,11 @@ const repoMocks = vi.hoisted(() => ({
   getSyncState: vi.fn(async () => ({
     id: 'state' as const,
     lastServerSeq: 0,
-    lastSyncedAt: null,
-    hunterId: null,
-    lastError: null,
+    lastSyncedAt: null as number | null,
+    hunterId: null as string | null,
+    lastError: null as string | null,
+    requestsToday: 0,
+    requestsDayKey: '',
   })),
   saveSyncState: vi.fn(async () => undefined),
 }))
@@ -106,5 +109,56 @@ describe('runSync', () => {
     expect(outcome.pushed).toBe(1)
     expect(outcome.ok).toBe(true)
     expect(outcome.seq).toBe(3)
+  })
+})
+
+describe('the daily request budget (F5)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('navigator', { onLine: true })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('stops a runaway client before a single request goes out once today\'s cap is already spent', async () => {
+    repoMocks.getSyncState.mockResolvedValueOnce({
+      id: 'state' as const,
+      lastServerSeq: 0,
+      lastSyncedAt: null,
+      hunterId: null,
+      lastError: null,
+      requestsToday: DAILY_REQUEST_CAP,
+      requestsDayKey: toDayKey(Date.now()),
+    })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const outcome = await runSync(identity)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(outcome.ok).toBe(false)
+    expect(outcome.message).toContain('Daily sync request budget reached')
+  })
+
+  it('starts a fresh budget once the stored day key is not today', async () => {
+    repoMocks.getSyncState.mockResolvedValueOnce({
+      id: 'state' as const,
+      lastServerSeq: 0,
+      lastSyncedAt: null,
+      hunterId: null,
+      lastError: null,
+      requestsToday: DAILY_REQUEST_CAP,
+      requestsDayKey: '2000-01-01',
+    })
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ seq: 1, received: 1, hasMore: false, rows: { sessions: [], sets: [], bodyMetrics: [] } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const outcome = await runSync(identity)
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(outcome.ok).toBe(true)
   })
 })
