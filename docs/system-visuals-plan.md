@@ -1,7 +1,12 @@
 # The System's visual language — icons, meters, glow
 
-Bringing the status window closer to the reference: glowing hairline frames, capsule meters with a
-lit core, and a consistent icon set. Written 2026-09-06, for M5 (the game layer).
+Bringing the status window and the notification queue closer to the reference: glowing hairline
+frames, capsule meters with a lit core, a consistent icon set, and a System that announces itself
+one window at a time. Written 2026-09-06, for M5 (the game layer).
+
+Sections 6 and 7 carry the construction detail. Two of the findings here — the contrast ramp in
+section 5 and the notification defects in section 7 — are bugs that stand on their own and should
+ship before any restyling.
 
 ## 1. What already exists
 
@@ -35,7 +40,7 @@ The look is five techniques, not a style anyone needs to freehand:
 
 ## 3. Icons: use a library, restyle it
 
-No icon library is installed. The recommendation is **`lucide-react`**, for a specific reason: it
+No icon library is installed. **Decided 2026-09-06: `lucide-react`**, for a specific reason — it
 exposes `strokeWidth` and inherits `currentColor`, which are exactly the two knobs this aesthetic
 needs. Its 24px stroke grid is already the reference's geometry.
 
@@ -99,49 +104,231 @@ Lift `--color-ink-faint` to around `#7b90b3` (roughly 5.2:1) and re-check the ra
 **before** the glow work, so the glow is tuned against legible text rather than compensating for
 illegible text.
 
-## 6. What to build
+## 6. The construction, component by component
 
-| Component | Purpose |
-|---|---|
-| `SystemIcon` | The restyling wrapper: size, stroke, tone, glow tier. Every icon goes through it. |
-| `SystemMeter` | The capsule primitive. Variants: `solid` (HP/XP), `split` (derived vs allocated), `segmented` (fatigue). Replaces the geometry duplicated in `ManaBar` and `StatBar`. |
-| `SegmentedRing` | The fatigue dial. Custom SVG, driven by `fatigue.gauge` (0–100), which already exists. |
-| `StatRow` | Icon, label, value — the two-column grid in the reference. |
-| `SystemFrame` | The sharp hairline frame, as a variant of `SystemWindow` rather than a new component. |
+### `SystemIcon` — the restyling layer
 
-`ManaBar` and `StatBar` keep their names and props and become thin wrappers over `SystemMeter`, so
-nothing calling them has to change.
+Every icon goes through it, which is what makes swapping the library later a one-file change.
 
-## 7. Tokens to add
+```tsx
+export function SystemIcon({ icon: Icon, tone = 'system', size = 20, glow = 'faint', label }: {
+  icon: LucideIcon
+  tone?: keyof typeof TONE
+  size?: number
+  glow?: 'none' | 'faint' | 'strong'
+  /** Omit when a visible text label already names this. */
+  label?: string
+}) {
+  return (
+    <Icon
+      size={size}
+      strokeWidth={1.5}
+      aria-hidden={label ? undefined : true}
+      aria-label={label}
+      className={`${TONE[tone]} ${GLOW[glow]}`}
+    />
+  )
+}
+```
+
+`strokeWidth={1.5}` is the single most important line. Lucide ships 2 by default, and 2 reads
+chunky and app-like rather than holographic. It is never overridden per call — something that needs
+to look heavier gets a larger `size`.
+
+Icons to use: Dumbbell (STR), HeartPulse (VIT), Footprints (AGI), Brain (INT), Radar (PER), Plus
+(HP), FlaskConical (MP), Flame (streak), Trophy, Swords, AlertCircle.
+
+### `SystemMeter` — outline plus lit core
+
+The piece that carries the look. A flat gradient reads as *coloured*; an outline with a brighter
+centre line reads as *emitting*, and that difference is most of the aesthetic.
+
+```tsx
+<div className="relative h-2.5 overflow-hidden rounded-full bg-void-soft ring-1 ring-panel-edge ring-inset">
+  <div
+    className="absolute inset-y-0 left-0 rounded-full shadow-[var(--shadow-meter)]"
+    style={{ width: `${clamped}%`, backgroundImage: fillFor(tone) }}
+  />
+</div>
+```
+
+The core is a vertical gradient, bright in the middle and falling off at both edges:
+
+```ts
+const fillFor = (tone: string) => `linear-gradient(
+  to bottom,
+  color-mix(in oklab, var(--color-${tone}) 60%, transparent) 0%,
+  var(--color-system-glow) 46%,
+  var(--color-system-glow) 54%,
+  color-mix(in oklab, var(--color-${tone}) 60%, transparent) 100%
+)`
+```
+
+Variants: `solid` (XP, HP), `split` (a second segment for derived vs allocated), `segmented` (the
+fatigue dial). `ManaBar` and `StatBar` keep their exact names and props and become thin wrappers,
+so nothing calling them changes and that commit is reviewable on its own.
+
+### `SegmentedRing` — the fatigue dial
+
+Twelve arcs on a circle, `stroke-dasharray` per segment, rotated `-90deg` so it starts at twelve
+o'clock. Lit segments take `--color-system` with the meter glow, unlit take `--color-panel-edge`,
+and the tone shifts to warn and danger across the fatigue bands that already exist. Driven by
+`projection.fatigue.gauge`, which is already computed 0-100 — no domain work.
+
+### `StatRow` and the frame
+
+Two-column grid: icon, label, value. The value is a size pair rather than a slash at one size — a
+large bright current against a smaller, dimmer max.
+
+The sharp frame is a `sharp` variant on `SystemWindow`, not a new component: `rounded-none` plus
+`--shadow-system-faint`. The current rounding is most of what makes it read as an app rather than
+a System.
+
+### The ground texture, last
+
+Faint diagonal scratches over the vignette the body already has:
+
+```css
+repeating-linear-gradient(115deg, transparent 0 22px, rgb(125 211 252 / 0.012) 22px 23px)
+```
+
+Keep the alpha near-invisible. At 0.02 it reads as a dirty screen; at 0.012 it reads as texture.
+
+## 7. The notification queue
+
+Two defects first, both visible in a real screenshot and neither cosmetic.
+
+**`bg-panel/95` lets content bleed through.** A gate-screen capture showed the rest-day paragraph
+legible *through* a notification sitting on top of it. Two texts in the same pixels means neither
+reads. The reference is fully opaque over a scrim for exactly this reason.
+
+**Every message renders at once.** `finishGate` can queue a gate clear, one message per PR, one per
+extracted shadow and one per title — five or more windows stacked over each other and over the app.
+Two already overlap; five would bury the screen.
+
+### Two tiers
+
+A modal after every logged set would be miserable mid-workout, and a toast for ARISE wastes the best
+moment in the app. So `SystemMessage` gains one field:
+
+```ts
+kind?: 'toast' | 'window'   // default 'toast'
+```
+
+- **Toast** — transient, non-blocking, auto-dismissing after ~6s, stacked but capped at three.
+  Daily quest arrived, rest token spent.
+- **Window** — the reference. Opaque, scrimmed, **one at a time**, dismissed deliberately. Gate
+  cleared, title acquired, shadow extracted, level up. `finishGate`'s call sites opt in.
+
+No other domain change: `title` is already the bracketed payload and `body` already the
+explanation, which is exactly the reference's hierarchy.
+
+`MessageQueue` becomes a router — toasts stacked and capped, and `windows[0]` alone. Showing one
+window at a time is both the fix for the overlap and the right feel: the System never talks over
+itself.
+
+### The window itself
+
+The header is two separate bordered boxes — an icon square and a letterspaced title box — pulled up
+with a negative margin so they straddle the top border. That overlap *is* the notch in the
+reference; the border is never actually cut.
+
+```tsx
+<div className="fixed inset-0 z-50 grid place-items-center bg-void/80 p-6">
+  <section role="alertdialog" aria-modal="true" aria-labelledby={id}
+           className="animate-system-in system-frame relative w-full max-w-md bg-panel px-6 py-8 text-center">
+    <div className="-mt-12 mb-8 flex items-center justify-center gap-3">
+      <span className="grid size-11 place-items-center border border-ink/70 bg-panel">
+        <SystemIcon icon={AlertCircle} tone="ink" size={22} glow="strong" />
+      </span>
+      <span className="border border-ink/70 bg-panel px-6 py-2 font-system text-sm tracking-[0.35em] text-ink uppercase">
+        Notification
+      </span>
+    </div>
+    <p id={id} className="text-lg font-semibold text-ink italic">{message.title}</p>
+    {message.body ? <p className="mx-auto mt-3 max-w-sm text-sm text-ink-soft">{message.body}</p> : null}
+  </section>
+</div>
+```
+
+### The broken frame
+
+The reference's border is hairline **near-white**, with the cyan arriving as glow rather than as
+border colour. Getting that backwards is what makes HUD styling look cheap. Corner brackets on two
+opposite corners approximate the cut-ins; four starts to look like a crosshair.
+
+```css
+.system-frame {
+  border: 1px solid rgb(219 234 254 / 0.55);
+  box-shadow: var(--shadow-system), inset 0 0 40px -20px var(--color-system);
+}
+.system-frame::before, .system-frame::after {
+  content: ''; position: absolute; width: 18px; height: 18px;
+  border: 2px solid var(--color-system-glow);
+  filter: drop-shadow(0 0 4px var(--color-system));
+}
+.system-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.system-frame::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+```
+
+## 8. Tokens to add
 
 Only what has a caller (rule 16):
 
-- `--shadow-system-faint` — the cheap tier, for elements that should glow without costing.
-- `--shadow-icon` — a tuned `drop-shadow` for stroke icons, which need less blur than panels.
-- Meter tokens: track, fill, and the lit core, so the three variants cannot drift apart.
+```css
+--shadow-system-faint: 0 0 0 1px rgb(56 189 248 / 0.18), 0 0 12px -6px rgb(56 189 248 / 0.30);
+--shadow-meter:        0 0 8px -1px rgb(56 189 248 / 0.55);
+--drop-icon:           drop-shadow(0 0 3px currentColor);
+--drop-icon-strong:    drop-shadow(0 0 6px currentColor);
+```
 
-`--color-mana` (purple) already exists and is used for allocated stat points. The reference's MP bar
-is blue, but repurposing the token would break the existing derived-vs-allocated distinction, which
-carries real information. Keep them separate.
+`--shadow-system` and `--shadow-system-strong` stay unchanged. The rule is faint by default, strong
+only on the window that is speaking.
 
-## 8. Sequence
+`--color-mana` (purple) already exists and marks allocated stat points. The reference's MP bar is
+blue, but repurposing the token would destroy the derived-vs-allocated distinction, which carries
+real information. Keep them separate.
+
+## 9. Rules this has to be built under
+
+1. **Never animate `filter` or `box-shadow`.** Animate `opacity` or `transform` on a pre-composited
+   layer. This is the most likely source of jank.
+2. **`box-shadow` on static elements; `drop-shadow` only on icons**, where the area is small.
+3. **No `backdrop-filter` on the notification scrim.** A full-screen blur is one of the most
+   expensive things a mid-range Android can be asked for, and a flat `bg-void/80` separates just as
+   well for free.
+4. **Icons are decorative.** `aria-hidden` whenever visible text already names the thing, or every
+   stat gets announced twice.
+5. **The modal needs Escape and focus management** — focus to the dismiss control on open, returned
+   on close. `role="alertdialog"` announces itself, so toasts keep `role="status"` and the window
+   does not, or screen readers read it twice.
+6. **Measure on the phone.** This is the one item reasoning cannot settle.
+
+## 10. Sequence
 
 1. **Fix the contrast ramp.** Independent, and everything else is tuned against it.
-2. **`SystemMeter`**, with `ManaBar` and `StatBar` rewritten over it. No visual change beyond the
-   new construction, so it can be reviewed on its own.
-3. **`lucide-react` plus `SystemIcon`**, with the bundle delta measured and written down.
-4. **The three custom marks** — fatigue ring, rank badge, gate diamond.
-5. **`StatRow` and the status window layout.**
-6. **The ground texture and the glow pass**, last, measured on the phone.
+2. **Fix the notification bugs** — opaque background, cap the stack, auto-dismiss toasts. Ships
+   alone as a bug fix, before any restyling.
+3. **`SystemMeter`**, with `ManaBar` and `StatBar` rewritten over it. No visual change beyond the
+   new construction, so it reviews on its own.
+4. **`lucide-react` plus `SystemIcon`**, with the bundle delta measured and written down.
+5. **The notification window tier** and the frame CSS, which depend on `SystemIcon`.
+6. **The three custom marks** — fatigue ring, rank badge, gate diamond.
+7. **`StatRow` and the status window layout.**
+8. **The ground texture and the glow pass**, last, measured on the phone.
 
-## 9. Verification
+## 11. Verification
 
 - `--color-ink-faint` on `--color-panel` measures at least 4.5:1.
+- No notification is translucent over live content, and no more than three toasts render at once.
+- Exactly one notification window shows at a time, and `finishGate` queuing five messages never
+  covers the screen.
 - `ManaBar` and `StatBar` render identically to before the `SystemMeter` rewrite, by their existing
   callers, with no prop changes.
 - The bundle delta from `lucide-react` is measured and recorded, and judged against M4 commit 3's
   budget rather than the invented 200 KB.
-- Every route still mounts (rule 14), including the status window with the new components.
+- The notification window traps focus, dismisses on Escape, and returns focus on close.
+- Every route still mounts (rule 14), including the status window and a window-tier notification.
 - Scrolling the status window holds 60fps on the actual phone with all glow enabled.
 - With `prefers-reduced-motion`, nothing animates; with the glow reduction, every value stays
   readable.
