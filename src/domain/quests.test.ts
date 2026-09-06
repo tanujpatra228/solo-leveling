@@ -8,6 +8,8 @@ import {
   generateDailyQuest,
   generatePenaltyQuest,
   generateRecoveryQuest,
+  isDailyQuestComplete,
+  mergeDailyQuestProgress,
   nextStreak,
   planDay,
   resolveMissedDay,
@@ -76,6 +78,56 @@ describe('the Daily Quest scales toward canon', () => {
   it('uses the canon announcement', () => {
     const quest = generateDailyQuest({ dayKey: '2026-03-01', level: 1, allocated: ZERO_STATS })
     expect(quest.announcement).toBe('[Daily Quest has arrived.]')
+  })
+})
+
+describe('Daily Quest per-item progress (F2, docs/m5-plan.md)', () => {
+  const quest = generateDailyQuest({ dayKey: '2026-03-01', level: 20, allocated: ZERO_STATS })
+
+  it('is not complete with no progress entered at all', () => {
+    expect(isDailyQuestComplete(quest, {})).toBe(false)
+  })
+
+  it('is not complete while any single item is short, even if the rest are met', () => {
+    const progress: Partial<Record<(typeof quest.items)[number]['kind'], number>> = {}
+    for (const item of quest.items) progress[item.kind] = item.target
+    const oneShort = { ...progress, [quest.items[0]!.kind]: quest.items[0]!.target - 1 }
+    expect(isDailyQuestComplete(quest, oneShort)).toBe(false)
+  })
+
+  it('is complete once every item has met or passed its target', () => {
+    const progress: Partial<Record<(typeof quest.items)[number]['kind'], number>> = {}
+    for (const item of quest.items) progress[item.kind] = item.target
+    expect(isDailyQuestComplete(quest, progress)).toBe(true)
+  })
+
+  it('accepts an item entered past its target', () => {
+    const progress: Partial<Record<(typeof quest.items)[number]['kind'], number>> = {}
+    for (const item of quest.items) progress[item.kind] = item.target + 50
+    expect(isDailyQuestComplete(quest, progress)).toBe(true)
+  })
+
+  it('merges entered amounts additively, so a second entry adds rather than overwrites', () => {
+    const first = mergeDailyQuestProgress({}, { pushups: 40 })
+    expect(first.pushups).toBe(40)
+    const second = mergeDailyQuestProgress(first, { pushups: 60 })
+    expect(second.pushups).toBe(100)
+  })
+
+  it('leaves other kinds untouched when merging one', () => {
+    const current = { pushups: 40, situps: 20 }
+    const merged = mergeDailyQuestProgress(current, { squats: 10 })
+    expect(merged).toEqual({ pushups: 40, situps: 20, squats: 10 })
+  })
+
+  it('ignores a missing or non-positive entered amount rather than zeroing recorded progress', () => {
+    const current = { pushups: 40 }
+    expect(mergeDailyQuestProgress(current, { pushups: 0 })).toEqual({ pushups: 40 })
+    expect(mergeDailyQuestProgress(current, { pushups: -5 })).toEqual({ pushups: 40 })
+  })
+
+  it('merging nothing into nothing stays empty', () => {
+    expect(mergeDailyQuestProgress({}, {})).toEqual({})
   })
 })
 

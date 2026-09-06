@@ -13,8 +13,10 @@ import {
   generateDailyQuest,
   generatePenaltyQuest,
   generateRecoveryQuest,
+  isDailyQuestComplete,
+  mergeDailyQuestProgress,
   type DailyItemKind,
-  type DailyQuest,
+  type DailyQuestPayload,
 } from '../domain/quests'
 import {
   dropSuperseded,
@@ -195,8 +197,15 @@ export interface AppState extends LoadedData {
    */
   substitutesByExerciseId: Record<string, SubstituteCandidate[]>
 
+  /**
+   * Merges `progressByKind` into today's recorded progress (additively —
+   * entering 40 then 60 more totals 100, not 60) and completes the quest
+   * once every item has met its target. Safe to call with no argument just
+   * to re-check completion. Progress is entered by the hunter; nothing here
+   * ever infers it from sets logged inside a gate (F2, docs/m5-plan.md).
+   */
   completeDailyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
-  todaysDailyQuest: () => DailyQuest | null
+  todaysDailyQuest: () => DailyQuestPayload | null
 
   allocatePoint: (stat: StatKey) => Promise<void>
   resetAllocation: () => Promise<void>
@@ -547,7 +556,7 @@ export const useApp = create<AppState>((set, get) => ({
         status: 'issued',
         issuedAt: Date.now(),
         expiresAt: null,
-        payload: quest,
+        payload: { ...quest, progress: {} },
       })
       get().pushMessage({ title: '[Daily Quest has arrived.]', tone: 'system' })
     }
@@ -576,9 +585,10 @@ export const useApp = create<AppState>((set, get) => ({
         })
       } else {
         await repo.setQuestStatus(yesterdayDaily.id, 'failed')
+        const missedPayload = yesterdayDaily.payload as DailyQuestPayload
         const penalty = generatePenaltyQuest({
-          missed: yesterdayDaily.payload as DailyQuest,
-          completed: {},
+          missed: missedPayload,
+          completed: missedPayload.progress,
         })
         if (penalty) {
           await repo.putQuest({
@@ -868,15 +878,26 @@ export const useApp = create<AppState>((set, get) => ({
   todaysDailyQuest() {
     const state = get()
     const row = state.quests.find((q) => q.dayKey === state.today && q.type === 'daily')
-    return (row?.payload as DailyQuest | undefined) ?? null
+    return (row?.payload as DailyQuestPayload | undefined) ?? null
   },
 
-  async completeDailyQuest() {
+  async completeDailyQuest(progressByKind) {
     const state = get()
     const row = state.quests.find((q) => q.dayKey === state.today && q.type === 'daily')
     if (!row || row.status === 'complete') return
 
-    await repo.setQuestStatus(row.id, 'complete')
+    const payload = row.payload as DailyQuestPayload
+    const progress = progressByKind ? mergeDailyQuestProgress(payload.progress, progressByKind) : payload.progress
+
+    if (!isDailyQuestComplete(payload, progress)) {
+      // Not there yet — persist what was entered so it survives a reload,
+      // without paying anything out early.
+      await repo.putQuest({ ...row, payload: { ...payload, progress } })
+      await get().refresh()
+      return
+    }
+
+    await repo.putQuest({ ...row, status: 'complete', payload: { ...payload, progress } })
     await repo.updateProgress({
       dailyQuestsCompleted: state.progress.dailyQuestsCompleted + 1,
       gold: state.progress.gold + 25,

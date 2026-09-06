@@ -37,6 +37,42 @@ export interface DailyQuest {
   announcement: string
 }
 
+/**
+ * The persisted shape of a daily-quest row's payload: the generated quest
+ * plus what the hunter has entered against each item so far. Progress is
+ * entered by the hunter, never inferred from logged sets inside a gate — 40
+ * sit-ups inside a gate are not the Daily Quest's sit-ups unless the hunter
+ * says so, and guessing would either double-count the day's work or quietly
+ * complete a quest nobody did (F2, docs/m5-plan.md).
+ */
+export interface DailyQuestPayload extends DailyQuest {
+  progress: Partial<Record<DailyItemKind, number>>
+}
+
+/** Whether every item in the quest has met or passed its target. */
+export function isDailyQuestComplete(quest: DailyQuest, progress: Partial<Record<DailyItemKind, number>>): boolean {
+  return quest.items.every((item) => (progress[item.kind] ?? 0) >= item.target)
+}
+
+/**
+ * Merges newly entered amounts into what is already recorded, additively:
+ * entering 40 pushups and later 60 more totals 100, rather than the second
+ * entry overwriting the first. A missing or non-positive amount is ignored
+ * rather than zeroing out recorded progress.
+ */
+export function mergeDailyQuestProgress(
+  current: Partial<Record<DailyItemKind, number>>,
+  entered: Partial<Record<DailyItemKind, number>>,
+): Partial<Record<DailyItemKind, number>> {
+  const next = { ...current }
+  for (const kind of Object.keys(entered) as DailyItemKind[]) {
+    const amount = entered[kind]
+    if (amount === undefined || amount <= 0) continue
+    next[kind] = (next[kind] ?? 0) + amount
+  }
+  return next
+}
+
 /** The canon Daily Quest, reached at the level the XP curve targets for a year. */
 export const CANON_TARGETS = { pushups: 100, situps: 100, squats: 100, runMetres: 10_000 } as const
 

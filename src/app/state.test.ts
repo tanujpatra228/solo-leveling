@@ -12,7 +12,8 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { lastSetsForExercise } from '../domain/projection'
 import { dayOfWeekForKey } from '../domain/time'
-import { updateProgress, wipeEverything } from '../db/repo'
+import { putQuest, updateProgress, wipeEverything } from '../db/repo'
+import { generateDailyQuest } from '../domain/quests'
 import { useApp } from './state'
 
 beforeEach(async () => {
@@ -471,5 +472,86 @@ describe('substitutesByExerciseId (commit 7)', () => {
     const candidates = useApp.getState().substitutesByExerciseId['hanging-leg-raises'] ?? []
     const legRaises = candidates.find((c) => c.exercise.id === 'leg-raises')
     expect(legRaises?.demoted).toBe(true)
+  })
+})
+
+describe('Daily Quest per-item progress (F2, m5-plan commit 4)', () => {
+  // Seeded directly rather than through ensureQuestsForToday, which skips a
+  // rest day — `today` is real wall-clock (recompute() derives it from
+  // Date.now() on every refresh, so overriding it does not stick), and
+  // whether today happens to be a rest day is not what these tests are
+  // about.
+  async function seedTodaysQuest(): Promise<void> {
+    const today = useApp.getState().today
+    const quest = generateDailyQuest({ dayKey: today, level: 1, allocated: useApp.getState().allocated })
+    await putQuest({
+      id: `daily-${today}`,
+      dayKey: today,
+      type: 'daily',
+      status: 'issued',
+      issuedAt: Date.now(),
+      expiresAt: null,
+      payload: { ...quest, progress: {} },
+    })
+    await useApp.getState().refresh()
+  }
+
+  it('records partial progress without completing, and it survives a refresh from Dexie', async () => {
+    await seedTodaysQuest()
+    const quest = useApp.getState().todaysDailyQuest()!
+    const partial = Math.floor(quest.items.find((i) => i.kind === 'pushups')!.target * 0.4)
+
+    await useApp.getState().completeDailyQuest({ pushups: partial })
+    await useApp.getState().refresh()
+
+    const after = useApp.getState().todaysDailyQuest()!
+    expect(after.progress.pushups).toBe(partial)
+    const row = useApp.getState().quests.find((q) => q.type === 'daily')!
+    expect(row.status).toBe('issued')
+  })
+
+  it('completes once every item meets its target, and pays out exactly once', async () => {
+    await seedTodaysQuest()
+    const quest = useApp.getState().todaysDailyQuest()!
+    const full: Partial<Record<string, number>> = {}
+    for (const item of quest.items) full[item.kind] = item.target
+
+    const goldBefore = useApp.getState().progress.gold
+    await useApp.getState().completeDailyQuest(full)
+
+    const row = useApp.getState().quests.find((q) => q.type === 'daily')!
+    expect(row.status).toBe('complete')
+    expect(useApp.getState().progress.gold).toBe(goldBefore + 25)
+
+    // A second call must not pay out again — the row is already complete.
+    await useApp.getState().completeDailyQuest(full)
+    expect(useApp.getState().progress.gold).toBe(goldBefore + 25)
+  })
+
+  it('completes across two partial entries that together reach every target', async () => {
+    await seedTodaysQuest()
+    const quest = useApp.getState().todaysDailyQuest()!
+    const firstHalf: Partial<Record<string, number>> = {}
+    const secondHalf: Partial<Record<string, number>> = {}
+    for (const item of quest.items) {
+      const done = Math.floor(item.target * 0.4)
+      firstHalf[item.kind] = done
+      secondHalf[item.kind] = item.target - done
+    }
+
+    await useApp.getState().completeDailyQuest(firstHalf)
+    expect(useApp.getState().quests.find((q) => q.type === 'daily')!.status).toBe('issued')
+
+    await useApp.getState().completeDailyQuest(secondHalf)
+    expect(useApp.getState().quests.find((q) => q.type === 'daily')!.status).toBe('complete')
+  })
+
+  it('logging a set inside a gate never advances Daily Quest progress on its own', async () => {
+    await seedTodaysQuest()
+    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 5, isWarmup: false })
+
+    const quest = useApp.getState().todaysDailyQuest()!
+    expect(Object.keys(quest.progress)).toHaveLength(0)
   })
 })
