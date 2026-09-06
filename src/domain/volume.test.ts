@@ -15,6 +15,7 @@ const bench: Exercise = {
   repRange: [5, 8],
   usesBodyweight: false,
   bodyweightFactor: 1,
+  role: 'prescribed',
 }
 
 const curl: Exercise = {

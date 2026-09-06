@@ -20,6 +20,7 @@ const squat: Exercise = {
   repRange: [5, 8],
   usesBodyweight: false,
   bodyweightFactor: 1,
+  role: 'prescribed',
 }
 
 const curl: Exercise = {
@@ -47,6 +48,7 @@ const pushup: Exercise = {
   progressionLadder: ['incline-pushup', 'pushup', 'diamond-pushup'],
   usesBodyweight: true,
   bodyweightFactor: 0.64,
+  role: 'prescribed',
 }
 
 const diamond: Exercise = {
@@ -252,6 +254,22 @@ describe('bodyweight ladder', () => {
     })
     expect(target.kind).toBe('advance_variation')
     expect(target.nextExerciseId).toBe('pushup')
+  })
+
+  it('never advances onto a fallback exercise, even if the ladder names one', () => {
+    // A fallback exists only to be swapped onto for one session (substitution-
+    // plan.md §2) — mastering a variation must not silently rewrite the
+    // programme onto it. Falls through to hold_add_rep instead.
+    const target = computeNextTarget(pushup, 3, {
+      equipmentAccess: ['bodyweight'],
+      resolveExercise: (id) =>
+        id === 'pushup' ? { ...pushup, id: 'pushup', name: 'Pushup', role: 'fallback' } : undefined,
+      lastSets: sets([
+        { weight: 0, reps: 20 },
+        { weight: 0, reps: 20 },
+      ]),
+    })
+    expect(target.kind).toBe('hold_add_rep')
   })
 
   it('keeps extending reps at the top of the ladder', () => {

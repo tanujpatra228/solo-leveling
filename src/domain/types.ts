@@ -170,6 +170,15 @@ export const ExerciseSchema = z.object({
    * existed reads as the old behaviour rather than as unloaded.
    */
   bodyweightFactor: z.number().min(0).max(1).default(1),
+  /**
+   * `prescribed` is the hunter's own programme: routines are built from these,
+   * the progression engine targets them, and they rank first in any swap
+   * sheet. `fallback` exists only to be swapped onto when a prescribed
+   * exercise's equipment is occupied — never in a routine, never advanced onto
+   * by mastering a variation. Defaults to `prescribed` so the existing library
+   * needs no edit. See docs/substitution-plan.md §2.
+   */
+  role: z.enum(['prescribed', 'fallback']).default('prescribed'),
 })
 export type Exercise = z.infer<typeof ExerciseSchema>
 

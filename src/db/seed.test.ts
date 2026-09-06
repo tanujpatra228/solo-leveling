@@ -51,3 +51,62 @@ describe('the library', () => {
     }
   })
 })
+
+describe('the fallback library (substitution-plan.md §5 commit 4)', () => {
+  it('a routine may only reference a prescribed exercise', () => {
+    // A fallback in a routine is a seed bug (§2) — it would be a default the
+    // hunter never chose, not a stand-in for the evening a station is taken.
+    for (const routine of SEED_ROUTINES) {
+      for (const block of routine.blocks) {
+        for (const item of block.items) {
+          const exercise = SEED_EXERCISE_BY_ID.get(item.exerciseId)
+          expect(
+            exercise?.role,
+            `${routine.id} references '${item.exerciseId}', which is role '${exercise?.role}'`,
+          ).toBe('prescribed')
+        }
+      }
+    }
+  })
+
+  // The (pattern, primary muscle) groups §4 audited as deserts. A fallback
+  // whose primary muscle names none of these fills no gap the audit found,
+  // which is exactly the case this test exists to catch.
+  const GROUPS_FROM_AUDIT = new Set([
+    'chest',
+    'triceps',
+    'front_delts',
+    'abs',
+    'quads',
+    'lats',
+    'biceps',
+    'upper_back',
+    'side_delts',
+    'rear_delts',
+    'traps',
+    'hamstrings',
+    'calves',
+    'cardio',
+  ])
+
+  const fallbacks = SEED_EXERCISES.filter((e) => e.role === 'fallback')
+
+  it('seeded at least one fallback', () => {
+    // A guard against the whole block silently no-op'ing — every assertion
+    // below about "every fallback" is vacuously true for an empty list.
+    expect(fallbacks.length).toBeGreaterThan(0)
+  })
+
+  for (const exercise of fallbacks) {
+    it(`${exercise.id} names at least one group from the §4 audit`, () => {
+      const matches = exercise.primaryMuscles.some((m) => GROUPS_FROM_AUDIT.has(m))
+      expect(matches, `${exercise.id}'s primary muscles (${exercise.primaryMuscles.join(', ')}) name no audited gap`).toBe(true)
+    })
+  }
+
+  it('no fallback carries a progressionLadder — it is never mastered onto the next thing', () => {
+    for (const exercise of fallbacks) {
+      expect(exercise.progressionLadder ?? [], `${exercise.id} has a progressionLadder but is a fallback`).toHaveLength(0)
+    }
+  })
+})

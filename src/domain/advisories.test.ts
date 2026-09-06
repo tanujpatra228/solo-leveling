@@ -123,6 +123,7 @@ describe('advisories stop firing once the gap is closed', () => {
               repRange: [6, 10] as [number, number],
               usesBodyweight: false,
               bodyweightFactor: 1,
+              role: 'prescribed' as const,
             }
           : seedExercise(id),
     }

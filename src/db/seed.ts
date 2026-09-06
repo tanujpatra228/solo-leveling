@@ -31,6 +31,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Elbows about 45 degrees from the torso. Bar to the upper chest, not the throat.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'machine-shoulder-press',
@@ -46,6 +47,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Do not lock out hard at the top. Keep the ribs down.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'skullcrusher',
@@ -61,6 +63,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Elbows stay pointed at the ceiling. Only the forearm moves.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'cable-fly',
@@ -76,6 +79,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Slight elbow bend held constant. Squeeze at the midline, do not clap.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'machine-lateral-raise',
@@ -91,6 +95,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Lead with the elbow. Stop at shoulder height.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'front-raises',
@@ -106,6 +111,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'The pressing already trains this head hard. Keep the load honest and the swing out of it.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'diamond-pushups',
@@ -123,6 +129,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — see docs/substitution-plan.md §7.
     bodyweightFactor: 0.66,
+    role: 'prescribed',
   },
 
   /* ---------------- Tuesday: back and biceps ---------------- */
@@ -140,11 +147,15 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Let the shoulder rise at the top, then drive the elbow down and back.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'pull-ups',
     name: 'Pull-ups',
-    aliases: ['Pullups', 'Pull Ups', 'Chin-ups'],
+    // 'Chin-ups' is deliberately not an alias here — commit 4 seeds it as its
+    // own fallback exercise with biceps as the primary mover, which an
+    // overhand Pull-up does not represent. See docs/substitution-plan.md §5.
+    aliases: ['Pullups', 'Pull Ups'],
     pattern: 'vertical_pull',
     primaryMuscles: ['lats'],
     secondaryMuscles: ['biceps', 'upper_back', 'grip'],
@@ -157,6 +168,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned, not measured — a dead hang moves nearly all of it. See §7.
     bodyweightFactor: 0.95,
+    role: 'prescribed',
   },
   {
     id: 'dumbbell-row',
@@ -172,6 +184,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Pull to the hip, not the armpit. Keep the torso still.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'cable-shrug',
@@ -189,6 +202,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Straight up and down. No rolling — rolling the shoulders adds nothing and grinds the joint.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'machine-reverse-fly',
@@ -204,6 +218,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Arms nearly straight. Think about spreading the hands apart, not squeezing the blades.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'cable-bicep-curl',
@@ -219,6 +234,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Elbows pinned to the sides. The cable keeps tension at the top, so use it.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
 
   /* ---------------- Wednesday: abs and biceps ---------------- */
@@ -236,6 +252,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'The pad removes the cheat. Do not fight it by lifting the elbows.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'strict-curl',
@@ -251,6 +268,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Back against a wall if there is one. No hip drive at all.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'leg-raises',
@@ -268,6 +286,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — legs only. See §7.
     bodyweightFactor: 0.3,
+    role: 'prescribed',
   },
   {
     id: 'machine-abs-crunch',
@@ -283,6 +302,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Shorten the distance between ribs and hips. It is a curl, not a hip fold.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'cable-crunch',
@@ -298,6 +318,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Hips stay where they are. Pull the elbows toward the knees with the abs.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
 
   /* ---------------- Thursday: chest, shoulders, triceps, supersetted ---------------- */
@@ -318,6 +339,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     // Reasoned, not measured, and the honest weak spot: this genuinely varies
     // with bench height, and one number is wrong at both ends. See §7.
     bodyweightFactor: 0.5,
+    role: 'prescribed',
   },
   {
     id: 'pike-pushups',
@@ -339,6 +361,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned, not measured — torso vertical, most of the load on the shoulders. See §7.
     bodyweightFactor: 0.7,
+    role: 'prescribed',
   },
   {
     id: 'cable-chest-press-mid',
@@ -354,6 +377,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Pulleys at chest height. Press straight out and squeeze at the midline.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'cable-chest-press-low',
@@ -369,6 +393,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Pulleys high, press down and in toward the hips.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'cable-chest-press-high',
@@ -384,6 +409,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Pulleys low, press up and in toward the collarbones.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'tricep-overhead-extension',
@@ -399,6 +425,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Upper arms stay beside the ears. The stretch at the bottom is the point.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
 
   /* ---------------- Friday: legs ---------------- */
@@ -417,6 +444,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Knees track over the toes. Depth first, load second.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'leg-press',
@@ -432,6 +460,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Do not let the lower back round off the pad at the bottom.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'hamstring-curl',
@@ -447,6 +476,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'The only hamstring work in the week. Control the lowering.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'leg-extension',
@@ -462,6 +492,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Pause at the top for a beat rather than swinging through.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
   {
     id: 'barbell-calf-raise',
@@ -477,6 +508,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Full stretch at the bottom, full contraction at the top. Slow, not bouncy.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
 
   /* ---------------- Saturday: cardio and abs ---------------- */
@@ -496,6 +528,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — legs, with the trunk stabilising. See §7.
     bodyweightFactor: 0.35,
+    role: 'prescribed',
   },
   {
     id: 'treadmill-intervals',
@@ -511,6 +544,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Five minutes walking, five minutes running, repeated. Walk in zone 2, run in zone 4.',
     usesBodyweight: false,
     bodyweightFactor: 1,
+    role: 'prescribed',
   },
 
   /* ---------------- Available for the Daily Quest and Instant Dungeons ---------------- */
@@ -531,6 +565,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     // The most commonly cited figure for a standard pushup (~64% of bodyweight),
     // but not independently verified against a primary source here — see §7.
     bodyweightFactor: 0.64,
+    role: 'prescribed',
   },
   {
     id: 'bodyweight-squat',
@@ -547,6 +582,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned, not measured — trunk plus most of the legs. See §7.
     bodyweightFactor: 0.65,
+    role: 'prescribed',
   },
   {
     id: 'situps',
@@ -563,6 +599,296 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned, not measured — the trunk, not the whole body. See §7.
     bodyweightFactor: 0.45,
+    role: 'prescribed',
+  },
+
+  /* ---------------- Fallback library ----------------
+   * Never prescribed, never a routine default, never promoted by mastering
+   * one. Exists only so `substitutesFor` (commit 5) has an answer for the
+   * groups audited as deserts in docs/substitution-plan.md §4. Two entries
+   * from that table are deliberately absent: Skipping (needs a jump rope,
+   * which is not in EquipmentSchema) and Plate Raise (needs a loose plate,
+   * same gap) — both would have to be tagged with equipment they do not
+   * really require, which is worse than seeding one fewer exercise.
+   */
+  {
+    id: 'inverted-row',
+    name: 'Inverted Row',
+    aliases: ['Body Row', 'Table Row', 'Bar Row'],
+    pattern: 'horizontal_pull',
+    primaryMuscles: ['upper_back'],
+    secondaryMuscles: ['lats', 'biceps', 'rear_delts'],
+    // §4's minimum implement is "a bar, rings, or a table edge" — a squat
+    // rack or Smith machine bar is the closest match the equipment
+    // vocabulary has, so this tag is approximate rather than exact.
+    equipment: ['pullup_bar', 'bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [8, 15],
+    cue: 'Bar at hip height. Body straight, pull the chest to the bar.',
+    usesBodyweight: true,
+    // Reasoned, not measured — a lower bar and shallower body angle move
+    // less than a dead hang. See §7's method, extended to fallbacks here.
+    bodyweightFactor: 0.55,
+    role: 'fallback',
+  },
+  {
+    id: 'chin-ups',
+    name: 'Chin-ups',
+    aliases: ['Chinups', 'Underhand Pull-ups'],
+    // Modelled with biceps as the primary mover (not lats, as Pull-ups is)
+    // so it can actually fill the isolation/biceps gap in §4 — an identical
+    // exercise to Pull-ups here would not help when the curl station, not
+    // the bar, is what is occupied.
+    pattern: 'vertical_pull',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['lats', 'upper_back'],
+    equipment: ['pullup_bar'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [4, 12],
+    cue: 'Underhand, shoulder width. Chin clears the bar.',
+    usesBodyweight: true,
+    // Reasoned, not measured — close to a dead hang, same as Pull-ups. See §7.
+    bodyweightFactor: 0.9,
+    role: 'fallback',
+  },
+  {
+    id: 'single-arm-dumbbell-row',
+    name: 'Single-arm Dumbbell Row (No Bench)',
+    aliases: ['Bent-over One Arm Row', 'Suitcase Row'],
+    pattern: 'horizontal_pull',
+    primaryMuscles: ['upper_back'],
+    secondaryMuscles: ['lats', 'biceps', 'rear_delts'],
+    equipment: ['dumbbell'],
+    unit: 'kg',
+    increment: 2,
+    repRange: [8, 15],
+    cue: 'Hinge at the hip, flat back. Row to the hip, not the shoulder.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'dumbbell-lateral-raise',
+    name: 'Dumbbell Lateral Raise',
+    aliases: ['DB Lateral Raise', 'Side Raise'],
+    pattern: 'isolation',
+    primaryMuscles: ['side_delts'],
+    secondaryMuscles: [],
+    equipment: ['dumbbell'],
+    unit: 'kg',
+    increment: 1,
+    repRange: [10, 20],
+    cue: 'Lead with the elbows. Stop at shoulder height.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'prone-ytw-raise',
+    name: 'Prone Y-T-W Raise',
+    aliases: ['YTW Raise', 'Prone Raise'],
+    pattern: 'isolation',
+    primaryMuscles: ['rear_delts'],
+    secondaryMuscles: ['upper_back'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    cue: 'Face down on a bench or the floor. Thumbs up, squeeze the shoulder blades, not the lower back.',
+    usesBodyweight: true,
+    // Reasoned, not measured — only the arms move against gravity. See §7.
+    bodyweightFactor: 0.15,
+    role: 'fallback',
+  },
+  {
+    id: 'dumbbell-shrug',
+    name: 'Dumbbell Shrug',
+    aliases: ['DB Shrug'],
+    pattern: 'isolation',
+    primaryMuscles: ['traps'],
+    secondaryMuscles: ['grip'],
+    equipment: ['dumbbell'],
+    unit: 'kg',
+    increment: 2,
+    repRange: [10, 20],
+    cue: 'Straight up and down. No rolling the shoulders.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'barbell-shrug',
+    name: 'Barbell Shrug',
+    aliases: [],
+    pattern: 'isolation',
+    primaryMuscles: ['traps'],
+    secondaryMuscles: ['grip'],
+    equipment: ['barbell'],
+    unit: 'kg',
+    increment: 5,
+    repRange: [8, 15],
+    cue: 'Straight up and down. No rolling the shoulders.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'towel-curl',
+    name: 'Towel Curl',
+    aliases: ['Isometric Towel Curl'],
+    pattern: 'isolation',
+    primaryMuscles: ['biceps'],
+    secondaryMuscles: ['forearms'],
+    equipment: ['bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Loop a towel under one foot. Curl against it as hard as you can hold.',
+    // Isometric and self-resisted — no bodyweight mass is actually moved, so
+    // this earns hard-set and work-interval credit but no tonnage.
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'single-leg-glute-bridge',
+    name: 'Single-leg Glute Bridge',
+    aliases: ['Single Leg Hip Bridge'],
+    pattern: 'hinge',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    cue: 'One foot down, hips square. Squeeze at the top, control the lower.',
+    usesBodyweight: true,
+    // Reasoned, not measured — one leg carries the hips, not the whole body. See §7.
+    bodyweightFactor: 0.35,
+    role: 'fallback',
+  },
+  {
+    id: 'nordic-curl',
+    name: 'Nordic Curl',
+    aliases: ['Nordic Hamstring Curl'],
+    pattern: 'isolation',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [3, 10],
+    cue: 'Kneeling, ankles anchored. Lower under control for as long as possible and catch yourself at the bottom.',
+    usesBodyweight: true,
+    // Reasoned, not measured — the torso and hips lower under the hamstrings' control. See §7.
+    bodyweightFactor: 0.8,
+    role: 'fallback',
+  },
+  {
+    id: 'split-squat',
+    name: 'Split Squat',
+    aliases: ['Bulgarian Split Squat', 'Rear-foot Elevated Split Squat'],
+    pattern: 'lunge',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    cue: 'Rear foot elevated if you have something to put it on. Front shin stays vertical.',
+    usesBodyweight: true,
+    // Reasoned, not measured — one leg carries nearly the whole body through the rep. See §7.
+    bodyweightFactor: 0.85,
+    role: 'fallback',
+  },
+  {
+    id: 'wall-sit',
+    name: 'Wall Sit',
+    aliases: [],
+    pattern: 'squat',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Thighs parallel to the floor, back flat against the wall.',
+    // unit: 'time' sets always log reps: 0, and tonnage() multiplies by reps,
+    // so bodyweightFactor could never contribute here regardless of value —
+    // left false rather than seed a number that can never be read.
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'standing-calf-raise',
+    name: 'Standing Calf Raise',
+    aliases: ['Bodyweight Calf Raise'],
+    pattern: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [15, 30],
+    cue: 'Full stretch at the bottom, pause at the top.',
+    usesBodyweight: true,
+    // Genuinely unsourced — how much a two-footed raise is worth versus a
+    // loaded barbell calf raise is not something this estimate is confident
+    // about. Flagged rather than presented as measured. See §7.
+    bodyweightFactor: 0.9,
+    role: 'fallback',
+  },
+  {
+    id: 'stair-climb',
+    name: 'Stair Climb',
+    aliases: ['Stairs', 'Stair Sprints'],
+    pattern: 'cardio',
+    primaryMuscles: ['cardio'],
+    secondaryMuscles: ['quads', 'glutes'],
+    equipment: ['bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Steady pace up, walk down to recover. Repeat for the interval.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'outdoor-run',
+    name: 'Outdoor Run',
+    aliases: ['Run', 'Jog'],
+    pattern: 'cardio',
+    primaryMuscles: ['cardio'],
+    secondaryMuscles: [],
+    equipment: ['bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Same walk-run structure as the treadmill: five easy, five hard, repeated.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
+  {
+    id: 'burpees',
+    name: 'Burpees',
+    aliases: [],
+    pattern: 'cardio',
+    primaryMuscles: ['cardio'],
+    secondaryMuscles: ['chest', 'quads'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 30],
+    cue: 'Chest to the floor, full jump at the top. Keep the pace honest.',
+    usesBodyweight: true,
+    // Reasoned, not measured — full body through the rep, close to a pushup-plus-jump. See §7.
+    bodyweightFactor: 0.7,
+    role: 'fallback',
   },
 ]
 

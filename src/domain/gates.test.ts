@@ -204,6 +204,7 @@ describe('Instant Dungeon Key', () => {
       repRange: [10, 20],
       usesBodyweight: true,
       bodyweightFactor: 1,
+      role: 'prescribed',
     },
     {
       id: 'squat-bw',
@@ -218,6 +219,7 @@ describe('Instant Dungeon Key', () => {
       repRange: [15, 30],
       usesBodyweight: true,
       bodyweightFactor: 1,
+      role: 'prescribed',
     },
     {
       id: 'barbell-squat',
@@ -232,6 +234,7 @@ describe('Instant Dungeon Key', () => {
       repRange: [5, 8],
       usesBodyweight: false,
       bodyweightFactor: 1,
+      role: 'prescribed',
     },
   ]
 
