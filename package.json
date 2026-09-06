@@ -13,11 +13,13 @@
     "test:watch": "vitest",
     "typecheck": "tsc --build tsconfig.json && tsc -p tsconfig.test.json",
     "typecheck:tests": "tsc -p tsconfig.test.json",
+    "verify": "pnpm run typecheck && pnpm test",
+    "smoke": "node scripts/smoke-check.mjs",
     "cf:types": "wrangler types",
     "cf:dev": "wrangler dev",
     "cf:migrate:local": "wrangler d1 migrations apply solo-leveling --local",
     "cf:migrate:remote": "wrangler d1 migrations apply solo-leveling --remote",
-    "deploy": "pnpm run build && wrangler deploy"
+    "deploy": "pnpm run verify && pnpm run build && wrangler deploy && pnpm run smoke"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
