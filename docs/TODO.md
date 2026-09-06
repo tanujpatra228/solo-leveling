@@ -24,8 +24,13 @@ Both reproduced by clicking Start Gate on `/gate`.
 
 Regression tests: `src/domain/gates.test.ts` (empty plan → null rank), `src/domain/projection.test.ts`
 ("an open session pays nothing until it is finished"), `src/app/state.test.ts` (the same through the
-real store actions, plus a `targetFor` reference-stability test standing in for a render test — see
-rule 14, not yet built).
+real store actions, plus a `targetFor` reference-stability test).
+
+Rule 14's route mount tests now exist: `src/app/routes/routes.dom.test.tsx`, four routes under
+happy-dom. They assert TanStack Router's `CatchBoundary` is absent rather than that nothing threw,
+because the router catches a render crash and swaps in its own "Something went wrong!" screen — a
+test looking for a throw passes green while the app is dead. Verified against a deliberately
+unstable selector: only the live-session case goes red, which is the production symptom exactly.
 
 ## Where the build stands (M3 landed 2026-09-04)
 

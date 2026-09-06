@@ -376,12 +376,11 @@ function ActiveBlockItem({
   exercise: Exercise
   onSetLogged: () => void
 }) {
-  // Select the precomputed map itself, not a call through targetFor: a
-  // selector that calls a store method returns a fresh object every read,
-  // which Zustand v5's Object.is-based subscription treats as a change on
-  // every render — an infinite loop that crashes with React #185 the moment
-  // a session opens. See docs/engineering-standards.md rule 13.
-  const target = useApp((s) => s.targetFor(item.exerciseId))
+  // Select the map, never a call through targetFor. Whether a store method
+  // returns a stable reference is knowledge held in another file and one edit
+  // away from being false again, which is why rule 13 is a bright line.
+  const targetsByExerciseId = useApp((s) => s.targetsByExerciseId)
+  const target = targetsByExerciseId[item.exerciseId] ?? null
   const sets = useApp((s) => s.sets)
   const logged = useMemo(() => liveSessionSets(sets, sessionId, item.exerciseId), [sets, sessionId, item.exerciseId])
 
