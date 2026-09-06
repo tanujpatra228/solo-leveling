@@ -365,7 +365,16 @@ Hunter License PNG card.
 shares via the Web Share adapter.
 *Budget impact:* none.
 
-### M8 — Push notifications
+### M8 — Push notifications — **parked 2026-09-07**
+
+Deliberately deferred until the rest of the platform is finished, at the user's decision. Nothing is
+removed: the Worker endpoints, `fetchPushKey`, the subscription helpers and the capability adapters
+all stay where they are and stay tested. Nothing wires them, and nothing will until M6, M7 and M9
+are done and push can be judged on whether it is still wanted.
+
+This is the milestone the plan already called genuinely optional — the only unverified part of the
+stack, and the app is complete without it.
+
 VAPID keys from the setup script, the subscription flow gated behind a user gesture, the contentless
 push, and the notification composed on-device. One cron invocation a day at a fixed UTC time, per
 C9 — no polling, and no self-rescheduling primitive.

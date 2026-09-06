@@ -2,6 +2,51 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
+## Where everything stands — 2026-09-07
+
+The whole picture in three tables. Detail for anything below is further down this file, or in the
+plan named in the row.
+
+### Milestones
+
+| # | Module | State | What is left |
+|---|---|---|---|
+| M1 | Foundations and corrections | **Done** | — |
+| M2 | App shell and the Awakening Test | **Done** | — |
+| M3 | Session logging, rest timer, targets | **Done** | — |
+| M4 | Installed, automated, measured | **Half done** | 4 self-contained commits: test the deploy path, measure sync CPU, attribute the bundle, correct the docs. Plus the Actions workflow, which needs a Cloudflare API token only the user can create |
+| M5 | The game layer | **Done** | — |
+| M6 | Sync and System Link | **Planned** — `docs/m6-plan.md` | 6 commits. Engine and Worker done; every line of wiring missing |
+| M7 | The rest of the fantasy layer | **Planned** — `docs/m7-plan.md` | Most of it is surface over a tested engine. Shop, Job Change Quest and Reawakening Test have no engine at all |
+| M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
+| M9 | Flavour text | **Not started** | Build-time generated System lines |
+
+### Features outside the milestone track
+
+| Feature | State | Notes |
+|---|---|---|
+| Exercise substitution | **Done** | 8 commits, written and shipped the day a real gate needed it |
+| System visuals and notifications | **Done** | lucide, `SystemMeter`, `SystemIcon`, `SegmentedRing`, two notification tiers |
+| Indian club training | **Dropped** | Plan removed 2026-09-07; recoverable at `5eb04b3` if it comes back |
+
+### Open items that are not features
+
+| Item | Severity | Detail |
+|---|---|---|
+| Bundle over target | Drifting | 205.33 KB JS gzip against a 200 KB line M4 finding H2 already calls borrowed from the wrong kind of app. Drifted through three features with nobody deciding. M4 commit 3 settles it |
+| No CI workflow | Blocked on the user | `.github/workflows` does not exist. Needs `CLOUDFLARE_API_TOKEN` as a repo secret |
+| Deploys are manual | Follows from the above | — |
+| `qrcode` and `jsqr` unused | Minor | In `package.json`, imported nowhere. M6 finding F2 resolves both |
+| Phone checklist | User, ~10 minutes | Install to Home Screen, run Lighthouse, log a session in airplane mode |
+
+### Health
+
+| | |
+|---|---|
+| Tests | 595 passing |
+| Typecheck, `check:render`, build | Clean |
+| Deployed | Live on workers.dev |
+
 ## M5 — The game layer, landed 2026-09-07
 
 All eight commits of `docs/m5-plan.md` (now `git rm`'d — detail recoverable at the commit below,

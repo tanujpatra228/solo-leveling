@@ -159,6 +159,6 @@ supersedes. That ordering case is the one worth an explicit test.
 
 ## 4. What M6 does not do
 
-Push notifications are M8 — the Worker endpoints exist and `fetchPushKey` is written, but wiring
-them is not this milestone. The tower, red gates, shadow army and shop are M7. Indian club training
-(`docs/club-training-plan.md`) is unblocked and small, and can land whenever, but it is not M6.
+Push notifications are M8, which is **parked** — see `docs/TODO.md`. The Worker endpoints exist and
+`fetchPushKey` is written, but nothing wires them and nothing will until the rest of the platform is
+finished. The tower, red gates, shadow army and shop are M7.
