@@ -9,6 +9,7 @@ import { MessageQueue } from '../../components/MessageQueue'
 const TABS = [
   { to: '/gate', label: 'Gate' },
   { to: '/', label: 'Status' },
+  { to: '/link', label: 'Link' },
 ] as const
 
 function RootLayout() {

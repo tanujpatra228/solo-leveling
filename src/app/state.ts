@@ -30,7 +30,7 @@ import { extractShadow, shouldExtract } from '../domain/shadows'
 import { resolveDungeonBreaks, type DungeonBreak, type OpenGate } from '../domain/gates'
 import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
 import { titleById } from '../domain/titles'
-import { runSync } from '../sync/client'
+import { forgetMirror as forgetMirrorOnServer, runSync } from '../sync/client'
 import type { Identity } from '../sync/identity'
 import type {
   BodyFatSource,
@@ -245,6 +245,12 @@ export interface AppState extends LoadedData {
    * foreground, after `finishGate`, and this manual call — never per set.
    */
   syncNow: () => void
+  /**
+   * Deletes this hunter's rows on the mirror. The local log is never touched
+   * — see `forgetMirror` in `sync/client.ts` and F4's warning-first framing
+   * on the License Key screen. Returns whether the server confirmed it.
+   */
+  forgetMirror: () => Promise<boolean>
 }
 
 function messageId(): string {
@@ -1090,6 +1096,14 @@ export const useApp = create<AppState>((set, get) => ({
       body: 'The System will not ask again for five weeks.',
       tone: 'system',
     })
+  },
+
+  async forgetMirror() {
+    const identity = get().identity
+    if (!identity) return false
+    const ok = await forgetMirrorOnServer(identity)
+    if (ok) set({ lastSyncedAt: null, syncStatus: 'idle' })
+    return ok
   },
 }))
 

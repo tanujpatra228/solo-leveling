@@ -754,3 +754,32 @@ describe('syncNow — coalescing and backoff (M6 commit 1, F3)', () => {
     expect(useApp.getState().syncStatus).toBe('ok')
   })
 })
+
+describe('forgetMirror (m6-plan commit 4, F4)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('resets sync status and lastSyncedAt once the server confirms', async () => {
+    useApp.setState({ syncStatus: 'ok', lastSyncedAt: Date.now() })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 200 })))
+
+    const ok = await useApp.getState().forgetMirror()
+
+    expect(ok).toBe(true)
+    expect(useApp.getState().syncStatus).toBe('idle')
+    expect(useApp.getState().lastSyncedAt).toBeNull()
+  })
+
+  it('leaves sync state untouched when the server refuses', async () => {
+    const syncedAt = Date.now()
+    useApp.setState({ syncStatus: 'ok', lastSyncedAt: syncedAt })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 500 })))
+
+    const ok = await useApp.getState().forgetMirror()
+
+    expect(ok).toBe(false)
+    expect(useApp.getState().syncStatus).toBe('ok')
+    expect(useApp.getState().lastSyncedAt).toBe(syncedAt)
+  })
+})

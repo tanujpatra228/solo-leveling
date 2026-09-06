@@ -21,6 +21,7 @@ import { useApp } from '../state'
 import { awakenRoute } from './awaken'
 import { gateRoute } from './gate'
 import { indexRoute } from './index'
+import { linkRoute } from './link'
 import { rootRoute } from './root'
 
 declare global {
@@ -30,7 +31,7 @@ declare global {
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 // Built once: a route may only be attached to its parent a single time.
-const routeTree = rootRoute.addChildren([indexRoute, awakenRoute, gateRoute])
+const routeTree = rootRoute.addChildren([indexRoute, awakenRoute, gateRoute, linkRoute])
 
 /** Mounts the app at `path` and returns what it rendered. */
 async function mountAt(path: string): Promise<string> {
@@ -137,6 +138,11 @@ describe('every route mounts', () => {
     expect(useApp.getState().activeSessionId).not.toBeNull()
 
     expectRendered(await mountAt('/gate'))
+  })
+
+  it('/link renders the License Key screen, sync off by default (m6-plan commit 4)', async () => {
+    await awaken()
+    expectRendered(await mountAt('/link'))
   })
 })
 
