@@ -32,6 +32,21 @@ Treat the first wiring commit as **discovery, not integration**. Expect the seam
 row shapes, cursor handling, what `collectPendingRows` considers pending after M5 added quest
 payload writes. Budget for that rather than being surprised by it.
 
+**Commit 3's run, written down.** Drove the real `runSync` (not a mock) against the deployed
+Worker, backed by real Dexie rows via `fake-indexeddb`: a full 17-set Friday Legs session pushed
+and immediately pulled back (idempotent — `applyRemoteRows`'s `bulkPut` overwrote what was just
+written with an identical copy, no duplication), a correction appended and synced afterward
+(`supersedes` round-tripped correctly), the same rows re-pushed and deduplicated via
+`ON CONFLICT (hunter_id, kind, row_id) DO NOTHING`, an unauthenticated request rejected with 401,
+and `forget-me` confirmed to actually delete the mirrored rows via a follow-up pull. None of the
+predicted seams materialized — quests were confirmed to never reach the outbox at all (by
+construction: `enqueue` is only ever called for sessions, sets and body metrics), so M5's quest
+payload writes never touch sync in the first place. The one seam that did surface was
+environment-specific rather than a code bug: Node has had a global `navigator` since v21, and it
+has no `onLine` property, so `runSync` silently reads as offline unless a script stubs it — exactly
+what `client.test.ts` already does, and what a real browser never needs. No production code
+changed as a result of this run.
+
 ### F2 — `qrcode` and `jsqr` are dependencies that nothing imports
 
 Both sit in `package.json` and neither appears in `src/` or `worker/`. They were added in
