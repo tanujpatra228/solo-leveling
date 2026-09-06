@@ -105,6 +105,49 @@ The path the 10 ms budget was actually written for — `/api/sync`, with a rate-
 upsert, up to thirteen multi-row inserts and a select — **remains unmeasured.** The number above is
 a floor, not a verdict.
 
+**Commit 2's measurement.** M6's live discovery and acceptance runs (commits 3 and 6) already sent
+realistic `/api/sync` traffic to the deployed Worker — full-session pushes of 17-19 rows, pulls,
+dedupe re-pushes, a correction — so re-querying the same GraphQL quantiles over that window measures
+exactly the expensive path H3 flagged as missing, with no separate synthetic run needed.
+
+| Metric | Value |
+|---|---|
+| `cpuTimeP50` | **3,075 µs — 3.08 ms** |
+| `cpuTimeP99` | **10,815 µs — 10.82 ms** |
+| `wallTimeP50` | 464,358 µs |
+| `wallTimeP99` | 1,144,896 µs |
+| requests / errors | 19 / 0 |
+| **subrequests** | **0** |
+
+P50 lands on the 3 ms design target. **P99 is over the 10 ms hard limit** — the free plan's failure
+mode, not a slow response but a killed invocation. With only 19 samples in the window, this quantile
+is effectively the single heaviest request observed, almost certainly one of the 17-19-row session
+pushes — exactly the shape the budget was written for, not noise. Whether this recurs under real
+multi-device use is not yet known; it is a signal worth capping `MAX_ROWS_PER_REQUEST` or
+`ROWS_PER_STATEMENT` lower to protect, not yet proof that they must move, and commit 5's
+documentation update should say precisely that rather than either ignoring it or reacting to a
+single sample.
+
+**The subrequest count is not evidence of D1 usage either way**, and H3's framing of it above was
+wrong. Cloudflare's Workers GraphQL Analytics docs define this field as `fetch()`-only: "Subrequests
+are requests triggered by calling `fetch` from within a Worker" — D1, KV and R2 calls are not
+`fetch()` and do not count here. Nineteen real `/api/sync` invocations that indisputably queried D1
+still show `subrequests: 0`, which proves the metric excludes D1, not that D1 went untouched. H3's
+original four-request measurement was correct in its conclusion (those four requests really were
+D1-free) but for the wrong reason (they happened to be a health check, a 401 and a 404, none of
+which reach the database — not because "zero subrequests" is how a D1 call would show up).
+
+This also surfaces a related correction outside this plan: **`CLAUDE.md`'s infrastructure table
+mislabels the "D1 subrequests: 50 per invocation" limit.** Cloudflare's actual platform limit splits
+this in two — 50 `fetch()`-style *external* subrequests per invocation, and a separate 1,000-per-
+invocation cap for *internal service* calls (D1, KV, R2), per Cloudflare's own changelog: "Workers on
+the free plan remain limited to 50 external subrequests and 1,000 subrequests to Cloudflare services
+per invocation." D1 falls under the 1,000 figure, not the 50. This does not change anything about
+the design — `ROWS_PER_STATEMENT = 16` keeps every request comfortably under fifteen or so D1
+queries regardless of which cap applies — but the row in `CLAUDE.md` names the wrong limit for the
+right caution, and that file is owned by the user rather than something this plan should silently
+rewrite. Flagged for a human edit rather than changed here.
+
 ### H4 — the Actions workflow needs a credential I cannot create
 
 CI cannot use wrangler's OAuth token; it needs a `CLOUDFLARE_API_TOKEN` in GitHub secrets. The
