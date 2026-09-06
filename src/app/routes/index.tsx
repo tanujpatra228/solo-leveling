@@ -8,6 +8,7 @@
  */
 import { createRoute, redirect } from '@tanstack/react-router'
 import { Brain, Dumbbell, Footprints, HeartPulse, Radar } from 'lucide-react'
+import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { StatRow } from '../../components/StatRow'
@@ -65,6 +66,8 @@ function HomeScreen() {
         <div className="mt-3">
           <ManaBar level={player.level} xpIntoLevel={player.xpIntoLevel} xpToNext={player.xpToNext} />
         </div>
+
+        <DailyQuestPanel />
 
         <SystemPanel className="mt-3 flex flex-col gap-2">
           {STAT_ORDER.map((key) => (

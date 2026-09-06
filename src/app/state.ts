@@ -912,6 +912,7 @@ export const useApp = create<AppState>((set, get) => ({
       title: '[Daily Quest complete.]',
       body: `Streak ${get().streak.current}. 150 experience and 25 gold gained.`,
       tone: 'good',
+      kind: 'window',
     })
   },
 
