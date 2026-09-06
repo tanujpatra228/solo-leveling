@@ -70,20 +70,22 @@ export function topSet(sets: readonly SetLog[]): SetLog | null {
 }
 
 /**
- * Total load moved, in kilograms. Bodyweight movements add the hunter's mass to
- * each rep, because a set of pull-ups is not zero work.
+ * Total load moved, in kilograms. A bodyweight movement adds a fraction of the
+ * hunter's mass to each rep — `bodyweightFactor` — rather than the whole mass,
+ * because a sit-up moves the trunk and not the whole body. `bodyweightFactor`
+ * returns 0 for an exercise that does not use bodyweight at all.
  */
 export function tonnage(
   sets: readonly SetLog[],
-  opts: { bodyweightKg?: number; usesBodyweight?: (exerciseId: string) => boolean } = {},
+  opts: { bodyweightKg?: number; bodyweightFactor?: (exerciseId: string) => number } = {},
 ): number {
   let total = 0
   for (const set of sets) {
     if (set.isWarmup) continue
-    const addsBodyweight =
-      opts.bodyweightKg !== undefined && (opts.usesBodyweight?.(set.exerciseId) ?? false)
-    const perRep = set.weight + (addsBodyweight ? opts.bodyweightKg! : 0)
-    total += perRep * set.reps
+    const factor = opts.bodyweightFactor?.(set.exerciseId) ?? 0
+    const bodyweightContribution =
+      opts.bodyweightKg !== undefined && factor > 0 ? opts.bodyweightKg * factor : 0
+    total += (set.weight + bodyweightContribution) * set.reps
   }
   return total
 }

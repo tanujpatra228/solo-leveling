@@ -88,6 +88,7 @@ const DEFAULT_PROGRESS: Progress = {
   lastDeloadDayKey: null,
   trainingStartDayKey: null,
   doubleDungeonSeenAt: null,
+  bodyweightFactorAnnouncedAt: null,
   updatedAt: 0,
 }
 

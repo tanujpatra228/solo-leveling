@@ -53,12 +53,12 @@ export interface TonnageByDay {
 export function tonnagePerDay(
   sessions: readonly { id: string; dayKey: DayKey; bodyweightKg?: number }[],
   setsBySession: (sessionId: string) => readonly SetLog[],
-  usesBodyweight: (exerciseId: string) => boolean,
+  bodyweightFactor: (exerciseId: string) => number,
 ): Map<DayKey, number> {
   const totals = new Map<DayKey, number>()
   for (const session of sessions) {
     const sets = setsBySession(session.id)
-    const total = tonnage(sets, { bodyweightKg: session.bodyweightKg, usesBodyweight })
+    const total = tonnage(sets, { bodyweightKg: session.bodyweightKg, bodyweightFactor })
     totals.set(session.dayKey, (totals.get(session.dayKey) ?? 0) + total)
   }
   return totals

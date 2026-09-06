@@ -123,7 +123,7 @@ describe('tonnagePerDay', () => {
     ]
     const setsBySession = (id: string) =>
       id === 's1' ? [set('s1', 100, 5)] : [set('s2', 50, 10)]
-    const totals = tonnagePerDay(sessions, setsBySession, () => false)
+    const totals = tonnagePerDay(sessions, setsBySession, () => 0)
     expect(totals.get('2026-03-01')).toBe(500)
     expect(totals.get('2026-03-02')).toBe(500)
   })
@@ -133,16 +133,16 @@ describe('tonnagePerDay', () => {
       { id: 's1', dayKey: '2026-03-01' },
       { id: 's2', dayKey: '2026-03-01' },
     ]
-    const totals = tonnagePerDay(sessions, () => [set('s', 100, 5)], () => false)
+    const totals = tonnagePerDay(sessions, () => [set('s', 100, 5)], () => 0)
     expect(totals.get('2026-03-01')).toBe(1000)
   })
 
-  it('counts bodyweight movements using the session bodyweight', () => {
+  it('counts bodyweight movements using the session bodyweight and its factor', () => {
     const sessions = [{ id: 's1', dayKey: '2026-03-01', bodyweightKg: 80 }]
     const totals = tonnagePerDay(
       sessions,
       () => [set('s1', 0, 10, 'pullup')],
-      (id) => id === 'pullup',
+      (id) => (id === 'pullup' ? 1 : 0),
     )
     expect(totals.get('2026-03-01')).toBe(800)
   })

@@ -19,6 +19,7 @@ const squat: Exercise = {
   increment: 5,
   repRange: [5, 8],
   usesBodyweight: false,
+  bodyweightFactor: 1,
 }
 
 const curl: Exercise = {
@@ -45,6 +46,7 @@ const pushup: Exercise = {
   repRange: [10, 20],
   progressionLadder: ['incline-pushup', 'pushup', 'diamond-pushup'],
   usesBodyweight: true,
+  bodyweightFactor: 0.64,
 }
 
 const diamond: Exercise = {

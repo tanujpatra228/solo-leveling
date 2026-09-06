@@ -30,6 +30,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     standardLift: 'incline_bench',
     cue: 'Elbows about 45 degrees from the torso. Bar to the upper chest, not the throat.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'machine-shoulder-press',
@@ -44,6 +45,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [8, 12],
     cue: 'Do not lock out hard at the top. Keep the ribs down.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'skullcrusher',
@@ -58,6 +60,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [8, 12],
     cue: 'Elbows stay pointed at the ceiling. Only the forearm moves.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'cable-fly',
@@ -72,6 +75,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Slight elbow bend held constant. Squeeze at the midline, do not clap.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'machine-lateral-raise',
@@ -86,6 +90,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [12, 20],
     cue: 'Lead with the elbow. Stop at shoulder height.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'front-raises',
@@ -100,6 +105,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [12, 15],
     cue: 'The pressing already trains this head hard. Keep the load honest and the swing out of it.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'diamond-pushups',
@@ -115,6 +121,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['incline-pushups', 'pike-pushups', 'diamond-pushups'],
     cue: 'Hands together under the sternum. Elbows brush the ribs.',
     usesBodyweight: true,
+    // Reasoned from segment mass, not measured — see docs/substitution-plan.md §7.
+    bodyweightFactor: 0.66,
   },
 
   /* ---------------- Tuesday: back and biceps ---------------- */
@@ -131,6 +139,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [8, 12],
     cue: 'Let the shoulder rise at the top, then drive the elbow down and back.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'pull-ups',
@@ -146,6 +155,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     standardLift: 'pullup',
     cue: 'Full hang at the bottom. Chest to the bar, no kipping.',
     usesBodyweight: true,
+    // Reasoned, not measured — a dead hang moves nearly all of it. See §7.
+    bodyweightFactor: 0.95,
   },
   {
     id: 'dumbbell-row',
@@ -160,6 +171,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [8, 12],
     cue: 'Pull to the hip, not the armpit. Keep the torso still.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'cable-shrug',
@@ -176,6 +188,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Straight up and down. No rolling — rolling the shoulders adds nothing and grinds the joint.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'machine-reverse-fly',
@@ -190,6 +203,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [12, 20],
     cue: 'Arms nearly straight. Think about spreading the hands apart, not squeezing the blades.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'cable-bicep-curl',
@@ -204,6 +218,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Elbows pinned to the sides. The cable keeps tension at the top, so use it.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
 
   /* ---------------- Wednesday: abs and biceps ---------------- */
@@ -220,6 +235,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'The pad removes the cheat. Do not fight it by lifting the elbows.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'strict-curl',
@@ -234,6 +250,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [6, 10],
     cue: 'Back against a wall if there is one. No hip drive at all.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'leg-raises',
@@ -249,6 +266,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['leg-raises', 'hanging-leg-raises'],
     cue: 'Press the lower back into the floor. Stop before it arches.',
     usesBodyweight: true,
+    // Reasoned from segment mass, not measured — legs only. See §7.
+    bodyweightFactor: 0.3,
   },
   {
     id: 'machine-abs-crunch',
@@ -263,6 +282,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Shorten the distance between ribs and hips. It is a curl, not a hip fold.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'cable-crunch',
@@ -277,6 +297,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Hips stay where they are. Pull the elbows toward the knees with the abs.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
 
   /* ---------------- Thursday: chest, shoulders, triceps, supersetted ---------------- */
@@ -294,6 +315,9 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['incline-pushups', 'pike-pushups', 'diamond-pushups'],
     cue: 'The higher the hands, the easier it is. Lower the hands as this gets easy.',
     usesBodyweight: true,
+    // Reasoned, not measured, and the honest weak spot: this genuinely varies
+    // with bench height, and one number is wrong at both ends. See §7.
+    bodyweightFactor: 0.5,
   },
   {
     id: 'pike-pushups',
@@ -309,6 +333,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['incline-pushups', 'pike-pushups', 'diamond-pushups'],
     cue: 'Hips high, head travels between the hands. This one is a shoulder press.',
     usesBodyweight: true,
+    // Reasoned, not measured — torso vertical, most of the load on the shoulders. See §7.
+    bodyweightFactor: 0.7,
   },
   {
     id: 'cable-chest-press-mid',
@@ -323,6 +349,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Pulleys at chest height. Press straight out and squeeze at the midline.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'cable-chest-press-low',
@@ -337,6 +364,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Pulleys high, press down and in toward the hips.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'cable-chest-press-high',
@@ -351,6 +379,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Pulleys low, press up and in toward the collarbones.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'tricep-overhead-extension',
@@ -365,6 +394,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Upper arms stay beside the ears. The stretch at the bottom is the point.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
 
   /* ---------------- Friday: legs ---------------- */
@@ -382,6 +412,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     standardLift: 'squat',
     cue: 'Knees track over the toes. Depth first, load second.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'leg-press',
@@ -396,6 +427,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Do not let the lower back round off the pad at the bottom.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'hamstring-curl',
@@ -410,6 +442,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'The only hamstring work in the week. Control the lowering.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'leg-extension',
@@ -424,6 +457,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [12, 15],
     cue: 'Pause at the top for a beat rather than swinging through.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
   {
     id: 'barbell-calf-raise',
@@ -438,6 +472,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [10, 15],
     cue: 'Full stretch at the bottom, full contraction at the top. Slow, not bouncy.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
 
   /* ---------------- Saturday: cardio and abs ---------------- */
@@ -455,6 +490,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['leg-raises', 'hanging-leg-raises'],
     cue: 'Stop the swing before each rep. Curl the pelvis rather than just lifting the legs.',
     usesBodyweight: true,
+    // Reasoned from segment mass, not measured — legs, with the trunk stabilising. See §7.
+    bodyweightFactor: 0.35,
   },
   {
     id: 'treadmill-intervals',
@@ -469,6 +506,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [1, 1],
     cue: 'Five minutes walking, five minutes running, repeated. Walk in zone 2, run in zone 4.',
     usesBodyweight: false,
+    bodyweightFactor: 1,
   },
 
   /* ---------------- Available for the Daily Quest and Instant Dungeons ---------------- */
@@ -486,6 +524,9 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
     cue: 'Body in one line from head to heels.',
     usesBodyweight: true,
+    // The most commonly cited figure for a standard pushup (~64% of bodyweight),
+    // but not independently verified against a primary source here — see §7.
+    bodyweightFactor: 0.64,
   },
   {
     id: 'bodyweight-squat',
@@ -500,6 +541,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [15, 40],
     cue: 'Sit down between the heels. Full depth every rep.',
     usesBodyweight: true,
+    // Reasoned, not measured — trunk plus most of the legs. See §7.
+    bodyweightFactor: 0.65,
   },
   {
     id: 'situps',
@@ -514,6 +557,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     repRange: [15, 40],
     cue: 'Do not yank on the neck. Lead with the ribs.',
     usesBodyweight: true,
+    // Reasoned, not measured — the trunk, not the whole body. See §7.
+    bodyweightFactor: 0.45,
   },
 ]
 

@@ -14,6 +14,7 @@ const bench: Exercise = {
   increment: 2.5,
   repRange: [5, 8],
   usesBodyweight: false,
+  bodyweightFactor: 1,
 }
 
 const curl: Exercise = {

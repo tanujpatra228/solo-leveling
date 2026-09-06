@@ -100,16 +100,38 @@ describe('tonnage', () => {
     expect(tonnage(sets)).toBe(500)
   })
 
-  it('adds bodyweight for bodyweight movements so a pull-up is not zero work', () => {
+  it('adds full bodyweight for a movement with factor 1, so a pull-up is not zero work', () => {
     const sets = [set({ exerciseId: 'pullup', weight: 0, reps: 10 })]
-    const total = tonnage(sets, { bodyweightKg: 75, usesBodyweight: (id) => id === 'pullup' })
+    const total = tonnage(sets, { bodyweightKg: 75, bodyweightFactor: (id) => (id === 'pullup' ? 1 : 0) })
     expect(total).toBe(750)
+  })
+
+  it('adds only the moved fraction for a partial-bodyweight movement, not the whole mass', () => {
+    // The substitution-plan finding: a sit-up does not move the full body, it
+    // moves the trunk. 3 sets of 20 sit-ups at a 72 kg bodyweight and a 0.45
+    // factor score 1,944 kg, not 4,320 — see docs/substitution-plan.md §8.
+    const sets = [
+      set({ exerciseId: 'situps', weight: 0, reps: 20 }),
+      set({ exerciseId: 'situps', weight: 0, reps: 20 }),
+      set({ exerciseId: 'situps', weight: 0, reps: 20 }),
+    ]
+    const total = tonnage(sets, { bodyweightKg: 72, bodyweightFactor: (id) => (id === 'situps' ? 0.45 : 0) })
+    expect(total).toBe(1944)
   })
 
   it('does not add bodyweight to a loaded machine movement', () => {
     const sets = [set({ exerciseId: 'legpress', weight: 100, reps: 10 })]
-    const total = tonnage(sets, { bodyweightKg: 75, usesBodyweight: (id) => id === 'pullup' })
+    const total = tonnage(sets, { bodyweightKg: 75, bodyweightFactor: (id) => (id === 'pullup' ? 1 : 0) })
     expect(total).toBe(1000)
+  })
+
+  it('adds nothing when bodyweightKg is not supplied, even for a factor-bearing exercise', () => {
+    const sets = [set({ exerciseId: 'pullup', weight: 0, reps: 10 })]
+    expect(tonnage(sets, { bodyweightFactor: () => 1 })).toBe(0)
+  })
+
+  it('is zero for an empty set list', () => {
+    expect(tonnage([])).toBe(0)
   })
 })
 

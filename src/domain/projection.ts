@@ -130,6 +130,14 @@ export function projectPlayer(input: ProjectionInput): Projection {
   const exerciseById = new Map(input.exercises.map((e) => [e.id, e]))
   const resolveExercise = (id: string) => exerciseById.get(id)
   const usesBodyweight = (id: string) => exerciseById.get(id)?.usesBodyweight ?? false
+  // The fraction of bodyweight the movement actually moves, 0 when it does not
+  // use bodyweight at all — see e1rm.ts `tonnage`. Kept distinct from
+  // `usesBodyweight` above, which stays a plain boolean for the rep-count
+  // stats below that only need "is this a bodyweight movement", not "how much".
+  const bodyweightFactor = (id: string) => {
+    const exercise = exerciseById.get(id)
+    return exercise?.usesBodyweight ? exercise.bodyweightFactor : 0
+  }
 
   const liveSets = dropSuperseded(input.sets)
   const setsBySession = groupSetsBySession(liveSets)
@@ -161,7 +169,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
     const sessionSets = setsBySession.get(session.id) ?? []
     const sessionTonnage = tonnage(sessionSets, {
       bodyweightKg: session.bodyweightKg,
-      usesBodyweight,
+      bodyweightFactor,
     })
     totalTonnageKg += sessionTonnage
 
@@ -192,7 +200,11 @@ export function projectPlayer(input: ProjectionInput): Projection {
               exerciseId: s.exerciseId,
               sets: 1,
               reps: s.reps,
-              weightKg: s.weight,
+              // A bodyweight set's own weight is often 0, and gateDifficulty
+              // reading that raw would score a bodyweight block as free work.
+              weightKg:
+                s.weight +
+                (session.bodyweightKg !== undefined ? session.bodyweightKg * bodyweightFactor(s.exerciseId) : 0),
               e1rmKg: runningBestE1rm.get(s.exerciseId) ?? 0,
             })),
         ).rank
@@ -239,7 +251,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
   const tonnageByDay = tonnagePerDay(
     input.sessions,
     (id) => setsBySession.get(id) ?? [],
-    usesBodyweight,
+    bodyweightFactor,
   )
   const fatigue = computeFatigue(tonnageByDay, input.today)
 

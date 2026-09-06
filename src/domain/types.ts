@@ -161,8 +161,15 @@ export const ExerciseSchema = z.object({
     .optional(),
   /** A short coaching cue shown while logging. */
   cue: z.string().optional(),
-  /** Bodyweight exercises count the hunter's own mass toward tonnage. */
+  /** Bodyweight exercises count a fraction of the hunter's own mass toward tonnage. */
   usesBodyweight: z.boolean().default(false),
+  /**
+   * Fraction of bodyweight the movement actually moves — a sit-up shifts the
+   * trunk, not the whole body. Meaningless when `usesBodyweight` is false.
+   * Defaults to 1 (full bodyweight) so a row written before this field
+   * existed reads as the old behaviour rather than as unloaded.
+   */
+  bodyweightFactor: z.number().min(0).max(1).default(1),
 })
 export type Exercise = z.infer<typeof ExerciseSchema>
 

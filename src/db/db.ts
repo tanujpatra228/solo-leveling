@@ -85,6 +85,9 @@ export interface Progress {
   /** When the first-launch Double Dungeon sequence was seen, by completion or
    *  skip — both count. `null` means it has never run. */
   doubleDungeonSeenAt: number | null
+  /** When the bodyweightFactor tonnage correction was announced. `null` means
+   *  it has never shown — see docs/substitution-plan.md §5 commit 1. */
+  bodyweightFactorAnnouncedAt: number | null
   updatedAt: number
 }
 

@@ -104,6 +104,13 @@ export interface AppState extends LoadedData {
    * spike. Idempotent, so it is safe to call on every load.
    */
   ensureQuestsForToday: () => Promise<void>
+  /**
+   * Shows the bodyweightFactor tonnage correction exactly once, comparing the
+   * level under the old full-bodyweight measurement against the corrected
+   * one. Gated on `Progress.bodyweightFactorAnnouncedAt`, in the same shape
+   * as `doubleDungeonSeenAt`. See docs/substitution-plan.md §5 commit 1.
+   */
+  announceBodyweightFactorRegradeIfNeeded: () => Promise<void>
   dismissMessage: (id: string) => void
   pushMessage: (message: Omit<SystemMessage, 'id'>) => void
 
@@ -258,6 +265,7 @@ export const useApp = create<AppState>((set, get) => ({
     lastDeloadDayKey: null,
     trainingStartDayKey: null,
     doubleDungeonSeenAt: null,
+    bodyweightFactorAnnouncedAt: null,
     updatedAt: 0,
   },
   earnedTitleIds: [],
@@ -297,6 +305,7 @@ export const useApp = create<AppState>((set, get) => ({
 
     if (state.profile) await get().ensureQuestsForToday()
     await get().refresh()
+    await get().announceBodyweightFactorRegradeIfNeeded()
     set({ ready: true })
   },
 
@@ -511,6 +520,65 @@ export const useApp = create<AppState>((set, get) => ({
       })
       get().pushMessage({ title: recovery.announcement, body: recovery.detail, tone: 'warn' })
     }
+  },
+
+  async announceBodyweightFactorRegradeIfNeeded() {
+    const state = get()
+    if (state.progress.bodyweightFactorAnnouncedAt !== null) return
+
+    // Nothing to regrade before a profile exists — mark it seen silently so a
+    // hunter who awakens after this ships never sees a comparison against
+    // history that never happened.
+    if (!state.profile || !state.projection) {
+      await repo.updateProgress({ bodyweightFactorAnnouncedAt: Date.now() })
+      await get().refresh()
+      return
+    }
+
+    const today = state.today
+    // The old behaviour, reconstructed: every bodyweight exercise added the
+    // hunter's full mass, because bodyweightFactor did not exist yet.
+    const legacyExercises = state.exercises.map((exercise) =>
+      exercise.usesBodyweight ? { ...exercise, bodyweightFactor: 1 } : exercise,
+    )
+    const before = projectPlayer({
+      today,
+      now: Date.now(),
+      profile: state.profile,
+      exercises: legacyExercises,
+      routines: state.routines,
+      sessions: state.sessions,
+      sets: state.sets,
+      bodyMetrics: state.bodyMetrics,
+      quests: state.quests,
+      shadows: state.shadows,
+      allocated: state.allocated,
+      earnedTitleIds: state.earnedTitleIds,
+      gatesCleared: state.progress.gatesCleared,
+      redGatesCleared: state.progress.redGatesCleared,
+      towerFloorCleared: state.progress.towerFloorCleared,
+      gold: state.progress.gold,
+      restTokens: state.progress.restTokens,
+      lastDeloadDayKey: state.progress.lastDeloadDayKey,
+      trainingStartDayKey: state.progress.trainingStartDayKey,
+      longestStreak: state.streak.longest,
+      currentStreak: state.streak.current,
+    })
+    const after = state.projection
+
+    await repo.updateProgress({ bodyweightFactorAnnouncedAt: Date.now() })
+    await get().refresh()
+
+    const body =
+      before.player.level === after.player.level
+        ? `Total experience has been recalculated; your level holds at ${after.player.level}.`
+        : `Level ${before.player.level} is now level ${after.player.level}.`
+
+    get().pushMessage({
+      title: '[The System has corrected a measurement.]',
+      body: `Bodyweight movements were being measured at their full mass rather than the fraction they actually move. ${body}`,
+      tone: 'system',
+    })
   },
 
   async completeAwakening({ profile, bodyweightKg, optional }) {

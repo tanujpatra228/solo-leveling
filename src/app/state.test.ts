@@ -12,7 +12,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { lastSetsForExercise } from '../domain/projection'
 import { dayOfWeekForKey } from '../domain/time'
-import { wipeEverything } from '../db/repo'
+import { updateProgress, wipeEverything } from '../db/repo'
 import { useApp } from './state'
 
 beforeEach(async () => {
@@ -238,5 +238,62 @@ describe('a full Friday Legs session, then next week\'s targets (M3-D5)', () => 
       expect(target.kind).toBe('increase_load')
       expect(target.weightKg).toBe(baseline[exerciseId]! + increments[exerciseId]!)
     }
+  })
+})
+
+describe('announceBodyweightFactorRegradeIfNeeded', () => {
+  it('marks itself seen silently on a fresh install with no profile yet, and stays a no-op after', async () => {
+    // beforeEach's load() already ran this with no profile — there is
+    // nothing to regrade, so it should already be marked seen.
+    expect(useApp.getState().progress.bodyweightFactorAnnouncedAt).not.toBeNull()
+
+    const before = useApp.getState().messages.length
+    await useApp.getState().announceBodyweightFactorRegradeIfNeeded()
+    expect(useApp.getState().messages).toHaveLength(before)
+  })
+
+  it('announces the corrected level exactly once for a hunter with bodyweight history', async () => {
+    await useApp.getState().completeAwakening({
+      profile: {
+        sex: 'male',
+        birthYear: 1996,
+        heightCm: 178,
+        unitPref: 'metric',
+        trainingYears: 3,
+        equipmentAccess: ['bodyweight'],
+      },
+      bodyweightKg: 72,
+    })
+
+    await useApp.getState().startGate(null)
+    // situps: bodyweightFactor 0.45. Enough volume that the corrected (lower)
+    // tonnage still produces real XP, so the before/after comparison has
+    // something to actually differ over.
+    for (let i = 0; i < 6; i += 1) {
+      await useApp.getState().logSet({ exerciseId: 'situps', weight: 0, reps: 20, rpe: 8 })
+    }
+    await useApp.getState().finishGate()
+
+    // The flag was already set by the initial load() in beforeEach, before a
+    // profile existed. Clearing it simulates an existing hunter who already
+    // had this history when the bodyweightFactor fix shipped.
+    await updateProgress({ bodyweightFactorAnnouncedAt: null })
+    await useApp.getState().refresh()
+    const messagesBefore = useApp.getState().messages.length
+
+    await useApp.getState().announceBodyweightFactorRegradeIfNeeded()
+
+    expect(useApp.getState().progress.bodyweightFactorAnnouncedAt).not.toBeNull()
+    const messagesAfter = useApp.getState().messages
+    expect(messagesAfter).toHaveLength(messagesBefore + 1)
+    const announcement = messagesAfter[messagesAfter.length - 1]!
+    expect(announcement.title).toContain('corrected a measurement')
+    // Either the level moved (stated as "X is now level Y") or it held
+    // ("holds at Y") — which one depends on whether the tonnage difference
+    // crossed a level boundary. Both are legitimate; silence is not.
+    expect(announcement.body).toMatch(/is now level \d+|holds at \d+/)
+
+    await useApp.getState().announceBodyweightFactorRegradeIfNeeded()
+    expect(useApp.getState().messages).toHaveLength(messagesBefore + 1)
   })
 })

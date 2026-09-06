@@ -137,6 +137,20 @@ describe('a single logged session', () => {
   })
 })
 
+describe('gateDifficulty reads the bodyweight-adjusted weight, not the raw set weight', () => {
+  it('scores a bodyweight-only session above E, since it is not free work', () => {
+    // situps: bodyweightFactor 0.45. Six sets of 20 at a 80 kg session
+    // bodyweight score 36 kg per set once adjusted — enough volume to clear
+    // the D threshold. Reading s.weight raw (always 0 for an unloaded
+    // bodyweight set) would score 0 tonnage and never leave 'E' regardless
+    // of how much work was actually done.
+    const sessions = [session('s1', TODAY, 1000)]
+    const sets = Array.from({ length: 6 }, (_, i) => set('s1', 'situps', 0, 20, i, 1000 + i, { rpe: 8 }))
+    const projection = projectPlayer(baseInput({ sessions, sets }))
+    expect(projection.sessionSummaries[0]!.gateRank).toBe('D')
+  })
+})
+
 describe('an open session pays nothing until it is finished', () => {
   // Regression for the bug where opening a gate paid a full E-rank
   // gate-clear bonus (200 XP) before a single set was logged: an empty plan

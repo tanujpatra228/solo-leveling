@@ -122,6 +122,7 @@ describe('advisories stop firing once the gap is closed', () => {
               increment: 5,
               repRange: [6, 10] as [number, number],
               usesBodyweight: false,
+              bodyweightFactor: 1,
             }
           : seedExercise(id),
     }
