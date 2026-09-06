@@ -224,7 +224,7 @@ outbox batch on every pull round. Extract the resource bounds into a dependency-
 No new migration and no new binding are needed: the D1 database and the Dexie schema have never
 existed anywhere, so `0001_init.sql` and `version(1)` are edited in place rather than superseded.
 
-**Detailed step-by-step plan, with the reasoning behind each correction: `docs/m1-plan.md`.**
+*The step-by-step M1 plan was deleted once M1 landed; it is in git history at `3edda1e`.*
 
 *Acceptance:* typecheck clean across all six projects; `pnpm vitest run` passes at roughly 416 tests
 (ten `isDue`/`localMinuteOfDay` tests are deleted with the code they cover, and twelve are added);
@@ -246,7 +246,7 @@ because first launch is where the secret is born. The other five are a missing h
 icon files, an empty `dist/`, a global reduced-motion rule that rules out a CSS-driven cinematic, and
 a Vitest include pattern that would silently collect no component tests.
 
-**Detailed step-by-step plan, with those findings and the decisions they force: `docs/m2-plan.md`.**
+*The step-by-step M2 plan was deleted once M2 landed; it is in git history at `3edda1e`.*
 
 *Acceptance:* `pnpm run build` succeeds with the initial route at or under 200 KB gzipped; onboarding
 completes with prefer-not-to-say, no standards table and physique skipped, landing on a correct
@@ -269,7 +269,7 @@ are a routine rep range that is stored and never read, a warmup flag the store c
 the repository can, an `order` computation that counts superseded rows, and the constraint that a
 210-second rest cannot be counted down with `setInterval` in a backgroundable tab.
 
-**Detailed step-by-step plan: `docs/m3-plan.md`.** Its first three commits are engine and store
+*The step-by-step M3 plan is in git history at `3edda1e`.* Its first three commits are engine and store
 corrections plus a pure timer module, and need no component to exist - so they can land before M2.
 
 *Acceptance, split from the original because it straddled two milestones:* **M3 owns offline** - a

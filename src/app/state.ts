@@ -1,12 +1,8 @@
 /**
- * The single application store.
- *
- * It holds the loaded log, the projection derived from it, and the actions that
- * append to it. Components read from here and never touch the database.
- *
- * Every action writes to IndexedDB first and then refreshes the projection, so
- * the interface is always showing something that has actually been persisted.
- * Nothing here awaits the network.
+ * The single application store: the loaded log, the projection derived from it,
+ * and the actions that append to it. Standards rules 4, 5 and 7 — every action
+ * writes to IndexedDB and refreshes before returning, and nothing awaits the
+ * network.
  */
 import { create } from 'zustand'
 import * as repo from '../db/repo'
@@ -146,13 +142,8 @@ export interface AppState extends LoadedData {
   abandonGate: () => Promise<void>
 
   /**
-   * One target per exercise, computed once in `recompute()` rather than on
-   * demand. A `useApp((s) => s.targetFor(id))` selector that computed fresh on
-   * every call broke Zustand v5's `useSyncExternalStore`-based subscription:
-   * a new object every render means the snapshot is never `Object.is`-stable,
-   * which is an infinite re-render (React error #185) the instant a screen
-   * reads it. Reading from a precomputed map keeps the same reference across
-   * renders that are not caused by an actual state change.
+   * One target per exercise, computed once here rather than per call, so screens
+   * select a stable reference instead of a fresh object. Standards rule 13.
    */
   targetsByExerciseId: Record<string, NextTarget>
   targetFor: (exerciseId: string) => NextTarget | null

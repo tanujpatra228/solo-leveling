@@ -29,7 +29,7 @@ rule 14, not yet built).
 
 ## Where the build stands (M3 landed 2026-09-04)
 
-All seven commits of `docs/m3-plan.md` are in. The engine, store, and rest-timer corrections
+All seven commits of the M3 plan (git history, `3edda1e`) are in. The engine, store, and rest-timer corrections
 (G1-G6) landed first, needing no screen to exist; then the gate screen itself — live blocks and
 supersets in the routine's own order, each with its target and reason from the progression engine,
 thumb-sized set entry per the exercise's unit, in-place correction, and the rest timer wired to the
@@ -76,12 +76,9 @@ is the point at which this becomes usable on a phone in the gym.
 - [x] Extract the bounds into `worker/limits.ts` and add the guard test asserting they sit under the
       documented Cloudflare limits
 
-Step-by-step plan for all of the above: docs/m1-plan.md
-
-Step-by-step plan for M2, with six findings from surveying the ground: docs/m2-plan.md
-
-Step-by-step plan for M3, with six findings in the engine and store: docs/m3-plan.md
-Commits 1-3 of M3 (G1-G6) need no UI and can land before M2.
+Step-by-step plans for M1, M2 and M3 were deleted once each milestone landed. They are in git
+history at `3edda1e` (`docs/m1-plan.md`, `m2-plan.md`, `m3-plan.md`). Only the current
+milestone's plan is kept on disk; see `docs/m4-plan.md`.
 
 ## Phase 0 — Awakening, logging, PWA
 - [x] Scaffold Vite + React + TS + Tailwind, pnpm, strict tsconfig

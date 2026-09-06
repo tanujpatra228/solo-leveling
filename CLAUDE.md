@@ -71,6 +71,41 @@ A `SessionLog` with `endedAt === null` is in progress. The projection must not p
 it XP, a gate rank, or stats. The same holds for any partially written row: a row
 existing never means the thing happened.
 
+## Comments say why, never what
+
+A comment restating what the code does is waste at any length — every agent reading
+the file pays for it. A comment naming what breaks if you change the line pays for
+itself the first time. Prefer the second and delete the first.
+
+Each fact has exactly one home. If the reasoning is already a standards rule, cite
+the number instead of restating it: `// see rule 13` beats a paragraph. Write
+comments in normal prose — terse phrasing that loses precision costs more than the
+tokens it saves.
+
+- Local invariants and traps → a comment at the line that has them.
+- Rules an agent must follow → this file.
+- The reasoning behind a rule → `docs/engineering-standards.md`.
+- `docs/m*-plan.md` → the **current** milestone only. See the lifecycle below.
+- `docs/NOTES.md` → findings that still bite. An entry whose problem is fixed gets
+  deleted, not left behind — a stale note costs more than a missing one.
+- `docs/TODO.md` → where the build stands. The only status log; nowhere else.
+
+Never mine a plan or a note for current truth. The code, this file, and the standards
+doc are the current truth.
+
+## Plan file lifecycle
+
+A milestone's detailed `docs/m<n>-plan.md` exists only while that milestone is being
+built. Once it is implemented, tested, and committed:
+
+1. Update its section in `docs/implementation-plan.md` §4 to a short summary of what
+   actually shipped — that section is the permanent record.
+2. Note the landing in `docs/TODO.md`.
+3. `git rm` the detailed plan. It stays recoverable in git history, and anything
+   pointing at it must be repointed at the commit rather than left dangling.
+
+M1–M3 plans were removed this way; they are at `3edda1e`.
+
 ## Tests
 
 - Every domain function taking a collection gets an empty-input test.

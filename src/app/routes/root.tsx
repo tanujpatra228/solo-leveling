@@ -13,8 +13,8 @@ const TABS = [
 
 function RootLayout() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
-      <div className="flex flex-1 flex-col">
+    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-x-hidden">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Outlet />
       </div>
 

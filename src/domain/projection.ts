@@ -1,14 +1,8 @@
 /**
- * The projection: everything the hunter sees, recomputed from the log.
- *
- * The log is truth and the status window is a view of it. Nothing in here is
- * stored — level, XP, stats, rank, fatigue, shadows and titles are all derived,
- * every time, from the immutable `SessionLog` and `SetLog` rows. That is what
- * makes a change to the XP constants a recalculation rather than a migration,
- * and it is why `PlayerState` is never synced between devices.
- *
- * Pure, like the rest of the domain layer. The caller loads the rows and passes
- * them in, along with the current training day.
+ * The projection: everything the hunter sees, derived from the log on every
+ * call and never stored. Standards rules 1 and 4. Two consequences worth
+ * knowing — a change to the XP constants is a recalculation, not a migration,
+ * and `PlayerState` is therefore never synced between devices.
  */
 import { bestE1rm, countHardSets, epley, isHardSet, tonnage } from './e1rm'
 import { computeFatigue, tonnagePerDay, type FatigueState } from './fatigue'

@@ -1,75 +1,12 @@
 # NOTES
 
-Carry-between-sessions lessons. One entry per lesson, newest concerns first. Read this before
-starting work.
+Findings that still bite, carried between sessions. One entry per lesson.
+
+Not a status log — for where the build stands see `docs/TODO.md`; for the resource
+budget see `docs/infrastructure.md`. An entry whose problem is fixed gets deleted,
+not left here: a stale note costs more than a missing one.
 
 ---
-
-## WHERE I LEFT OFF (2026-09-03, second pause) - read this first
-
-Everything below the user interface is built, tested, and committed. Two commits are on `main`
-and the working tree is clean. No GitHub remote exists yet and nothing has been deployed.
-
-`pnpm run test` gives 414 passing tests across 23 files. `pnpm run typecheck` is clean across all
-four TypeScript projects.
-
-### What exists
-
-- `src/domain/` - the whole engine, pure and tested: progression, e1RM, volume landmarks, ACWR,
-  deload, XP and levels, the hybrid stats, rank from real published tables, body composition,
-  quests, gates, shadows, titles, runes, the 100-floor tower, programme advisories, streaks, and
-  the projection that rebuilds player state from the log.
-- `src/db/` - the Dexie schema and the repository. Nothing else touches IndexedDB.
-- `src/platform/capabilities.ts` - adapters for wake lock, haptics, the chime, install prompt,
-  notifications, push, sharing, and QR camera.
-- `src/sync/` - the capability-token identity and the sync client.
-- `src/app/state.ts` - the Zustand store: loads the log, holds the projection, and owns every
-  action including session logging, quest issuing, shadow extraction, and title awarding.
-- `src/sw.ts` - the service worker.
-- `worker/` - the Hono Worker, D1 access, the push scheduler, and the server half of identity.
-- `migrations/0001_init.sql`, `wrangler.jsonc`, `public/_headers`, `index.html`, `src/index.css`.
-
-### What does not exist yet
-
-**The React user interface. None of it.** There is no `src/main.tsx`, no router, no components,
-and no screens. The store and engine behind them are finished, so this is presentation work, but
-it is all of the presentation work: the Awakening Test, the Status Window, the session logger with
-its rest timer, the Physique panel, the gates and shadows and tower and shop screens, System Link
-pairing, and settings.
-
-Also outstanding: the PWA icons (`public/icons/` is empty and `vite.config.ts` already references
-the files), the one-time Cloudflare setup script, the GitHub Actions workflow, and
-`infrastructure.md`.
-
-Because `index.html` loads `/src/main.tsx` and that file does not exist, **`pnpm run build` will
-fail until the interface is started**. That is expected, not a regression.
-
-### Deliberate deviations from the brief, both flagged rather than hidden
-
-**The Hunter License Key is 120 bits, not 256.** The brief asks for both 32 random bytes and a
-24-character key, and those cannot both hold: 32 bytes needs 52 base32 characters. Since the key
-has to be typeable on a second device, the secret is 15 bytes, which encodes to exactly 24
-characters in Crockford base32. 120 bits from `crypto.getRandomValues` is not brute-forceable, so
-nothing practical is lost. See the comment at the top of `src/sync/identity.ts`.
-
-**The six-rank ladder is built from five published thresholds.** Both strength-standard sources
-publish exactly five tiers and neither has a "Proficient" band. Five thresholds partition into six
-bands, which is the only way to reach six ranks without inventing a number. The consequence is
-that a lifter exactly on the published Intermediate threshold lands at B rather than C, and that
-is asserted in a test so it cannot drift silently.
-
-### Two things that need verifying on the first real deploy
-
-- **`web-push` inside the Worker.** Cloudflare documents this path and their own guide uses the
-  library, and `nodejs_compat` is on by default at our compatibility date, but it has not been
-  exercised against a live push service from this codebase. The scheduling arithmetic around it is
-  unit-tested; the actual send is not.
-- **GitHub secret scanning and push protection.** The brief wants both on before the first commit.
-  On a **private** repository these are Advanced Security features and are not available on a free
-  plan, so the requirement cannot be met as written for the chosen repository visibility. What
-  stands in for it: no secret is ever committed, `.env*` and `.dev.vars` are gitignored, and the
-  VAPID private key lives only in a Worker secret. Worth telling the user explicitly rather than
-  quietly skipping.
 
 ## R2 is the only Cloudflare service here that can produce a bill
 
@@ -121,21 +58,6 @@ it, which is why photo uploads stream into R2 rather than being buffered.
 
 ---
 
-## Two config defects found by actually starting the Worker
-
-Neither would have been caught by reading the file.
-
-**`compatibility_date` cannot be newer than the installed runtime supports.** It was set to today,
-2026-09-03, and `wrangler dev` refused to start: *"This Worker requires compatibility date
-2026-09-03, but the newest date supported by this server binary is 2026-09-02."* Use 2026-09-02.
-It has to stay at or after 2026-08-04, which is the date that makes `nodejs_compat` default-on.
-
-**`migrations_dir` is not a top-level field.** Wrangler warns *"Unexpected fields found in
-top-level field"*, and the config schema shows it belongs inside each `d1_databases` entry. It
-worked anyway only because `./migrations` is the default.
-
----
-
 ## What the local runtime can and cannot tell you
 
 Worth knowing before trying to measure performance locally.
@@ -169,41 +91,15 @@ that are only a day or two old, this is the first thing to suspect.
 
 ---
 
-## The first install ran before the age rule existed, so those versions must not be trusted
-
-Dependencies were installed once before the user asked for `minimum-release-age`. That install
-resolved bleeding-edge versions, several of which were days old. Those are the versions listed in
-`package.json` dependency ranges at the moment, and they are **not** necessarily what a
-release-age-respecting install will produce.
-
-After the reinstall, re-read the resolved versions from the new lockfile before assuming anything
-about API shape. In particular the notes below about Vite 8, TypeScript 7, and React 19 may or may
-not apply depending on what the age filter allows through.
-
----
-
 ## Verified Cloudflare free-tier facts (checked against live docs 2026-09-03)
 
-Checked because the brief says these numbers move faster than model training data, and a stale
-answer here would be load-bearing. Every figure below came from a page fetched on that date.
+Every figure was read off a Cloudflare docs page on that date rather than recalled, because these
+numbers move faster than training data and a stale one here would be load-bearing. The numbers
+themselves live in `docs/infrastructure.md` section 3, which is the single copy — this entry
+records only their provenance and the two conclusions that are not obvious from the table.
 
-| Resource | Free plan | Source |
-|---|---|---|
-| Worker requests | 100,000/day, resets midnight UTC | workers/platform/limits |
-| Worker CPU | 10 ms per invocation, **not raisable on free** | workers/platform/limits |
-| Worker subrequests | 50 per request | workers/platform/limits |
-| Worker script size | 3 MB compressed | workers/platform/limits |
-| Static assets | free, unlimited, and **not counted as requests** | workers/static-assets/billing-and-limitations |
-| Static asset file cap | 20,000 files per version, 25 MiB per file | workers/platform/limits |
-| D1 | 5 GB total, 500 MB per database, 10 databases, 5M row reads/day, 100k row writes/day | d1/platform/{pricing,limits} |
-| D1 per invocation | 50 queries per Worker invocation | d1/platform/limits |
-| KV | 1 GB, 100k reads/day, 1,000 writes/day, 1,000 deletes/day | kv/platform/pricing |
-| Cron Triggers | 5, minimum interval 1 minute, 15 min wall time | workers/{platform/limits,configuration/cron-triggers} |
-| Workers AI | 10,000 Neurons/day free | workers-ai/platform/pricing |
-
-Two consequences worth restating because they shape code: rate-limit counters and sync sequence
-state go in **D1, not KV**, because 1,000 writes a day is nothing. And the shell must stay static
-assets, because those are the only free unlimited thing in the list.
+Rate-limit counters and sync sequence state go in **D1, not KV**: 1,000 KV writes a day is nothing.
+And the app shell must stay static assets, because those are the only free unlimited thing offered.
 
 ### The credit-card question, answered as precisely as the docs allow
 
@@ -372,11 +268,3 @@ Full source report with the retrieved tables and capture timestamps is in the se
 re-fetching, and keep the citation next to them.
 
 ---
-
-## The Cloudflare MCP server is not authorised in this session
-
-Cloudflare tooling was surfaced as an MCP server but requires an OAuth flow that cannot run
-non-interactively, so all Cloudflare facts above were gathered by reading the public documentation
-instead. Authorising it via `/mcp` in an interactive session would allow direct account access
-later, but nothing in the build depends on it — deployment is designed to run through a setup script
-and GitHub Actions.

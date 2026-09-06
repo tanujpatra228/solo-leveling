@@ -220,8 +220,8 @@ function BlockRows({ block, exerciseById }: { block: Block; exerciseById: Map<st
           return (
             <li key={item.exerciseId}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm font-medium text-ink">{exercise?.name ?? item.exerciseId}</span>
-                <span className="font-system text-xs whitespace-nowrap text-ink-soft tabular-nums">
+                <span className="min-w-0 text-sm font-medium text-ink">{exercise?.name ?? item.exerciseId}</span>
+                <span className="shrink-0 font-system text-xs whitespace-nowrap text-ink-soft tabular-nums">
                   {item.sets} × {item.repRange[0]}–{item.repRange[1]}
                 </span>
               </div>
@@ -381,8 +381,7 @@ function ActiveBlockItem({
   // which Zustand v5's Object.is-based subscription treats as a change on
   // every render — an infinite loop that crashes with React #185 the moment
   // a session opens. See docs/engineering-standards.md rule 13.
-  const targetsByExerciseId = useApp((s) => s.targetsByExerciseId)
-  const target = targetsByExerciseId[item.exerciseId] ?? null
+  const target = useApp((s) => s.targetFor(item.exerciseId))
   const sets = useApp((s) => s.sets)
   const logged = useMemo(() => liveSessionSets(sets, sessionId, item.exerciseId), [sets, sessionId, item.exerciseId])
 
@@ -393,8 +392,8 @@ function ActiveBlockItem({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-medium text-ink">{exercise.name}</span>
-        <span className="font-system text-xs text-ink-soft tabular-nums">
+        <span className="min-w-0 text-sm font-medium text-ink">{exercise.name}</span>
+        <span className="shrink-0 font-system text-xs text-ink-soft tabular-nums">
           {logged.length}/{item.sets} sets
         </span>
       </div>
@@ -468,10 +467,19 @@ function SetEntryRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-panel-edge/70 p-2">
-      <div className="flex gap-2">
+    <div className="@container flex min-w-0 flex-col gap-2 rounded border border-panel-edge/70 p-2">
+      {/*
+        @container + @xs:flex-row: fields sit in a row only once this card
+        actually has room for one (Tailwind's `xs` container breakpoint,
+        20rem). Below that — a phone narrow enough, or a superset item's
+        indentation eating into the width — they stack instead of forcing
+        the row wider than its container. min-w-0 on each field is the other
+        half of the same fix: a flex child's default min-width is its content
+        size, and a number input's content size does not shrink on its own.
+      */}
+      <div className="flex min-w-0 flex-col gap-2 @xs:flex-row">
         {needsWeight ? (
-          <label className="flex flex-1 flex-col gap-1">
+          <label className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
             <span className="font-system text-[10px] text-ink-faint uppercase">kg</span>
             <input
               type="number"
@@ -479,43 +487,43 @@ function SetEntryRow({
               step={0.5}
               value={weight}
               onChange={(event) => setWeight(event.target.value)}
-              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+              className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
             />
           </label>
         ) : null}
         {needsReps ? (
-          <label className="flex flex-1 flex-col gap-1">
+          <label className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
             <span className="font-system text-[10px] text-ink-faint uppercase">reps</span>
             <input
               type="number"
               inputMode="numeric"
               value={reps}
               onChange={(event) => setReps(event.target.value)}
-              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+              className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
             />
           </label>
         ) : null}
         {needsSeconds ? (
-          <label className="flex flex-1 flex-col gap-1">
+          <label className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
             <span className="font-system text-[10px] text-ink-faint uppercase">sec</span>
             <input
               type="number"
               inputMode="numeric"
               value={seconds}
               onChange={(event) => setSeconds(event.target.value)}
-              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+              className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
             />
           </label>
         ) : null}
         {needsMetres ? (
-          <label className="flex flex-1 flex-col gap-1">
+          <label className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
             <span className="font-system text-[10px] text-ink-faint uppercase">m</span>
             <input
               type="number"
               inputMode="decimal"
               value={metres}
               onChange={(event) => setMetres(event.target.value)}
-              className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+              className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
             />
           </label>
         ) : null}
@@ -523,7 +531,7 @@ function SetEntryRow({
 
       <ChoiceGroup<string> label="RPE" options={RPE_OPTIONS} value={rpe} onChange={setRpe} />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setIsWarmup((w) => !w)}
@@ -563,13 +571,13 @@ function LoggedSetRow({ set }: { set: SetLog }) {
 
   if (!editing) {
     return (
-      <li className="flex items-center justify-between font-system text-xs text-ink-soft tabular-nums">
-        <span>
+      <li className="flex items-center justify-between gap-2 font-system text-xs text-ink-soft tabular-nums">
+        <span className="min-w-0">
           {set.weight > 0 ? `${set.weight} kg × ` : ''}
           {set.reps} reps
           {set.rpe ? ` @ RPE ${set.rpe}` : ''}
         </span>
-        <span className="flex items-center gap-2">
+        <span className="flex shrink-0 items-center gap-2">
           {set.isWarmup ? <span className="text-ink-faint normal-case">warmup</span> : null}
           <button
             type="button"
@@ -597,9 +605,9 @@ function LoggedSetRow({ set }: { set: SetLog }) {
   }
 
   return (
-    <li className="flex flex-col gap-2 rounded border border-panel-edge/70 p-2 normal-case">
-      <div className="flex gap-2">
-        <label className="flex flex-1 flex-col gap-1">
+    <li className="@container flex min-w-0 flex-col gap-2 rounded border border-panel-edge/70 p-2 normal-case">
+      <div className="flex min-w-0 flex-col gap-2 @xs:flex-row">
+        <label className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
           <span className="font-system text-[10px] text-ink-faint uppercase">kg</span>
           <input
             type="number"
@@ -607,24 +615,24 @@ function LoggedSetRow({ set }: { set: SetLog }) {
             step={0.5}
             value={weight}
             onChange={(event) => setWeight(event.target.value)}
-            className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
           />
         </label>
-        <label className="flex flex-1 flex-col gap-1">
+        <label className="flex min-w-0 flex-1 basis-0 flex-col gap-1">
           <span className="font-system text-[10px] text-ink-faint uppercase">reps</span>
           <input
             type="number"
             inputMode="numeric"
             value={reps}
             onChange={(event) => setReps(event.target.value)}
-            className="rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
           />
         </label>
       </div>
 
       <ChoiceGroup<string> label="RPE" options={RPE_OPTIONS} value={rpe} onChange={setRpe} />
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => setIsWarmup((w) => !w)}
