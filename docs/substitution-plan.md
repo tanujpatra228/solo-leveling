@@ -3,7 +3,15 @@
 A gate prescribes Cable Crunch. The cable station is occupied and three people are waiting. The
 hunter needs to swap to something that trains the same thing, log it honestly, and keep moving.
 
-Written 2026-09-06, from a real Saturday Cardio and Abs Gate where exactly this happened.
+**Scope: every exercise in every gate.** Any station in a commercial gym can be occupied on any
+day, so this is not a curated set of alternatives for a few known-awkward machines. Every block on
+every routine gets a Swap control, and the candidates are derived from muscles, movement pattern
+and what is currently free — not from a hand-maintained pairing table that would rot the moment the
+library grew. Section 4 carries the invariant that makes that claim testable rather than
+aspirational, and names the four groups where it cannot fully hold.
+
+Written 2026-09-06, from a real Saturday Cardio and Abs Gate where the cable station and then the
+hanging bar were both taken, back to back.
 
 ## 0. The finding that changes the design
 
@@ -94,42 +102,56 @@ and its own targets work normally. It simply never gets prescribed.
 
 ## 3. Choosing the candidates
 
-A pure function, `substitutesFor(planned, { exercises, equipmentAccess })`, returning a ranked
-list. Everything it needs already exists on `Exercise`: `pattern`, `primaryMuscles`,
-`secondaryMuscles`, `equipment`, `repRange`, `progressionLadder`.
+### Availability is a session fact, not a profile fact
 
-Ranking, in order of weight:
+`profile.equipmentAccess` says what the hunter's gym *has*. The problem this feature exists for is
+what is **occupied right now**, which is a different thing and changes set to set. A function that
+only knows `equipmentAccess` will cheerfully offer Cable Fly as a substitute for Cable Crunch —
+same station, still busy, useless answer.
 
-1. Same `pattern` and at least one shared `primaryMuscles` entry. Below that, not a candidate.
-2. Equipment the hunter has, per `profile.equipmentAccess` — a barbell alternative is useless to
-   someone training at home.
-3. On the same `progressionLadder`, which makes it a known easier or harder rung rather than a
-   lateral guess.
-4. Overlapping `repRange`, so the prescription still reads sensibly.
+So the signature carries both:
 
-For Cable Crunch this yields Machine Abs Crunch (same pattern, same muscle, machine), then Sit-ups
-and Leg Raises (bodyweight, always available). All four are already seeded.
+```ts
+substitutesFor(planned, {
+  exercises,
+  equipmentAccess,        // what the gym has          — from the profile
+  blockedEquipment,       // what is taken right now    — this session only
+  routine,                // to demote what is already prescribed today
+})
+```
 
-Hanging Leg Raises → Leg Raises is the cleanest case in the library: the two share a
-`progressionLadder`, so the substitute is a known rung down rather than a lateral guess, and the
-System can say so — "one rung below, and the bar is taken" reads very differently from "here is
-something else".
+**Hard rule, not a ranking weight: a candidate requiring any blocked equipment is not a candidate.**
+Ranking sorts useful answers; this excludes useless ones, and the two must not be confused. It is
+the single most important line in the function.
 
-**Rule 1 is too strict on its own.** Eleven of the eighteen (pattern, primary muscle) groups in the
-seed contain exactly one exercise (section 4), so a same-pattern-same-muscle match returns nothing
-for most of the library. A second tier is required: **same primary muscle, different pattern.**
-Cable Fly has no other `isolation` chest movement, but Pushups train the same muscle through a
-different pattern and are a perfectly good answer when the cable station is full. Tier 2 ranks
-below tier 1 and says which it is, because "same movement, different implement" and "different
-movement, same muscle" are not the same promise.
+**The default costs zero taps.** Tapping Swap on Cable Crunch implies the cable is the problem, so
+`blockedEquipment` defaults to the planned exercise's own `equipment`. The hunter mid-set does not
+want a checklist. If a second station is also busy they can add it, but the common case — one thing
+occupied, swap off it — needs no input at all.
 
-**A candidate already prescribed elsewhere in the same gate is demoted, not hidden.** Substituting
-today's Hanging Leg Raises with Leg Raises means doing Leg Raises twice, since they are already
-block 1 — legitimate, but not the same stimulus the gate intended, and the hunter should be told
-rather than left to notice.
+This also means substitution is never limited to a curated pairing. Any exercise can be swapped,
+because the query is derived from muscles, pattern, and what is free, not from a hand-maintained
+map of alternatives that would rot the moment the library grew.
 
-The function returns candidates with a plain-language `why`, in the System's voice, because a
-ranked list with no reason is a list the hunter has to second-guess mid-set.
+### Ranking, once the useless answers are gone
+
+1. **Tier 1** — same `pattern` and at least one shared `primaryMuscles` entry.
+2. **Tier 2** — same primary muscle, any pattern. Required, not optional: ten of the eighteen
+   (pattern, muscle) groups in the seed hold a single exercise (section 4), so tier 1 alone returns
+   nothing for most of the library. Cable Fly has no other `isolation` chest movement, but Pushups
+   train the same muscle through a different pattern and are a fine answer when the cable is busy.
+   The sheet says which tier a candidate came from, because "same movement, different implement"
+   and "different movement, same muscle" are not the same promise.
+3. Within a tier: on the same `progressionLadder` first, since that is a known rung rather than a
+   lateral guess. Hanging Leg Raises → Leg Raises is the cleanest case in the library, and the
+   System can say "one rung below, and the bar is taken".
+4. Then `repRange` overlap, so the prescription still reads sensibly.
+5. Demote anything already prescribed elsewhere in today's routine. Substituting Hanging Leg Raises
+   with Leg Raises means doing Leg Raises twice, since they are already block 1 — legitimate, but
+   not the stimulus the gate intended, and worth saying rather than leaving the hunter to notice.
+
+Every candidate carries a plain-language `why` in the System's voice. A ranked list with no reason
+is a list the hunter has to second-guess mid-set.
 
 ## 4. The library audit: substitution deserts
 
@@ -171,20 +193,62 @@ run against `time`.
 ### The coverage guarantee
 
 "Any exercise can be substituted" is only real if it is checkable, so it becomes an invariant with
-a test behind it rather than an intention:
+a test behind it. The test must model the actual scenario — the equipment this exercise needs is
+the equipment that is taken:
 
-> For every `prescribed` exercise in the library, `substitutesFor` returns at least one candidate
-> when `equipmentAccess` is `['bodyweight']` alone.
+> For every `prescribed` exercise in the library, calling `substitutesFor` with
+> `blockedEquipment` set to that exercise's **own** `equipment` returns at least one candidate.
 
-Bodyweight-only is the worst case — every machine taken, every bench in use — and it is the case
-the hunter is actually in when they reach for this feature. A test that walks the whole library and
-asserts a non-empty result for each entry turns the deserts above from something to remember into
-something that fails the build. It also means seeding a new prescribed exercise later cannot
-silently arrive without a fallback.
+That is the real gym case, and it is stronger than the bodyweight-only version it replaces: it
+proves there is always an answer that does not need the thing you cannot get to. A test that walks
+the whole library and asserts a non-empty result for every entry turns the deserts above from
+something to remember into something that fails the build, and means a new prescribed exercise
+cannot arrive later without a fallback behind it.
 
-The guarantee deliberately does not promise a *good* substitute for every case — no bodyweight
-movement replaces a heavy barbell squat honestly. It promises the System always has an answer, and
-the honest-tonnage model in commit 1 makes sure the answer is scored for what it actually is.
+A second, harsher pass for the worst case — everything taken at once:
+
+> For every `prescribed` exercise, with `equipmentAccess: ['bodyweight']`, either a candidate is
+> returned or the exercise appears in the documented exception list below.
+
+### Four groups where physics wins
+
+The harsher pass cannot pass everywhere, and pretending otherwise would be a lie in a test file.
+Some muscles cannot be loaded with nothing at all:
+
+| Group | Minimum implement | Why nothing works |
+|---|---|---|
+| vertical_pull / lats | a bar, rings, or a table edge | pulling requires something to pull against |
+| horizontal_pull / upper_back | same | as above |
+| isolation / side_delts | a dumbbell, plate, or band | an unloaded lateral raise is not a working set |
+| isolation / traps | a dumbbell, plate, or bar | a shrug with no load is not a shrug |
+
+For these four, the guarantee is the first form only: a substitute exists that avoids the *blocked*
+equipment. In a commercial gym that is enough — if the cable is busy, a dumbbell or a barbell in a
+rack is almost certainly free. The exception list is asserted explicitly, so it is a decision on
+the record rather than a hole someone finds later.
+
+### The fallbacks to seed, named
+
+Turning section 4's audit into a concrete list. Everything here is `role: 'fallback'` — it fills a
+gap and never enters the programme.
+
+| Group | Fallback to seed | Equipment |
+|---|---|---|
+| vertical_pull / lats | Inverted Row, Chin-ups | bar / bodyweight |
+| horizontal_pull / upper_back | Inverted Row, Single-arm Dumbbell Row (no bench) | bar, dumbbell |
+| isolation / side_delts | Dumbbell Lateral Raise, Plate Raise | dumbbell |
+| isolation / rear_delts | Prone Y-T-W Raise | bodyweight |
+| isolation / traps | Dumbbell Shrug, Barbell Shrug | dumbbell, barbell |
+| isolation / biceps | Chin-ups, Towel Curl | bar / bodyweight |
+| isolation / hamstrings | Single-leg Glute Bridge, Nordic Curl | bodyweight |
+| isolation / quads | Split Squat, Wall Sit | bodyweight |
+| isolation / calves | Standing Calf Raise | bodyweight |
+| isolation / chest | Pushups (already seeded, reached via tier 2) | bodyweight |
+| cardio / cardio | Stair Climb, Skipping, Outdoor Run, Burpees | bodyweight / rope |
+
+`treadmill-intervals` being the only cardio movement is the gap most likely to bite, because every
+gate that ends in cardio ends in a single point of failure. Seeding three no-equipment options
+costs almost nothing.
 
 ### A defect the audit turned up, unrelated to substitution
 
@@ -247,23 +311,34 @@ data and the same engine path, and shipping the seed twice is wasteful.
 ### Commit 4 — `role`, and seeding the fallbacks
 
 `role: 'prescribed' | 'fallback'` on `ExerciseSchema`, defaulting to `prescribed` so the existing
-34 need no edit. Then seed the fallback movements that close the deserts in section 4: an inverted
-or table row, a bodyweight and dumbbell lateral raise and reverse fly, a bodyweight calf raise,
-single-leg or Nordic hamstring work, a chin-up and towel-row alternative for lats, bodyweight
-bicep work, and at least one no-equipment cardio option against `time`.
+34 need no edit. Then seed every movement in the named table in section 4 — roughly twenty
+exercises, each with its `bodyweightFactor`, `pattern`, `primaryMuscles` and `equipment` filled in,
+because the ranking function reads all four and a fallback with sloppy metadata ranks wrongly.
 
-Tests: a routine may only reference `prescribed`; `advance_variation` never lands on a `fallback`.
+Tests: a routine may only reference `prescribed`; `advance_variation` never lands on a `fallback`;
+and every seeded fallback names at least one group from the audit, so a fallback that fills no gap
+is caught rather than accumulating.
 
 ### Commit 5 — `substitutesFor`
 
-The ranking function and its tests. Pure, no store, no React. Tier 1 (same pattern, same primary
-muscle), tier 2 (same primary muscle, any pattern), then equipment, ladder adjacency, and rep-range
-overlap. Demote a candidate already prescribed elsewhere in the same routine.
+The ranking function and its tests. Pure, no store, no React. Takes `blockedEquipment` as well as
+`equipmentAccess`, excludes any candidate needing blocked equipment before ranking anything, then
+tier 1, tier 2, ladder adjacency, rep-range overlap, and the same-routine demotion.
 
-Assertions: the Cable Crunch case explicitly; Hanging Leg Raises returns Leg Raises as a ladder
-neighbour; an empty library returns an empty list; a hunter with no machine access never sees
-Machine Abs Crunch; and the coverage guarantee walks every prescribed exercise under
-bodyweight-only access and asserts a non-empty result.
+Assertions:
+
+- **The exclusion rule first, because it is the one that makes the feature useful.** Cable Crunch
+  with `blockedEquipment: ['cable']` never returns Cable Fly or any other cable movement.
+- `blockedEquipment` defaults to the planned exercise's own equipment when omitted.
+- The Cable Crunch case explicitly: Machine Abs Crunch, then Sit-ups and Leg Raises.
+- Hanging Leg Raises returns Leg Raises as a ladder neighbour, demoted for already appearing in
+  today's routine.
+- An empty library returns an empty list; a hunter with no machine access never sees Machine Abs
+  Crunch.
+- **The coverage guarantee, both forms**: every prescribed exercise returns a candidate when its own
+  equipment is blocked; and under bodyweight-only access, every prescribed exercise either returns
+  a candidate or is in the four-group exception list, which the test names explicitly rather than
+  skipping.
 
 ### Commit 6 — the log and the store action
 
@@ -279,13 +354,23 @@ first-time substitute correctly reads `no_history`.
 
 ### Commit 7 — the swap control
 
-A "Swap" affordance on each block in `ActiveGateScreen`, opening a sheet of ranked candidates with
-their `why`, their tier, and an equipment tag. Selecting one re-renders that block against the
-substitute's target.
+A "Swap" affordance on **every** block in `ActiveGateScreen` — not a curated subset, since any
+station in the gym can be occupied on any day. Opening it shows ranked candidates with their `why`,
+their tier, and an equipment tag.
+
+The sheet opens already assuming the planned exercise's equipment is the problem, so the common
+case is two taps: Swap, then pick. A single "something else is taken too" control adds another
+piece of equipment to `blockedEquipment` and re-ranks, for the evening the cables *and* the
+dumbbell rack are both mobbed. No checklist, no configuration screen — the hunter is standing in a
+gym holding a phone.
+
+If exclusion leaves nothing — one of the four exception groups with everything blocked — the sheet
+says so plainly and offers to skip the block, rather than showing an empty list. A gate that
+cannot be completed as prescribed should still be closable.
 
 Selectors here must return stable references (rule 13) — the candidate list is derived from three
-slices and therefore belongs in `recompute()`, not in a selector. A route mount test covers the
-sheet open (rule 14).
+slices plus session state and therefore belongs in `recompute()`, not in a selector. Route mount
+tests cover the sheet open and the empty-result state (rule 14).
 
 ### Commit 8 — say so in the summary
 
@@ -344,8 +429,12 @@ different feature. Out of scope here (rule 16).
 
 ## 8. Verification
 
-- Every prescribed exercise returns at least one substitute under `equipmentAccess: ['bodyweight']`
-  — the coverage guarantee, walked across the whole library.
+- Every prescribed exercise returns at least one substitute when its **own** equipment is blocked —
+  the coverage guarantee, walked across the whole library. This is the real gym case.
+- Under bodyweight-only access, every prescribed exercise either returns a candidate or is one of
+  the four documented exceptions. No exercise is silently uncovered.
+- A cable exercise with the cable blocked never returns another cable exercise.
+- Swapping with no explicit `blockedEquipment` excludes the planned exercise's own equipment.
 - `substitutesFor` returns Machine Abs Crunch first for Cable Crunch with machine access, and
   Sit-ups or Leg Raises without it.
 - Hanging Leg Raises returns Leg Raises, flagged as a ladder neighbour and demoted for already
@@ -360,4 +449,5 @@ different feature. Out of scope here (rule 16).
   from the work actually done and no separate penalty applied.
 - The planned exercise's next target is unchanged by a substitution; the substitute's own target
   advances from its own history.
-- `/gate` mounts with the swap sheet open.
+- `/gate` mounts with the swap sheet open, and mounts with the sheet in its empty-result state.
+- Every block on every seeded routine offers a Swap control, with none excluded.
