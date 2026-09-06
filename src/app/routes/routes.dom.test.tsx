@@ -15,7 +15,7 @@ import 'fake-indexeddb/auto'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { wipeEverything } from '../../db/repo'
 import { useApp } from '../state'
 import { awakenRoute } from './awaken'
@@ -197,6 +197,25 @@ describe('the swap sheet (commit 6b2b0eb, rule 14)', () => {
 
     expectRendered(container.innerHTML)
     expect(container.textContent).not.toContain('Tier ')
+
+    await unmount()
+  })
+})
+
+describe('QR scanning on /link (m6-plan commit 5, rule 14)', () => {
+  it('opens the scanner from Scan a key and degrades to a message with no camera, rather than crashing', async () => {
+    await awaken()
+
+    const { container, unmount } = await mountInteractive('/link')
+    const scanButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Scan a key',
+    )
+    await click(scanButton)
+
+    // happy-dom has no navigator.mediaDevices, so openRearCamera resolves to
+    // null — the real "no camera on this device" path, not a mocked one.
+    await vi.waitFor(() => expect(container.textContent).toContain('No camera available'))
+    expectRendered(container.innerHTML)
 
     await unmount()
   })

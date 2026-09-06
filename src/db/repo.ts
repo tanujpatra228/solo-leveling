@@ -146,6 +146,16 @@ export async function ensureIdentity(): Promise<Identity> {
   return identity
 }
 
+/**
+ * Overwrites this device's Hunter Secret with one scanned from another
+ * device, for pairing (M6 commit 5). Deliberately distinct from
+ * `ensureIdentity`: this replaces an existing secret rather than only
+ * minting one when none exists.
+ */
+export async function adoptIdentity(secret: Uint8Array): Promise<void> {
+  await db.identity.put({ id: 'self', secret, createdAt: Date.now() })
+}
+
 /** Abandons the mirror identity. Distinct from `wipeEverything`, on purpose. */
 export async function forgetIdentity(): Promise<void> {
   await db.identity.delete('self')

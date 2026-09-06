@@ -14,6 +14,7 @@ import { lastSetsForExercise } from '../domain/projection'
 import { dayOfWeekForKey } from '../domain/time'
 import { putQuest, updateProgress, wipeEverything } from '../db/repo'
 import { generateDailyQuest } from '../domain/quests'
+import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
 import { useApp } from './state'
 
 beforeEach(async () => {
@@ -781,5 +782,47 @@ describe('forgetMirror (m6-plan commit 4, F4)', () => {
     expect(ok).toBe(false)
     expect(useApp.getState().syncStatus).toBe('ok')
     expect(useApp.getState().lastSyncedAt).toBe(syncedAt)
+  })
+})
+
+describe('pairWithScannedKey (m6-plan commit 5)', () => {
+  it('rejects a QR payload that is not a Hunter License Key at all', async () => {
+    const before = useApp.getState().identity
+    const result = await useApp.getState().pairWithScannedKey('https://example.com/not-a-key')
+
+    expect(result.ok).toBe(false)
+    expect(useApp.getState().identity).toBe(before)
+  })
+
+  it('rejects a well-formed payload whose key does not decode', async () => {
+    const result = await useApp.getState().pairWithScannedKey('hunter-license:not-valid-base32-at-all')
+    expect(result.ok).toBe(false)
+  })
+
+  it('adopts a validly scanned key, replacing identity and resetting the sync cursor', async () => {
+    useApp.setState({ syncStatus: 'ok', lastSyncedAt: Date.now() })
+    const scannedSecret = generateHunterSecret()
+    const scannedKey = encodeLicenseKey(scannedSecret)
+
+    const result = await useApp.getState().pairWithScannedKey(pairingPayload(scannedKey))
+
+    expect(result.ok).toBe(true)
+    expect(useApp.getState().identity?.licenseKey).toBe(scannedKey)
+    expect(useApp.getState().syncStatus).toBe('idle')
+    expect(useApp.getState().lastSyncedAt).toBeNull()
+
+    const syncState = await (await import('../db/repo')).getSyncState()
+    expect(syncState.lastServerSeq).toBe(0)
+  })
+
+  it('does not touch the training log already on this device', async () => {
+    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 8 })
+    const setsBefore = useApp.getState().sets.length
+
+    const scannedKey = encodeLicenseKey(generateHunterSecret())
+    await useApp.getState().pairWithScannedKey(pairingPayload(scannedKey))
+
+    expect(useApp.getState().sets.length).toBe(setsBefore)
   })
 })

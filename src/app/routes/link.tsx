@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { LicenseKeyQr } from '../../components/LicenseKeyQr'
+import { QrScanner } from '../../components/QrScanner'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
 import { formatLicenseKey, pairingPayload } from '../../sync/identity'
@@ -48,8 +49,11 @@ function LinkScreen() {
   const updateSettings = useApp((s) => s.updateSettings)
   const syncNow = useApp((s) => s.syncNow)
   const forgetMirror = useApp((s) => s.forgetMirror)
+  const pairWithScannedKey = useApp((s) => s.pairWithScannedKey)
   const [forgetting, setForgetting] = useState(false)
   const [forgotten, setForgotten] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const [pairMessage, setPairMessage] = useState<string | null>(null)
 
   // Always set by the time this route is reachable — `load()` mints it
   // before `ready` flips true. The guard is for the type, not the runtime.
@@ -71,6 +75,18 @@ function LinkScreen() {
     const ok = await forgetMirror()
     setForgetting(false)
     setForgotten(ok)
+  }
+
+  async function handleScanned(rawValue: string) {
+    setScanning(false)
+    const confirmed = window.confirm(
+      'Pair this device to that key? This device switches to syncing as that hunter. Nothing ' +
+        'already logged here is deleted — once sync runs, it joins that hunter’s history too.',
+    )
+    if (!confirmed) return
+
+    const result = await pairWithScannedKey(rawValue)
+    setPairMessage(result.message)
   }
 
   return (
@@ -126,6 +142,29 @@ function LinkScreen() {
             </button>
           </SystemPanel>
         ) : null}
+      </SystemWindow>
+
+      <SystemWindow title="Pair a second device">
+        <SystemPanel className="flex flex-col gap-2">
+          <p className="text-xs text-ink-soft">
+            Scan another device's Hunter License Key to sync this one to the same hunter.
+          </p>
+          {scanning ? (
+            <QrScanner onDecode={(v) => void handleScanned(v)} onCancel={() => setScanning(false)} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setPairMessage(null)
+                setScanning(true)
+              }}
+              className="self-start rounded border border-panel-edge px-3 py-1.5 font-system text-[10px] text-ink-faint uppercase"
+            >
+              Scan a key
+            </button>
+          )}
+          {pairMessage ? <p className="text-xs text-ink-soft">{pairMessage}</p> : null}
+        </SystemPanel>
       </SystemWindow>
 
       <SystemWindow title="Forget the mirror">

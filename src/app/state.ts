@@ -31,6 +31,7 @@ import { resolveDungeonBreaks, type DungeonBreak, type OpenGate } from '../domai
 import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
 import { titleById } from '../domain/titles'
 import { forgetMirror as forgetMirrorOnServer, runSync } from '../sync/client'
+import { identityFromLicenseKey, parsePairingPayload } from '../sync/identity'
 import type { Identity } from '../sync/identity'
 import type {
   BodyFatSource,
@@ -251,6 +252,14 @@ export interface AppState extends LoadedData {
    * on the License Key screen. Returns whether the server confirmed it.
    */
   forgetMirror: () => Promise<boolean>
+  /**
+   * Adopts a Hunter Secret scanned from another device's License Key QR
+   * (M6 commit 5), replacing this device's own identity. The training log
+   * already on this device is untouched — it is not wiped, and once sync
+   * runs it becomes part of the paired hunter's mirrored history alongside
+   * it, which is the point of pairing two devices to one hunter.
+   */
+  pairWithScannedKey: (rawPayload: string) => Promise<{ ok: boolean; message: string }>
 }
 
 function messageId(): string {
@@ -1104,6 +1113,31 @@ export const useApp = create<AppState>((set, get) => ({
     const ok = await forgetMirrorOnServer(identity)
     if (ok) set({ lastSyncedAt: null, syncStatus: 'idle' })
     return ok
+  },
+
+  async pairWithScannedKey(rawPayload) {
+    const key = parsePairingPayload(rawPayload)
+    if (!key) return { ok: false, message: 'That QR code is not a Hunter License Key.' }
+
+    const identity = await identityFromLicenseKey(key)
+    if (!identity) return { ok: false, message: 'That key is not formatted correctly.' }
+
+    await repo.adoptIdentity(identity.secret)
+    // The old cursor belongs to whichever hunter this device synced as
+    // before. Scoped to a hunter that no longer applies, it would make the
+    // first sync under the new identity skip rows this device has never
+    // actually seen.
+    await repo.saveSyncState({
+      lastServerSeq: 0,
+      lastSyncedAt: null,
+      hunterId: identity.hunterId,
+      lastError: null,
+    })
+    set({ identity, lastSyncedAt: null, syncStatus: 'idle' })
+    return {
+      ok: true,
+      message: 'Paired. Turn sync on to bring this hunter’s mirrored history to this device.',
+    }
   },
 }))
 
