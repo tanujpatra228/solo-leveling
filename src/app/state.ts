@@ -532,6 +532,22 @@ export const useApp = create<AppState>((set, get) => ({
       targetsByExerciseId,
       substitutesByExerciseId,
     })
+
+    // `recompute` is the one choke point every XP-changing action passes
+    // through — `refresh` calls it, and `logSet`/`correctSet` call it
+    // directly — so this is the single place a level change can be caught,
+    // regardless of which action caused it (m5-plan commit 8). Guarded on
+    // a previous projection existing, so the very first computation (app
+    // boot, or before a profile exists) never reads as "leveled up".
+    const previousLevel = state.projection?.player.level ?? null
+    if (previousLevel !== null && projection.player.level > previousLevel) {
+      get().pushMessage({
+        title: `[Level up. LV ${projection.player.level}.]`,
+        body: 'New stat points are waiting to be spent.',
+        tone: 'good',
+        kind: 'window',
+      })
+    }
   },
 
   /**

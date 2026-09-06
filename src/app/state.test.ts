@@ -555,3 +555,80 @@ describe('Daily Quest per-item progress (F2, m5-plan commit 4)', () => {
     expect(Object.keys(quest.progress)).toHaveLength(0)
   })
 })
+
+describe('a level change announces itself as a window notification (m5-plan commit 8)', () => {
+  // `messages` is ephemeral UI state, not persisted to Dexie, so nothing
+  // clears it between tests in this file, and other, unrelated tests
+  // legitimately cross a level and leave their own "[Level up." message
+  // sitting in the shared store. Every test here resets it locally first,
+  // so an assertion never depends on what ran before it.
+
+  it('does not mistake the store having no projection yet for "leveled up from zero"', async () => {
+    // Get a hunter to a real level above 1 first.
+    const today = useApp.getState().today
+    const quest = generateDailyQuest({ dayKey: today, level: 1, allocated: useApp.getState().allocated })
+    await putQuest({
+      id: `daily-${today}`,
+      dayKey: today,
+      type: 'daily',
+      status: 'issued',
+      issuedAt: Date.now(),
+      expiresAt: null,
+      payload: { ...quest, progress: {} },
+    })
+    await useApp.getState().refresh()
+    const full: Partial<Record<string, number>> = {}
+    for (const item of quest.items) full[item.kind] = item.target
+    await useApp.getState().completeDailyQuest(full)
+    const level = useApp.getState().projection!.player.level
+    expect(level).toBeGreaterThan(1)
+
+    // Simulate the store's actual boot condition — `projection: null`, the
+    // module's initial value before the very first `recompute()` ever runs —
+    // even though the underlying data already reflects a real level. If the
+    // guard read "no projection yet" as "was level 0", this would announce
+    // a level-up on every cold start for any hunter above level 1.
+    useApp.setState({ projection: null, messages: [] })
+    useApp.getState().recompute()
+
+    expect(useApp.getState().projection!.player.level).toBe(level)
+    const levelUp = useApp.getState().messages.find((m) => m.title.startsWith('[Level up.'))
+    expect(levelUp).toBeUndefined()
+  })
+
+  it('does not announce anything when an action leaves the level unchanged', async () => {
+    useApp.setState({ messages: [] })
+    await useApp.getState().dismissAdvisory('does-not-exist')
+    const levelUp = useApp.getState().messages.find((m) => m.title.startsWith('[Level up.'))
+    expect(levelUp).toBeUndefined()
+  })
+
+  it('fires once total XP crosses a level threshold, via any XP-granting action', async () => {
+    // xpToNext(1) is 100 (LEVEL_CURVE_BASE * 1^1.5); the Daily Quest alone
+    // pays 150, so a fresh level-1 hunter completing it crosses straight
+    // past the threshold with no gate involved at all.
+    const today = useApp.getState().today
+    const quest = generateDailyQuest({ dayKey: today, level: 1, allocated: useApp.getState().allocated })
+    await putQuest({
+      id: `daily-${today}`,
+      dayKey: today,
+      type: 'daily',
+      status: 'issued',
+      issuedAt: Date.now(),
+      expiresAt: null,
+      payload: { ...quest, progress: {} },
+    })
+    await useApp.getState().refresh()
+    expect(useApp.getState().projection?.player.level).toBe(1)
+
+    const full: Partial<Record<string, number>> = {}
+    for (const item of quest.items) full[item.kind] = item.target
+    await useApp.getState().completeDailyQuest(full)
+
+    expect(useApp.getState().projection!.player.level).toBeGreaterThan(1)
+    const levelUp = useApp.getState().messages.find((m) => m.title.startsWith('[Level up.'))
+    expect(levelUp).toBeDefined()
+    expect(levelUp!.kind).toBe('window')
+    expect(levelUp!.tone).toBe('good')
+  })
+})
