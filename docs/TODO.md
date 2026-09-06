@@ -16,7 +16,7 @@ plan named in the row.
 | M3 | Session logging, rest timer, targets | **Done** | — |
 | M4 | Installed, automated, measured | **Half done** | 4 self-contained commits: test the deploy path, measure sync CPU, attribute the bundle, correct the docs. Plus the Actions workflow, which needs a Cloudflare API token only the user can create |
 | M5 | The game layer | **Done** | — |
-| M6 | Sync and System Link | **Planned** — `docs/m6-plan.md` | 6 commits. Engine and Worker done; every line of wiring missing |
+| M6 | Sync and System Link | **Done** | — |
 | M7 | The rest of the fantasy layer | **Planned** — `docs/m7-plan.md` | Most of it is surface over a tested engine. Shop, Job Change Quest and Reawakening Test have no engine at all |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Not started** | Build-time generated System lines |
@@ -36,16 +36,41 @@ plan named in the row.
 | Bundle over target | Drifting | 205.33 KB JS gzip against a 200 KB line M4 finding H2 already calls borrowed from the wrong kind of app. Drifted through three features with nobody deciding. M4 commit 3 settles it |
 | No CI workflow | Blocked on the user | `.github/workflows` does not exist. Needs `CLOUDFLARE_API_TOKEN` as a repo secret |
 | Deploys are manual | Follows from the above | — |
-| `qrcode` and `jsqr` unused | Minor | In `package.json`, imported nowhere. M6 finding F2 resolves both |
 | Phone checklist | User, ~10 minutes | Install to Home Screen, run Lighthouse, log a session in airplane mode |
 
 ### Health
 
 | | |
 |---|---|
-| Tests | 595 passing |
+| Tests | 613 passing |
 | Typecheck, `check:render`, build | Clean |
-| Deployed | Live on workers.dev |
+| Deployed | Live on workers.dev, redeployed 2026-09-06 with M6 |
+
+## M6 — Sync and System Link, landed 2026-09-06
+
+All six commits of `docs/m6-plan.md` (now `git rm`'d — detail recoverable at the commit below,
+summary in `docs/implementation-plan.md` §4). 613 tests passing, typecheck and `check:render` clean.
+Two of the six landed no production code at all — F1 and F6's predicted seams did not
+materialize, so those commits are a live discovery run against the deployed Worker, written down.
+
+- [x] **Commit 1** `syncNow`: fire-and-forget, coalesced, exponential backoff, a persisted daily
+      request-count budget (`c5dd958`)
+- [x] **Commit 2** The triggers — app foreground, after `finishGate`, manual — gated on
+      `settings.syncEnabled`, never reachable from `logSet`/`correctSet` (`f6368b2`)
+- [x] **Commit 3** (discovery) First live run of the real client against the deployed Worker with
+      real Dexie rows: push, idempotent pull, a correction, dedupe, forget-me — all correct with no
+      code change (`ffadb1e`)
+- [x] **Commit 4** The Hunter License Key screen at `/link`: the loss warning first, the key, a
+      bundled `qrcode` render, sync status, manual sync, Forget The Mirror behind a confirmation
+      (`b26f135`)
+- [x] **Commit 5** QR scanning: `BarcodeDetector` preferred, `jsqr` dynamically imported only when
+      it is absent — confirmed in its own chunk, absent from the main bundle (`356833a`)
+- [x] **Commit 6** (discovery) Two-device convergence: an explicit test for `dropSuperseded`'s
+      arrival-order independence, plus a live run pulling one Dexie database's pushed rows into a
+      second, separate one — identical projections both ways (`74e1d73`)
+
+Bundle after M6: 206.87 KB JS + 5.87 KB CSS gzipped (`qrcode` is now actually used, unlike the
+"present but dead" number M4 H2 measured). Still pending M4 commit 3's real, derived budget.
 
 ## M5 — The game layer, landed 2026-09-07
 
@@ -361,8 +386,8 @@ Step-by-step plan: docs/m4-plan.md
 - [x] Hono `/api/sync` with monotonic per-hunter seq
 - [x] Per-hunter rate limiting in D1, not KV
 - [x] Client sync loop, append-only event log only
-- [ ] Hunter License Key display and loss warning
-- [ ] System Link QR pairing (render and scan)
+- [x] Hunter License Key display and loss warning
+- [x] System Link QR pairing (render and scan)
 
 ## Phase 4 — Gates and progression fantasy
 - [x] Gate rank E to S from planned tonnage times intensity

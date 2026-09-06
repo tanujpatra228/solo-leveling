@@ -345,15 +345,35 @@ milestone (M4's own visuals-work measurement was 203.37 KB JS just before it) �
 H1/H2's real, measured budget rather than the invented 200 KB line.
 
 ### M6 — Sync and System Link
-The Hunter License Key screen with the loss warning stated before it matters, QR rendering, QR
-scanning behind the capability adapter with a decoder fallback, sync status, manual sync, and the
-forget-the-mirror control. Client-side sync discipline: trigger on foreground, after a session, and
-manually — never per set; coalesce in-flight syncs; exponential backoff on failure.
+Landed as six commits. `runSync` had never been called from anywhere in the app before this
+milestone; wiring it in turned out to need no seam-fixing at all — a live run against the deployed
+Worker with real Dexie rows (a full session, a correction, a re-push) confirmed push, idempotent
+pull, dedupe and forget-me all work exactly as the client and Worker already implemented them.
+`syncNow` is fire-and-forget and coalesced, so two triggers firing together produce one request, and
+a failure backs off exponentially before giving up rather than retrying forever — never reachable
+from `logSet` or `correctSet`, only from app foreground, after `finishGate`, and a manual button. A
+client-side daily request budget (300, well under the Worker's 100,000/day hard limit) persists
+across reloads so a runaway client stops itself.
 
-*Acceptance:* two browser profiles converge on the same log; conflicts do not arise; airplane mode
-never blocks logging; API requests measured at well under 100 a day.
+The `/link` screen states the loss warning before showing the key: no account, no password reset,
+losing the key loses the mirror. `qrcode` renders the pairing QR and is bundled outright; `jsqr` is
+dynamically imported only when `BarcodeDetector` is absent, confirmed in its own chunk and never
+touched by the main bundle on the one platform (Android Chrome) that has the native detector.
+Scanning another device's key adopts it as this device's identity and resets the local sync cursor,
+additively — nothing already logged on the device is touched.
+
+Two-device convergence needed no fix either: `dropSuperseded` already collects every `supersedes`
+reference before filtering, so a correction arriving ahead of the row it replaces was already safe —
+confirmed both by an explicit domain test and a live run pulling one device's pushed rows into a
+second, genuinely separate Dexie database, where both projected to identical tonnage and XP.
+
+*Acceptance:* two independent Dexie databases under the same Hunter Secret converge on the same
+projection; a correction is safe regardless of arrival order; `logSet` triggers no network call
+(asserted in a test); airplane mode never blocks logging, reports offline, and recovers on
+reconnect; two simultaneous triggers produce one request; a failing Worker backs off and stops;
+`jsqr` is absent from the initial bundle; every route including `/link` still mounts.
 *Budget impact:* the Worker request budget starts being used — about 50 requests a day against
-100,000.
+100,000, with a 300/day client-side cap as a backstop.
 
 ### M7 — The rest of the fantasy layer
 Gates with ranks and the week view, Dungeon Break, Red Gate, Instant Dungeon Key, the shadow army
@@ -369,8 +389,8 @@ shares via the Web Share adapter.
 
 Deliberately deferred until the rest of the platform is finished, at the user's decision. Nothing is
 removed: the Worker endpoints, `fetchPushKey`, the subscription helpers and the capability adapters
-all stay where they are and stay tested. Nothing wires them, and nothing will until M6, M7 and M9
-are done and push can be judged on whether it is still wanted.
+all stay where they are and stay tested. Nothing wires them, and nothing will until M7 and M9 are
+done and push can be judged on whether it is still wanted.
 
 This is the milestone the plan already called genuinely optional — the only unverified part of the
 stack, and the app is complete without it.
