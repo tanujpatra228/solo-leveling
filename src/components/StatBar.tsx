@@ -4,6 +4,8 @@
  * between what training earned and what the hunter assigned by hand. The
  * split is the information.
  */
+import { SystemMeter } from './SystemMeter'
+
 export interface StatBarProps {
   label: string
   derived: number
@@ -21,11 +23,13 @@ export function StatBar({ label, derived, allocated, total, max }: StatBarProps)
   return (
     <div className="flex items-center gap-2">
       <span className="w-8 font-system text-[11px] text-ink-soft">{label}</span>
-      <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-void-soft">
-        <div className="absolute inset-y-0 left-0 bg-system-dim" style={{ width: `${derivedPct}%` }} />
-        <div
-          className="absolute inset-y-0 bg-mana"
-          style={{ left: `${derivedPct}%`, width: `${allocatedPct}%` }}
+      <div className="flex-1">
+        <SystemMeter
+          segments={[
+            { pct: derivedPct, tone: 'system-dim' },
+            { pct: allocatedPct, tone: 'mana' },
+          ]}
+          height={8}
         />
       </div>
       <span className="w-6 text-right font-system text-[11px] text-ink">{Math.round(total)}</span>

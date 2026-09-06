@@ -16,6 +16,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
+import { SegmentedRing } from '../../components/SegmentedRing'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
 import { dropSuperseded } from '../../domain/projection'
@@ -358,18 +359,25 @@ function ActiveGateScreen({
       </SystemWindow>
 
       {restTimer.state ? (
-        <div className="sticky bottom-14 z-30 mx-auto w-full max-w-md rounded-t-lg border border-panel-edge bg-panel/95 px-4 py-3 text-center shadow-system">
-          <p className="font-system text-[10px] tracking-[0.18em] text-ink-faint uppercase">
-            {restTimer.state.label}
-          </p>
-          <p className="font-system text-2xl text-system tabular-nums">{restTimer.state.display}</p>
-          <button
-            type="button"
-            onClick={restTimer.clear}
-            className="mt-1 font-system text-[10px] text-ink-faint uppercase underline"
-          >
-            Skip rest
-          </button>
+        <div className="sticky bottom-14 z-30 mx-auto flex w-full max-w-md items-center gap-4 rounded-t-lg border border-panel-edge bg-panel px-4 py-3 shadow-system">
+          <div className="relative size-14 shrink-0">
+            <SegmentedRing pct={restTimer.state.pct} tone={restTimer.state.remaining <= 10 ? 'warn' : 'system'} />
+            <span className="absolute inset-0 grid place-items-center font-system text-xs text-system tabular-nums">
+              {restTimer.state.display}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-system text-[10px] tracking-[0.18em] text-ink-faint uppercase">
+              {restTimer.state.label}
+            </p>
+            <button
+              type="button"
+              onClick={restTimer.clear}
+              className="mt-1 font-system text-[10px] text-ink-faint uppercase underline"
+            >
+              Skip rest
+            </button>
+          </div>
         </div>
       ) : null}
     </>

@@ -37,6 +37,43 @@ target `infrastructure.md` set at M2 (which was already "at the line" before thi
 failed the build — there is no automated gate on this number — but it is drifting and worth a
 code-splitting pass before it drifts further.
 
+## System visuals, in progress 2026-09-06
+
+Working through `docs/system-visuals-plan.md` in sequence. Landed so far (steps 1-5, 7):
+
+- [x] `--color-ink-faint` raised from `#5b7093` (~3.6:1 on `--color-panel`) to `#7b90b3` (~5.2:1)
+- [x] Notification queue split into two tiers on `SystemMessage.kind`: `toast` (stacks, capped at
+      three, auto-dismisses after 6s) and `window` (opaque, scrimmed, one at a time, dismissed
+      deliberately — Escape and focus-return handled). Gate cleared, boss slain, ARISE and title
+      acquired are `window`; everything else defaults to `toast`. Fixes the two bugs the plan
+      called out: `bg-panel/95` letting content bleed through, and `finishGate` stacking five
+      windows over each other
+- [x] `SystemMeter` (outline plus lit core), with `ManaBar` and `StatBar` rewritten over it —
+      same names, same props, no caller changed
+- [x] `lucide-react` (1.37.0) plus `SystemIcon`, the restyling wrapper (`strokeWidth={1.5}`,
+      never overridden per call). `StatRow` wraps `SystemIcon` + `StatBar` rather than adding an
+      icon prop to `StatBar` itself, so `StatBar`'s prop contract stays untouched
+- [x] `sharp` variant on `SystemWindow` (`rounded-none` + `--shadow-system-faint`), used on the
+      Status Window
+- [x] `.system-frame` (broken-frame CSS) and the ground-texture scratches over the body vignette
+
+**Bundle delta, measured, not assumed:** `pnpm run build` now reports 203.37 KB JS gzip (was
+200.76 KB per the M4 note above) and 5.82 KB CSS gzip. That is six tree-shaken icons plus the new
+components, somewhat over the plan's "3-5 KB" estimate — worth attributing precisely once M4's
+H1/H2 (bundle sourcemap attribution, still open) lands a real budget rather than the invented
+200 KB line.
+
+**Not done yet:**
+- [x] `SegmentedRing` (the plan's segmented-fatigue-ring construction, generalised) — landed with
+      its first real caller: the rest timer in `gate.tsx` now shows a 12-arc ring that fills as
+      the rest elapses, shifting to `warn` under 10s remaining, with the `m:ss` digits centred
+      inside. `useRestTimer`/`rest-timer.ts` gained `totalSec`/`elapsedPct` to drive it
+- [ ] The fatigue reading itself still has no caller on the Status Window, and the rank badge
+      restyle / gate diamond remain unbuilt for the same reason — nothing calls them yet
+- [ ] Step 8's phone verification (60fps with all glow enabled, `prefers-reduced-motion` /
+      glow-reduction check) — needs a real device, not something reasoning from this machine can
+      settle
+
 ## Bugs found on a real device after M3, fixed 2026-09-06
 
 Both reproduced by clicking Start Gate on `/gate`.

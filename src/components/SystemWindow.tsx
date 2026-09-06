@@ -18,19 +18,26 @@ export interface SystemWindowProps {
    * `--shadow-system-strong` on every panel flattens the hierarchy into noise.
    */
   strong?: boolean
+  /**
+   * Squared corners and a faint glow rather than rounded-lg. The rounding
+   * elsewhere reads as "app"; sharp reads as "System"
+   * (docs/system-visuals-plan.md §6).
+   */
+  sharp?: boolean
   footer?: ReactNode
 }
 
 export function SystemWindow({
   title,
   strong = false,
+  sharp = false,
   footer,
   children,
 }: PropsWithChildren<SystemWindowProps>) {
   return (
     <section
-      className={`animate-system-in rounded-lg border border-panel-edge bg-panel/90 p-4 ${
-        strong ? 'shadow-system-strong' : 'shadow-system'
+      className={`animate-system-in border border-panel-edge bg-panel/90 p-4 ${sharp ? 'rounded-none' : 'rounded-lg'} ${
+        strong ? 'shadow-system-strong' : sharp ? 'shadow-system-faint' : 'shadow-system'
       }`}
     >
       <h2 className="font-system text-xs tracking-wide text-system uppercase">[{title}]</h2>

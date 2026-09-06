@@ -7,9 +7,10 @@
  * quests, roster and fatigue detail is M5; this is the shape it grows into.
  */
 import { createRoute, redirect } from '@tanstack/react-router'
+import { Brain, Dumbbell, Footprints, HeartPulse, Radar } from 'lucide-react'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
-import { StatBar } from '../../components/StatBar'
+import { StatRow } from '../../components/StatRow'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
 import type { HunterClass, StatKey } from '../../domain/types'
@@ -26,6 +27,7 @@ export const indexRoute = createRoute({
 })
 
 const STAT_ORDER: readonly StatKey[] = ['STR', 'VIT', 'AGI', 'INT', 'PER']
+const STAT_ICON = { STR: Dumbbell, VIT: HeartPulse, AGI: Footprints, INT: Brain, PER: Radar } as const
 
 const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
   none: 'No class yet',
@@ -52,7 +54,7 @@ function HomeScreen() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
-      <SystemWindow title="Status Window" strong>
+      <SystemWindow title="Status Window" strong sharp>
         <div className="flex items-center justify-between gap-3">
           <RankBadge rank={player.rank} />
           <span className="font-system text-[11px] text-ink-faint uppercase">
@@ -66,8 +68,9 @@ function HomeScreen() {
 
         <SystemPanel className="mt-3 flex flex-col gap-2">
           {STAT_ORDER.map((key) => (
-            <StatBar
+            <StatRow
               key={key}
+              icon={STAT_ICON[key]}
               label={key}
               derived={player.derived[key]}
               allocated={player.allocated[key]}

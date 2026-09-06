@@ -18,7 +18,9 @@
 
   --color-ink: #dbeafe;
   --color-ink-soft: #93a9c9;
-  --color-ink-faint: #5b7093;
+  /* #5b7093 on --color-panel measured ~3.6:1, below WCAG AA at the 10-11px
+     sizes this token is used at throughout the gate screen. Raised to ~5.2:1. */
+  --color-ink-faint: #7b90b3;
 
   --color-danger: #f87171;
   --color-warn: #fbbf24;
@@ -33,6 +35,12 @@
 
   --shadow-system: 0 0 0 1px rgb(56 189 248 / 0.35), 0 0 24px -4px rgb(56 189 248 / 0.35);
   --shadow-system-strong: 0 0 0 1px rgb(56 189 248 / 0.6), 0 0 40px -6px rgb(56 189 248 / 0.55);
+  /* Faint by default; --shadow-system-strong stays reserved for the one window
+     that is speaking (docs/system-visuals-plan.md §8). */
+  --shadow-system-faint: 0 0 0 1px rgb(56 189 248 / 0.18), 0 0 12px -6px rgb(56 189 248 / 0.30);
+  --shadow-meter: 0 0 8px -1px rgb(56 189 248 / 0.55);
+  --drop-icon: drop-shadow(0 0 3px currentColor);
+  --drop-icon-strong: drop-shadow(0 0 6px currentColor);
 
   --animate-system-in: system-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -64,11 +72,48 @@ body {
   min-height: 100dvh;
   background:
     radial-gradient(120% 90% at 50% -10%, rgb(29 78 216 / 0.18), transparent 60%),
+    /* Alpha kept near-invisible on purpose: 0.02 reads as a dirty screen, 0.012
+       reads as texture (docs/system-visuals-plan.md §6). */
+    repeating-linear-gradient(115deg, transparent 0 22px, rgb(125 211 252 / 0.012) 22px 23px),
     var(--color-void);
   color: var(--color-ink);
   font-family: var(--font-body);
   /* Stops the whole page rubber-banding when a list is scrolled to its end. */
   overscroll-behavior-y: none;
+}
+
+/**
+ * The broken frame: a hairline near-white border with the cyan arriving as
+ * glow rather than border colour, and corner brackets on two opposite corners
+ * only — four starts to look like a crosshair (docs/system-visuals-plan.md §7).
+ */
+.system-frame {
+  position: relative;
+  border: 1px solid rgb(219 234 254 / 0.55);
+  box-shadow:
+    var(--shadow-system),
+    inset 0 0 40px -20px var(--color-system);
+}
+.system-frame::before,
+.system-frame::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-system-glow);
+  filter: drop-shadow(0 0 4px var(--color-system));
+}
+.system-frame::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.system-frame::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: 0;
+  border-top: 0;
 }
 
 /* Respect the notch and the home indicator without hard-coding a device. */

@@ -53,6 +53,14 @@ export interface SystemMessage {
   title: string
   body?: string
   tone: 'system' | 'good' | 'warn' | 'danger'
+  /**
+   * `toast` (the default) is transient and stacks; `window` is the modal
+   * reference look, shown one at a time and dismissed deliberately. A modal
+   * after every logged set would be miserable mid-workout, and a toast for
+   * ARISE wastes the best moment in the app — see
+   * docs/system-visuals-plan.md §7.
+   */
+  kind?: 'toast' | 'window'
 }
 
 interface LoadedData {
@@ -777,6 +785,7 @@ export const useApp = create<AppState>((set, get) => ({
         title: `[Gate cleared. Rank ${summary.gateRank ?? 'E'}.]`,
         body: `${Math.round(summary.tonnageKg)} kg moved across ${summary.hardSets} hard sets. ${Math.round(summary.xp)} experience gained.${substitutionLine ? ` ${substitutionLine}` : ''}`,
         tone: 'good',
+        kind: 'window',
       })
     }
 
@@ -786,6 +795,7 @@ export const useApp = create<AppState>((set, get) => ({
         title: '[Boss slain.]',
         body: `New record on ${exercise?.name ?? exerciseId}.`,
         tone: 'good',
+        kind: 'window',
       })
     }
 
@@ -820,6 +830,7 @@ export const useApp = create<AppState>((set, get) => ({
         title: 'ARISE.',
         body: `${shadow.name}, ${shadow.rank}-rank, extracted from ${exercise.name}. ${shadow.buff}`,
         tone: 'system',
+        kind: 'window',
       })
     }
 
@@ -835,6 +846,7 @@ export const useApp = create<AppState>((set, get) => ({
         title: `[Title acquired: ${title.name}]`,
         body: title.description,
         tone: 'good',
+        kind: 'window',
       })
     }
 

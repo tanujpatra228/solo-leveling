@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
+import { elapsedPct, formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
 
 describe('remainingSeconds', () => {
   it('counts down from the full duration', () => {
@@ -45,5 +45,23 @@ describe('formatRemaining', () => {
 
   it('truncates a fractional second rather than rounding up past what remains', () => {
     expect(formatRemaining(65.9)).toBe('1:05')
+  })
+})
+
+describe('elapsedPct', () => {
+  it('is 0 the instant a rest starts', () => {
+    expect(elapsedPct(210, 210)).toBe(0)
+  })
+
+  it('is 100 the instant a rest ends', () => {
+    expect(elapsedPct(0, 210)).toBe(100)
+  })
+
+  it('is 100 for a zero-length rest rather than dividing by zero', () => {
+    expect(elapsedPct(0, 0)).toBe(100)
+  })
+
+  it('clamps a remaining value past the total to 0, not negative', () => {
+    expect(elapsedPct(300, 210)).toBe(0)
   })
 })

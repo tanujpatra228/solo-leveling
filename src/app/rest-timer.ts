@@ -27,3 +27,14 @@ export function formatRemaining(seconds: number): string {
   const secs = whole % 60
   return `${minutes}:${secs.toString().padStart(2, '0')}`
 }
+
+/**
+ * 0-100: how much of the rest has elapsed — 0 the instant it starts, 100 the
+ * instant it ends. Feeds `SegmentedRing` for the countdown ring, which fills
+ * as time runs out rather than draining (docs/system-visuals-plan.md's
+ * fatigue-ring construction, repurposed for a timer).
+ */
+export function elapsedPct(remaining: number, totalSec: number): number {
+  if (totalSec <= 0) return 100
+  return Math.min(100, Math.max(0, ((totalSec - remaining) / totalSec) * 100))
+}

@@ -12,13 +12,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createWakeLock } from '../platform/capabilities'
 import { playSystemChime, vibrate } from '../platform/capabilities'
-import { formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
+import { elapsedPct, formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
 
 const REST_KEY = 'solo-leveling:rest'
 
 interface StoredRest {
   endsAt: number
   label: string
+  totalSec: number
 }
 
 function readStoredRest(): StoredRest | null {
@@ -26,8 +27,14 @@ function readStoredRest(): StoredRest | null {
     const raw = sessionStorage.getItem(REST_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<StoredRest>
-    if (typeof parsed.endsAt !== 'number' || typeof parsed.label !== 'string') return null
-    return { endsAt: parsed.endsAt, label: parsed.label }
+    if (
+      typeof parsed.endsAt !== 'number' ||
+      typeof parsed.label !== 'string' ||
+      typeof parsed.totalSec !== 'number'
+    ) {
+      return null
+    }
+    return { endsAt: parsed.endsAt, label: parsed.label, totalSec: parsed.totalSec }
   } catch {
     return null
   }
@@ -47,6 +54,8 @@ export interface RestTimerDisplay {
   label: string
   remaining: number
   display: string
+  /** 0-100, feeds the countdown ring — 0 at the start, 100 when time's up. */
+  pct: number
 }
 
 export interface RestTimer {
@@ -71,7 +80,7 @@ export function useRestTimer(): RestTimer {
   const start = useCallback((seconds: number, label: string) => {
     if (seconds <= 0) return
     chimed.current = false
-    const next: StoredRest = { endsAt: Date.now() + seconds * 1000, label }
+    const next: StoredRest = { endsAt: Date.now() + seconds * 1000, label, totalSec: seconds }
     setRest(next)
     writeStoredRest(next)
     void wakeLock.current.acquire()
@@ -109,5 +118,14 @@ export function useRestTimer(): RestTimer {
   if (!rest) return { state: null, start, clear }
 
   const remaining = remainingSeconds(Date.now(), rest.endsAt)
-  return { state: { label: rest.label, remaining, display: formatRemaining(remaining) }, start, clear }
+  return {
+    state: {
+      label: rest.label,
+      remaining,
+      display: formatRemaining(remaining),
+      pct: elapsedPct(remaining, rest.totalSec),
+    },
+    start,
+    clear,
+  }
 }
