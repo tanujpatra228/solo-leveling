@@ -17,6 +17,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { wipeEverything } from '../../db/repo'
+import { dayOfWeekForKey } from '../../domain/time'
 import { useApp } from '../state'
 import { awakenRoute } from './awaken'
 import { gateRoute } from './gate'
@@ -216,6 +217,29 @@ describe('QR scanning on /link (m6-plan commit 5, rule 14)', () => {
     // null — the real "no camera on this device" path, not a mocked one.
     await vi.waitFor(() => expect(container.textContent).toContain('No camera available'))
     expectRendered(container.innerHTML)
+
+    await unmount()
+  })
+})
+
+describe('a gate already cleared today does not re-offer Start Gate', () => {
+  it('shows Cleared on revisit instead of Start Gate again', async () => {
+    await awaken()
+
+    const today = useApp.getState().today
+    const todaysRoutine = useApp
+      .getState()
+      .routines.find((r) => r.dayOfWeek === dayOfWeekForKey(today))
+    if (!todaysRoutine) throw new Error('seed produced no routine for today — pick a different fake date')
+
+    await useApp.getState().startGate(todaysRoutine.id)
+    await useApp.getState().finishGate()
+    expect(useApp.getState().activeSessionId).toBeNull()
+
+    const { container, unmount } = await mountInteractive('/gate')
+    expectRendered(container.innerHTML)
+    expect(container.textContent).toContain('Cleared')
+    expect(container.textContent).not.toContain('Start Gate')
 
     await unmount()
   })

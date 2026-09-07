@@ -100,6 +100,16 @@ function TodaysGateScreen() {
     ? routines.find((r) => r.id === activeSession.routineId)
     : undefined
 
+  // `finishGate` clears activeSessionId, so a finished session and "no
+  // session ever started" are otherwise indistinguishable here — without
+  // this, the preview below shows Start Gate again for a gate already
+  // cleared today.
+  const clearedToday = todaysRoutine
+    ? sessions.some(
+        (s) => s.dayKey === today && s.routineId === todaysRoutine.id && s.endedAt !== null,
+      )
+    : false
+
   if (activeSession && activeRoutine) {
     return (
       <main className="flex flex-1 flex-col gap-4 p-4">
@@ -141,15 +151,27 @@ function TodaysGateScreen() {
           routine={todaysRoutine}
           exerciseById={exerciseById}
           strong
+          upcomingLabel={clearedToday ? 'Cleared' : undefined}
           footer={
-            <button
-              type="button"
-              onClick={() => void start(todaysRoutine.id)}
-              disabled={starting}
-              className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
-            >
-              Start Gate
-            </button>
+            clearedToday ? (
+              <button
+                type="button"
+                onClick={() => void start(todaysRoutine.id)}
+                disabled={starting}
+                className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
+              >
+                Log another session today
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void start(todaysRoutine.id)}
+                disabled={starting}
+                className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+              >
+                Start Gate
+              </button>
+            )
           }
         />
       ) : (
