@@ -187,6 +187,11 @@ Awakening Test screens still to come. The M2 plan's fallback is therefore not hy
 252-row standards table moves to a chunk loaded after first paint, since rank is not needed to draw
 a boot window.
 
+*Correction, M4 finding H1:* that fallback was proposed twice and never measured. The standards
+table is 3.7 KB gzipped, under 2% of the total — lazy-loading it would not have helped and was never
+implemented. M4 commit 3 found the bundle's real second-largest contributor (`motion`, 84 KB
+gzipped for one component's one-time animation) and cut that instead; see the M4 section below.
+
 ---
 
 ## 3b. Rest days
@@ -288,14 +293,21 @@ sync path's CPU, attributing the bundle, and the Actions workflow. **Only on a r
 Home Screen install, a session logged in airplane mode, the rest timer surviving a locked screen,
 and Lighthouse.
 
-Two measurements taken while planning it. **CPU is no longer unknown** — the Workers GraphQL
-analytics give `cpuTimeP50` 780 µs and `cpuTimeP99` 2,994 µs against the 10 ms limit, so about 30%
-at P99. But `subrequests: 0` across those requests proves none of them touched D1, so the sync path
-the budget was written for is still unmeasured. And **the bundle is 202,411 bytes gzipped**, which
-also retires a wrong claim: lazy-loading the strength-standards table was proposed twice as the
-remedy and would save under 2%.
+Commits 1, 2, 3 and 5 have landed; commit 4 (the Actions workflow) stays blocked on a credential only
+the user can create. **The release path now runs the suite, not just the typechecker**, and a
+post-deploy smoke check (health, an unauthenticated 401, an unknown route's 404, the SPA fallback)
+runs after every `pnpm run deploy`. **The sync path's real CPU is measured**, not estimated: P50
+3.08 ms, P99 10.82 ms, over a window of M6's real `/api/sync` traffic — over the 10 ms limit at P99,
+on too small a sample to be certain, plausibly the heaviest 17-19-row session pushes the budget was
+written for. **The bundle was attributed and a real budget derived**: `motion` turned out to be the
+second-largest thing in it (84 KB gzipped, for one component's one-time first-launch fade) and was
+cut entirely; the 200 KB line from M2 was replaced with one tied to install time on Slow 4G (under
+3 seconds, about 480 KB) rather than public-website habits. Current total: 200.87 KB gzipped, under
+half that budget. Full detail in `infrastructure.md` §3.
 
-**Detailed step-by-step plan: `docs/m4-plan.md`.** It needs one thing from a person — a scoped
+**Detailed step-by-step plan: `docs/m4-plan.md`** (retained until commit 4 lands or is dropped —
+commits 1, 2, 3 and 5 are summarized here and in `docs/TODO.md`, but the plan stays since the
+milestone is not fully shipped). Commit 4 needs one thing from a person — a scoped
 `CLOUDFLARE_API_TOKEN` in the repository's Actions secrets, since the Cloudflare MCP grant cannot
 mint tokens.
 

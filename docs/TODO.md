@@ -14,7 +14,7 @@ plan named in the row.
 | M1 | Foundations and corrections | **Done** | — |
 | M2 | App shell and the Awakening Test | **Done** | — |
 | M3 | Session logging, rest timer, targets | **Done** | — |
-| M4 | Installed, automated, measured | **Half done** | 4 self-contained commits: test the deploy path, measure sync CPU, attribute the bundle, correct the docs. Plus the Actions workflow, which needs a Cloudflare API token only the user can create |
+| M4 | Installed, automated, measured | **4 of 5 commits done** | Only the Actions workflow is left, blocked on a Cloudflare API token only the user can create. Plus the phone checklist (install, Lighthouse, airplane mode) |
 | M5 | The game layer | **Done** | — |
 | M6 | Sync and System Link | **Done** | — |
 | M7 | The rest of the fantasy layer | **Planned** — `docs/m7-plan.md` | Most of it is surface over a tested engine. Shop, Job Change Quest and Reawakening Test have no engine at all |
@@ -33,7 +33,6 @@ plan named in the row.
 
 | Item | Severity | Detail |
 |---|---|---|
-| Bundle over target | Drifting | 205.33 KB JS gzip against a 200 KB line M4 finding H2 already calls borrowed from the wrong kind of app. Drifted through three features with nobody deciding. M4 commit 3 settles it |
 | No CI workflow | Blocked on the user | `.github/workflows` does not exist. Needs `CLOUDFLARE_API_TOKEN` as a repo secret |
 | Deploys are manual | Follows from the above | — |
 | Phone checklist | User, ~10 minutes | Install to Home Screen, run Lighthouse, log a session in airplane mode |
@@ -44,7 +43,8 @@ plan named in the row.
 |---|---|
 | Tests | 613 passing |
 | Typecheck, `check:render`, build | Clean |
-| Deployed | Live on workers.dev, redeployed 2026-09-06 with M6 |
+| Bundle | 200.87 KB gzipped, under half the ~480 KB (install under 3s on Slow 4G) budget M4 commit 3 derived |
+| Deployed | Live on workers.dev, redeployed 2026-09-07 with M4 commit 3 (`motion` removed) |
 
 ## M6 — Sync and System Link, landed 2026-09-06
 

@@ -69,41 +69,59 @@ margin that absorbs a bug, a retry loop, or a leaked licence key before it becom
 
 | Resource | Cloudflare free | Our cap | Expected real use | Over-limit behaviour |
 |---|---|---|---|---|
-| Requests | 100,000/day | none needed | ~150/day | Hard-fails, no bill |
-| CPU per invocation | **10 ms** | design target 3 ms | ~1–2 ms | Request killed |
-| Subrequests per invocation | **50** | 16 | 4–16 (D1 statements; cron run: 12) | Request fails |
+| Requests | 100,000/day | 300/day client-side cap (M6) | ~50/day | Hard-fails, no bill |
+| CPU per invocation | **10 ms** | design target 3 ms | **P50 3.08 ms, P99 10.82 ms — measured 2026-09-06** | Request killed |
+| External (`fetch()`) subrequests per invocation | **50** | — | 0 (the Worker makes no outbound `fetch()` calls) | Request fails |
+| Internal-service (D1/KV/R2) subrequests per invocation | **1,000** | 16 | 4–16 (D1 statements; cron run: 12) | Request fails |
 | Memory per isolate | 128 MB, **shared across concurrent requests** | never buffer >64 KB | streaming | Isolate recycled |
 | Script size | 3 MB gzipped | 1 MB gzipped | **94.76 KiB measured** | Deploy rejected |
 | Global scope startup | 1 second | — | trivial | Deploy rejected |
 | Cron Triggers | 5 per account | 1 | 1 | — |
 | Cron invocations | counted as requests | 1/day | 1/day | Hard-fails, no bill |
 
-The ~150 requests a day is roughly 50 API calls plus a handful of cron invocations. The
-documentation does not actually say whether cron invocations count as requests, so we assume they
-do and budget accordingly. See section 4 for why that number is one a day and not ninety-six.
+The ~50 requests a day is a normal training day's `/api/sync` traffic (foreground, after a gate,
+and manual triggers, coalesced — see M6) plus a handful of cron invocations. The documentation does
+not actually say whether cron invocations count as requests, so we assume they do and budget
+accordingly. See section 4 for why that number is one a day and not ninety-six. M6 also added a
+300/day client-side cap, persisted across reloads, so a coalescing bug or a retry loop stops itself
+long before it could threaten the platform's 100,000.
 
 Three of these are tighter than they look:
 
 - **CPU is 10 ms and it applies to the cron handler too.** Waiting on I/O is free, so what matters
-  is arithmetic and cryptography, not database round-trips.
-- **Subrequests include D1 and KV binding calls**, not just `fetch()`. The documentation is
-  explicit: *"A subrequest is any request a Worker makes using the Fetch API or to Cloudflare
-  services like R2, KV, or D1."* A sync request costs a handful of D1 statements, so it sits well
-  under the 50.
+  is arithmetic and cryptography, not database round-trips. The measured P99 above sits over the
+  limit on a small sample (19 requests) that is probably one or two of `/api/sync`'s heaviest
+  pushes — the row batching (`ROWS_PER_STATEMENT = 16`) is the lever if this recurs under real
+  multi-device traffic, not yet proven necessary from one measurement.
+- **"Subrequests" is two separate caps, not one**, and conflating them was a mistake this document
+  made until M4 commit 3. Cloudflare's platform limit splits it: 50 per invocation for external
+  `fetch()` calls, and a separate 1,000 per invocation for internal-service calls — D1, KV, R2 —
+  per Cloudflare's own changelog: *"Workers on the free plan remain limited to 50 external
+  subrequests and 1,000 subrequests to Cloudflare services per invocation."* This Worker makes no
+  outbound `fetch()` calls at all, so the 50 figure is not a constraint here; every D1 statement
+  this Worker issues counts against the 1,000, and a sync request costs a handful, so it sits
+  nowhere near either limit. (The Workers GraphQL Analytics `subrequests` metric is narrower still —
+  `fetch()`-only — so it reads 0 even for a request that queried D1 several times; that field
+  cannot be used to check D1 usage one way or the other.)
 - **128 MB is per isolate, not per request**, and one isolate serves many concurrent requests. So
   per-request memory has to be a small fraction of it. Hence streaming.
 
 **The client bundle is a separate number from the Worker's script size**, and not subject to that
 3 MB limit at all — it is a static asset, served free and unlimited, never touching the Worker's
-invocation budget. M2 set its own target anyway: **≤ 200 KB gzipped for the initial route**, a
-first-paint budget for a phone on a gym connection rather than a platform limit. Measured at the
-end of M2, via `vite build`'s own reporter: **194.80 KB JS + 5.23 KB CSS ≈ 200.03 KB gzipped** —
-essentially at the line (a byte-exact `gzip -9` recompression of the same files measures 197.49 KB,
-so the true figure depends on which gzip implementation is asked; either way there is no real
-headroom left). The standards table (252 rows, ~15.5 KB raw) is bundled rather than fetched so
-rank works offline on first run; if a later milestone's screens push this over budget for real, the
-documented fallback is moving that table to a dynamically imported chunk loaded after first paint —
-rank is not needed to render the boot window.
+invocation budget. M2 set a **≤ 200 KB gzipped** target for the initial route, carried over from
+public-website conventions where every visitor pays the download. **This app is an installed,
+Workbox-precached PWA with one user** — the bundle is paid once at install and once per deploy, never
+per session — so M4 commit 3 replaced that borrowed number with one derived from what actually costs
+the user anything: time to a usable app on first launch, on a throttled connection.
+
+Lighthouse's Slow 4G profile (1.6 Mbps, ~150–160 KB/s real throughput after protocol overhead) is the
+baseline. **Budget: install completes in under 3 seconds on Slow 4G — about 480 KB gzipped.**
+
+Measured 2026-09-06, via `vite build`'s own reporter, after M4 commit 3 removed `motion` (84 KB
+gzipped in isolation for one component's one-time fade — see the M4 plan's H2 correction):
+**192.79 KB JS + 5.88 KB CSS + 2.20 KB `workbox-window` ≈ 200.87 KB gzipped total, about 1.3 seconds
+on Slow 4G** — under half the budget. The standards table (252 rows, ~15.5 KB raw) is bundled rather
+than fetched so rank works offline on first run; at under half budget there is no pressure to move it.
 
 ### D1
 
@@ -307,7 +325,14 @@ Verified by running it:
   to what was sent, deduplicate on resend with `seq` unchanged, a malformed row is rejected with
   400 before anything is written, and a different licence key sees nothing.
 - The Worker's own bundle is 94.76 KiB gzipped, against a 3 MB limit.
-- `pnpm run build` succeeds. The client's initial-route bundle is ≈200 KB gzipped — see section 3.
+- `pnpm run build` succeeds. The client's initial-route bundle is 200.87 KB gzipped — see section 3.
+- **Actual CPU per invocation**, read from Workers GraphQL Analytics rather than estimated: P50
+  3.08 ms, P99 10.82 ms over a window of real `/api/sync` traffic (M6's discovery and acceptance
+  runs). To re-run: `POST` to `https://api.cloudflare.com/client/v4/graphql` with a query against
+  `viewer.accounts(filter: {accountTag: $accountTag}).workersInvocationsAdaptive`, filtered by
+  `scriptName: "solo-leveling"` and a `datetime_geq`/`datetime_leq` window, requesting
+  `quantiles { cpuTimeP50 cpuTimeP99 }` — note `$accountTag` is typed `string!` (lowercase) in
+  Cloudflare's schema, not `String!`.
 - `pnpm run cf:dev` serves the built app: `/awaken` returns the shell through the SPA fallback and
   `/api/health` still reaches the Worker, confirmed against genuinely populated `dist/` output for
   the first time (M1 exercised this against an empty `dist/`).
@@ -320,9 +345,6 @@ Verified by running it:
 
 **Not yet verified, and honestly flagged:**
 
-- **Actual CPU milliseconds per request.** Local wall-clock time is not CPU time and the local
-  runtime does not report CPU. This has to be read from Workers observability after the first real
-  deploy. The design targets 3 ms; that is an estimate, not a measurement.
 - **A real push delivery.** The library bundles and imports, and the scheduling arithmetic is unit
   tested, but no notification has been delivered to a real device from this code.
 - Whether cron invocations count toward the daily request limit. Undocumented, so we assume they
