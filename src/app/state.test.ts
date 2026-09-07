@@ -10,6 +10,7 @@
  */
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
 import { dayOfWeekForKey } from '../domain/time'
 import { putQuest, updateProgress, wipeEverything } from '../db/repo'
@@ -166,6 +167,84 @@ describe('opening a gate pays nothing until a set is logged and Finish Gate is c
     await useApp.getState().finishGate()
 
     expect(useApp.getState().projection!.player.xp).toBeGreaterThan(0)
+  })
+})
+
+describe('Instant Dungeon Key (m7-plan commit 2)', () => {
+  it('starts a routineless session and pays the ordinary gate-clear bonus once finished', async () => {
+    const sessionId = await useApp.getState().startInstantDungeon(['bodyweight'])
+    const dungeon = useApp.getState().activeInstantDungeon
+    expect(dungeon).not.toBeNull()
+    expect(useApp.getState().sessions.find((s) => s.id === sessionId)?.routineId).toBeNull()
+
+    const goldBefore = useApp.getState().progress.gold
+    const gatesBefore = useApp.getState().progress.gatesCleared
+    await useApp.getState().logSet({ exerciseId: dungeon!.blocks[0]!.exerciseId, weight: 0, reps: 15 })
+    await useApp.getState().finishGate()
+
+    expect(useApp.getState().progress.gatesCleared).toBe(gatesBefore + 1)
+    expect(useApp.getState().progress.gold).toBe(goldBefore + 25)
+    expect(useApp.getState().activeInstantDungeon).toBeNull()
+  })
+
+  it('abandoning clears the dungeon and pays nothing', async () => {
+    await useApp.getState().startInstantDungeon(['bodyweight'])
+    const gatesBefore = useApp.getState().progress.gatesCleared
+
+    await useApp.getState().abandonGate()
+
+    expect(useApp.getState().activeInstantDungeon).toBeNull()
+    expect(useApp.getState().progress.gatesCleared).toBe(gatesBefore)
+  })
+})
+
+describe('Red Gate (m7-plan commit 2)', () => {
+  const redGate = (targetWeightKg: number) =>
+    buildRedGate({ kind: 'pr_attempt', exerciseName: 'Barbell Squat', targetWeightKg, rank: 'B', routineId: null })
+
+  it('a PR attempt at or above target weight clears and pays redGatesCleared', async () => {
+    await useApp.getState().enterRedGate(redGate(100), 'barbell-squat', { targetWeightKg: 100 })
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 1, rpe: 10 })
+
+    await useApp.getState().resolveRedGate()
+
+    expect(useApp.getState().progress.redGatesCleared).toBe(1)
+    expect(useApp.getState().activeRedGate).toBeNull()
+    const last = useApp.getState().messages.at(-1)
+    expect(last?.title).toContain('Red Gate cleared')
+  })
+
+  it('a PR attempt below target weight fails and pays nothing', async () => {
+    await useApp.getState().enterRedGate(redGate(150), 'barbell-squat', { targetWeightKg: 150 })
+    await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 1, rpe: 10 })
+
+    await useApp.getState().resolveRedGate()
+
+    expect(useApp.getState().progress.redGatesCleared).toBe(0)
+    const last = useApp.getState().messages.at(-1)
+    expect(last?.title).toContain('Red Gate failed')
+  })
+
+  it('an AMRAP finisher clears on any completed set, with no numeric target', async () => {
+    const amrap = buildRedGate({ kind: 'amrap_finisher', exerciseName: 'Pushups', rank: 'B', routineId: null })
+    await useApp.getState().enterRedGate(amrap, 'pushups')
+    await useApp.getState().logSet({ exerciseId: 'pushups', weight: 0, reps: 20 })
+
+    await useApp.getState().resolveRedGate()
+
+    expect(useApp.getState().progress.redGatesCleared).toBe(1)
+  })
+
+  it('resolving with nothing logged fails rather than clearing', async () => {
+    await useApp.getState().enterRedGate(redGate(100), 'barbell-squat', { targetWeightKg: 100 })
+
+    await useApp.getState().resolveRedGate()
+
+    expect(useApp.getState().progress.redGatesCleared).toBe(0)
+  })
+
+  it('is a no-op with no Red Gate open', async () => {
+    await expect(useApp.getState().resolveRedGate()).resolves.toBeUndefined()
   })
 })
 

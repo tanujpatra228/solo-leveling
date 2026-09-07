@@ -20,7 +20,16 @@ import { RankBadge } from '../../components/RankBadge'
 import { SegmentedRing } from '../../components/SegmentedRing'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
-import { weekDayStatus, type WeekDayStatus } from '../../domain/gates'
+import {
+  RED_GATE_MIN_RANK,
+  buildInstantDungeon,
+  buildRedGate,
+  canEnterRedGate,
+  weekDayStatus,
+  type InstantDungeon,
+  type RedGate,
+  type WeekDayStatus,
+} from '../../domain/gates'
 import { dropSuperseded } from '../../domain/projection'
 import type { NextTarget, ProgressionKind } from '../../domain/progression'
 import type { SubstituteCandidate } from '../../domain/substitution'
@@ -31,11 +40,14 @@ import {
   dayOfWeekForKey,
   weekStartKey,
 } from '../../domain/time'
+import { EquipmentSchema } from '../../domain/types'
 import type {
   Block,
   BlockItem,
   DayKey,
+  Equipment,
   Exercise,
+  Rank,
   Routine,
   SessionLog,
   SetLog,
@@ -109,10 +121,14 @@ function TodaysGateScreen() {
   const today = useApp((s) => s.today)
   const routines = useApp((s) => s.routines)
   const exercises = useApp((s) => s.exercises)
+  const profile = useApp((s) => s.profile)
   const isRestDay = useApp((s) => s.isRestDay)
   const activeSessionId = useApp((s) => s.activeSessionId)
   const sessions = useApp((s) => s.sessions)
   const startGate = useApp((s) => s.startGate)
+  const projection = useApp((s) => s.projection)
+  const activeInstantDungeon = useApp((s) => s.activeInstantDungeon)
+  const activeRedGate = useApp((s) => s.activeRedGate)
   const [starting, setStarting] = useState(false)
 
   const exerciseById = useMemo(() => new Map(exercises.map((e) => [e.id, e])), [exercises])
@@ -123,6 +139,7 @@ function TodaysGateScreen() {
   const activeRoutine = activeSession?.routineId
     ? routines.find((r) => r.id === activeSession.routineId)
     : undefined
+  const hunterRank = projection?.rank.rank ?? null
 
   // `finishGate` clears activeSessionId, so a finished session and "no
   // session ever started" are otherwise indistinguishable here — without
@@ -148,6 +165,29 @@ function TodaysGateScreen() {
       }
     })
   }, [today, routines, sessions])
+
+  if (activeSession && activeRedGate) {
+    const exercise = exerciseById.get(activeRedGate.exerciseId)
+    if (exercise) {
+      return (
+        <main className="flex flex-1 flex-col gap-4 p-4">
+          <ActiveRedGateScreen session={activeSession} active={activeRedGate} exercise={exercise} />
+        </main>
+      )
+    }
+  }
+
+  if (activeSession && activeInstantDungeon) {
+    return (
+      <main className="flex flex-1 flex-col gap-4 p-4">
+        <ActiveGateScreen
+          routine={instantDungeonToRoutineView(activeInstantDungeon)}
+          session={activeSession}
+          exerciseById={exerciseById}
+        />
+      </main>
+    )
+  }
 
   if (activeSession && activeRoutine) {
     return (
@@ -234,6 +274,15 @@ function TodaysGateScreen() {
         />
       ) : null}
 
+      {hunterRank && canEnterRedGate(hunterRank) ? (
+        <RedGatePanel exercises={exercises} hunterRank={hunterRank} />
+      ) : null}
+
+      <InstantDungeonPanel
+        equipmentAccess={profile?.equipmentAccess ?? []}
+        exercises={exercises}
+      />
+
       <WeekView days={weekDays} today={today} />
     </main>
   )
@@ -276,6 +325,328 @@ function WeekView({ days, today }: { days: WeekDayEntry[]; today: DayKey }) {
           </li>
         ))}
       </ul>
+    </SystemWindow>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Instant Dungeon Key (m7-plan commit 2)                              */
+/* ------------------------------------------------------------------ */
+
+const EQUIPMENT_OPTIONS: ChoiceOption<Equipment>[] = EquipmentSchema.options
+  .filter((eq) => eq !== 'none')
+  .map((eq) => ({ value: eq, label: eq.replace('_', ' ') }))
+
+/**
+ * Builds the `{name, blocks}` shape `ActiveGateScreen` needs, without
+ * fabricating the rest of `Routine` — `dayOfWeek` and `gateRank` mean nothing
+ * for a one-off session, and the screen never reads them.
+ */
+function instantDungeonToRoutineView(dungeon: InstantDungeon): Pick<Routine, 'name' | 'blocks'> {
+  return {
+    name: dungeon.name,
+    blocks: dungeon.blocks.map((block) => ({
+      type: 'single',
+      items: [
+        {
+          exerciseId: block.exerciseId,
+          sets: block.sets,
+          repRange: [block.reps, block.reps],
+          restSec: block.restSec,
+        },
+      ],
+    })),
+  }
+}
+
+function InstantDungeonPanel({
+  equipmentAccess,
+  exercises,
+}: {
+  equipmentAccess: Equipment[]
+  exercises: Exercise[]
+}) {
+  const startInstantDungeon = useApp((s) => s.startInstantDungeon)
+  const [open, setOpen] = useState(false)
+  const [available, setAvailable] = useState<Equipment[]>(
+    equipmentAccess.length > 0 ? equipmentAccess : ['bodyweight'],
+  )
+  const [starting, setStarting] = useState(false)
+
+  const preview = useMemo(
+    () => buildInstantDungeon({ available, library: exercises }),
+    [available, exercises],
+  )
+
+  async function start() {
+    if (starting) return
+    setStarting(true)
+    await startInstantDungeon(available)
+    setStarting(false)
+  }
+
+  return (
+    <SystemWindow title="Instant Dungeon Key">
+      {open ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-ink-soft">
+            Away from the gym or the equipment isn't free. Say what you actually have and the System
+            builds a session from it — it counts toward volume and progression like any other gate.
+          </p>
+          <ChoiceGroup<Equipment>
+            label="Available"
+            options={EQUIPMENT_OPTIONS}
+            value={available}
+            onChange={setAvailable}
+            multi
+          />
+          <p className="text-xs text-ink-faint">{preview.detail}</p>
+          {preview.blocks.length > 0 ? (
+            <ul className="flex flex-col gap-1">
+              {preview.blocks.map((block) => {
+                const exercise = exercises.find((e) => e.id === block.exerciseId)
+                return (
+                  <li key={block.exerciseId} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="min-w-0 text-ink">{exercise?.name ?? block.exerciseId}</span>
+                    <span className="shrink-0 font-system text-xs text-ink-soft tabular-nums">
+                      {block.sets} × {block.reps}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="font-system text-xs text-ink-faint uppercase"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void start()}
+              disabled={starting || preview.blocks.length === 0}
+              className="flex-1 rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+            >
+              Start
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full rounded border border-panel-edge px-4 py-2 text-left text-sm text-ink-soft"
+        >
+          Build a session from the equipment you have
+        </button>
+      )}
+    </SystemWindow>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* Red Gate (m7-plan commit 2)                                         */
+/* ------------------------------------------------------------------ */
+
+const RED_GATE_KIND_OPTIONS: ChoiceOption<'pr_attempt' | 'amrap_finisher'>[] = [
+  { value: 'pr_attempt', label: 'PR attempt' },
+  { value: 'amrap_finisher', label: 'AMRAP finisher' },
+]
+
+function RedGatePanel({ exercises, hunterRank }: { exercises: Exercise[]; hunterRank: Rank }) {
+  const enterRedGate = useApp((s) => s.enterRedGate)
+  const [open, setOpen] = useState(false)
+  const [kind, setKind] = useState<'pr_attempt' | 'amrap_finisher'>('pr_attempt')
+  const [exerciseId, setExerciseId] = useState('')
+  const [targetWeight, setTargetWeight] = useState('')
+  const [entering, setEntering] = useState(false)
+
+  const candidates = useMemo(
+    () => (kind === 'pr_attempt' ? exercises.filter((e) => e.unit === 'kg') : exercises),
+    [exercises, kind],
+  )
+  const exercise = exercises.find((e) => e.id === exerciseId)
+  const canEnter = exercise !== undefined && (kind === 'amrap_finisher' || Number(targetWeight) > 0)
+
+  async function enter() {
+    if (entering || !exercise || !canEnter) return
+    setEntering(true)
+    const targetWeightKg = kind === 'pr_attempt' ? Number(targetWeight) : undefined
+    const redGate = buildRedGate({
+      kind,
+      exerciseName: exercise.name,
+      targetWeightKg,
+      rank: hunterRank,
+      routineId: null,
+    })
+    await enterRedGate(redGate, exercise.id, { targetWeightKg })
+    setEntering(false)
+    setOpen(false)
+  }
+
+  return (
+    <SystemWindow title="Red Gate">
+      {open ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-danger">
+            A Red Gate closes behind you. There is no partial credit — the objective is met or the
+            gate is failed. Failing costs nothing already earned, but it pays nothing either.
+          </p>
+          <ChoiceGroup<'pr_attempt' | 'amrap_finisher'>
+            label="Kind"
+            options={RED_GATE_KIND_OPTIONS}
+            value={[kind]}
+            onChange={(v) => {
+              setKind(v[0]!)
+              setExerciseId('')
+            }}
+          />
+          <label className="flex flex-col gap-1">
+            <span className="font-system text-[10px] text-ink-faint uppercase">Exercise</span>
+            <select
+              value={exerciseId}
+              onChange={(event) => setExerciseId(event.target.value)}
+              className="w-full rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+            >
+              <option value="">Choose one</option>
+              {candidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {kind === 'pr_attempt' ? (
+            <label className="flex flex-col gap-1">
+              <span className="font-system text-[10px] text-ink-faint uppercase">Target kg</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                step={0.5}
+                value={targetWeight}
+                onChange={(event) => setTargetWeight(event.target.value)}
+                className="w-full rounded border border-panel-edge bg-void-soft px-2 py-2 text-base text-ink"
+              />
+            </label>
+          ) : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="font-system text-xs text-ink-faint uppercase"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void enter()}
+              disabled={entering || !canEnter}
+              className="flex-1 rounded bg-danger/80 px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+            >
+              Enter
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="w-full rounded border border-danger/60 px-4 py-2 text-left text-sm text-ink-soft"
+        >
+          {RED_GATE_MIN_RANK}-Rank and above. A voluntary, brutal session — no partial credit.
+        </button>
+      )}
+    </SystemWindow>
+  )
+}
+
+function ActiveRedGateScreen({
+  session,
+  active,
+  exercise,
+}: {
+  session: SessionLog
+  active: { redGate: RedGate; exerciseId: string; targetWeightKg?: number }
+  exercise: Exercise
+}) {
+  const resolveRedGate = useApp((s) => s.resolveRedGate)
+  const abandonGate = useApp((s) => s.abandonGate)
+  const sets = useApp((s) => s.sets)
+  const [resolving, setResolving] = useState(false)
+  const [abandoning, setAbandoning] = useState(false)
+
+  const logged = useMemo(
+    () => liveSessionSets(sets, session.id, exercise.id),
+    [sets, session.id, exercise.id],
+  )
+
+  const placeholderTarget: NextTarget = {
+    exerciseId: exercise.id,
+    kind: 'no_history',
+    weightKg: active.targetWeightKg ?? 0,
+    repTargets: [active.redGate.kind === 'pr_attempt' ? 1 : exercise.repRange[1]],
+    reason: active.redGate.description,
+  }
+
+  async function resolve() {
+    if (resolving) return
+    setResolving(true)
+    await resolveRedGate()
+    setResolving(false)
+  }
+
+  async function abandon() {
+    if (abandoning) return
+    if (!window.confirm('Abandon this Red Gate? Anything logged in it is deleted, not just left unfinished.')) {
+      return
+    }
+    setAbandoning(true)
+    await abandonGate()
+    setAbandoning(false)
+  }
+
+  return (
+    <SystemWindow
+      title={`Red Gate — ${exercise.name}`}
+      strong
+      footer={
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => void resolve()}
+            disabled={resolving || abandoning || logged.length === 0}
+            className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+          >
+            Resolve Red Gate
+          </button>
+          <button
+            type="button"
+            onClick={() => void abandon()}
+            disabled={resolving || abandoning}
+            className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
+          >
+            Abandon gate
+          </button>
+        </div>
+      }
+    >
+      <p className="text-sm text-ink-soft">{active.redGate.description}</p>
+      <p className="mt-2 text-xs text-danger">{active.redGate.warning}</p>
+
+      {logged.length > 0 ? (
+        <ul className="mt-3 flex flex-col gap-1">
+          {logged.map((set) => (
+            <LoggedSetRow key={set.id} set={set} />
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-3">
+          <SetEntryRow exercise={exercise} setIndex={0} target={placeholderTarget} onLogged={() => {}} />
+        </div>
+      )}
     </SystemWindow>
   )
 }
@@ -373,7 +744,11 @@ function ActiveGateScreen({
   session,
   exerciseById,
 }: {
-  routine: Routine
+  // Only `name` and `blocks` are read here — narrower than `Routine` on
+  // purpose, so an Instant Dungeon Key (m7-plan commit 2) can pass its own
+  // view of these two fields without fabricating `id`, `dayOfWeek` and
+  // `gateRank`, none of which mean anything for a one-off session.
+  routine: Pick<Routine, 'name' | 'blocks'>
   session: SessionLog
   exerciseById: Map<string, Exercise>
 }) {

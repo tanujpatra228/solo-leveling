@@ -27,7 +27,14 @@ import {
 import { computeNextTarget, type NextTarget } from '../domain/progression'
 import { substitutesFor, type SubstituteCandidate } from '../domain/substitution'
 import { extractShadow, shouldExtract } from '../domain/shadows'
-import { resolveDungeonBreaks, type DungeonBreak, type OpenGate } from '../domain/gates'
+import {
+  buildInstantDungeon,
+  resolveDungeonBreaks,
+  type DungeonBreak,
+  type InstantDungeon,
+  type OpenGate,
+  type RedGate,
+} from '../domain/gates'
 import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
 import { titleById } from '../domain/titles'
 import { forgetMirror as forgetMirrorOnServer, runSync } from '../sync/client'
@@ -37,6 +44,7 @@ import type {
   BodyFatSource,
   BodyMetric,
   DayKey,
+  Equipment,
   Exercise,
   Profile,
   QuestLog,
@@ -106,6 +114,23 @@ export interface AppState extends LoadedData {
   activeSubstitutions: Record<string, { substituteId: string; reason: SubstitutionReason }>
 
   /**
+   * The built dungeon for the open session, when it was started via
+   * `startInstantDungeon` rather than a scheduled routine — such a session
+   * carries `routineId: null` (m7-plan commit 2). Store-only, like
+   * `activeSubstitutions`: the dungeon is a one-off, never a programme
+   * addition, so it is never written to `db.routines`.
+   */
+  activeInstantDungeon: InstantDungeon | null
+  /**
+   * The open session's Red Gate, when it was started via `enterRedGate`.
+   * Also carries `routineId: null`. Resolved (not "finished") by
+   * `resolveRedGate`, which is deliberately a separate action from
+   * `finishGate` — a Red Gate's pass/fail evaluation and its own reward
+   * (`Progress.redGatesCleared`) are not the ordinary gate-clear bonus.
+   */
+  activeRedGate: { redGate: RedGate; exerciseId: string; targetWeightKg?: number } | null
+
+  /**
    * `idle` before the first attempt this session; `syncing` while a request
    * is in flight; `ok`/`failed`/`offline` after the most recent attempt.
    * Never blocks anything — see `syncNow` (F3).
@@ -158,6 +183,31 @@ export interface AppState extends LoadedData {
   }) => Promise<void>
 
   startGate: (routineId: string | null, bodyweightKg?: number) => Promise<string>
+  /**
+   * Builds an Instant Dungeon from whatever equipment is on hand and opens a
+   * session against it — no routine, no schedule (m7-plan commit 2).
+   */
+  startInstantDungeon: (available: Equipment[], bodyweightKg?: number) => Promise<string>
+  /**
+   * Opens a session for one Red Gate attempt. `exerciseId` is the target of
+   * `redGate`'s description, since `RedGate` itself only carries the name.
+   * `targetWeightKg` is kept here rather than on `RedGate`, since that type
+   * only ever needed it to compose the description string before now —
+   * judging a PR attempt needs the number itself, structured.
+   */
+  enterRedGate: (
+    redGate: RedGate,
+    exerciseId: string,
+    options?: { targetWeightKg?: number; bodyweightKg?: number },
+  ) => Promise<string>
+  /**
+   * Ends the open Red Gate session and judges it: an AMRAP finisher clears on
+   * any completed set, a PR attempt clears only at or above its target
+   * weight. Pays `Progress.redGatesCleared` on success and nothing at all on
+   * failure — the ordinary set XP already flows through the regular
+   * projection regardless, since the lift itself was still real work.
+   */
+  resolveRedGate: () => Promise<void>
   logSet: (input: {
     exerciseId: string
     weight: number
@@ -469,6 +519,8 @@ export const useApp = create<AppState>((set, get) => ({
   messages: [],
   activeSessionId: null,
   activeSubstitutions: {},
+  activeInstantDungeon: null,
+  activeRedGate: null,
   substitutesByExerciseId: {},
   targetsByExerciseId: {},
   syncStatus: 'idle',
@@ -832,10 +884,78 @@ export const useApp = create<AppState>((set, get) => ({
     const resolved = bodyweightKg ?? get().projection?.latestBodyMetric?.weightKg ?? undefined
     const session = await repo.startSession({ routineId, bodyweightKg: resolved })
     // A swap chosen mid-session belongs to that session alone (§5 commit 6);
-    // starting a new one must not carry a stale choice into it.
-    set({ activeSubstitutions: {} })
+    // starting a new one must not carry a stale choice into it. Likewise a
+    // stale Instant Dungeon or Red Gate reference from whatever the previous
+    // session was.
+    set({ activeSubstitutions: {}, activeInstantDungeon: null, activeRedGate: null })
     await get().refresh()
     return session.id
+  },
+
+  async startInstantDungeon(available, bodyweightKg) {
+    const dungeon = buildInstantDungeon({ available, library: get().exercises })
+    const resolved = bodyweightKg ?? get().projection?.latestBodyMetric?.weightKg ?? undefined
+    const session = await repo.startSession({ routineId: null, bodyweightKg: resolved })
+    set({ activeSubstitutions: {}, activeInstantDungeon: dungeon, activeRedGate: null })
+    await get().refresh()
+    return session.id
+  },
+
+  async enterRedGate(redGate, exerciseId, options) {
+    const resolved = options?.bodyweightKg ?? get().projection?.latestBodyMetric?.weightKg ?? undefined
+    const session = await repo.startSession({ routineId: null, bodyweightKg: resolved })
+    set({
+      activeSubstitutions: {},
+      activeInstantDungeon: null,
+      activeRedGate: { redGate, exerciseId, targetWeightKg: options?.targetWeightKg },
+    })
+    await get().refresh()
+    return session.id
+  },
+
+  async resolveRedGate() {
+    const before = get()
+    const sessionId = before.activeSessionId
+    const active = before.activeRedGate
+    if (!sessionId || !active) return
+
+    await repo.endSession(sessionId)
+    set({ activeRedGate: null })
+    await get().refresh()
+
+    const after = get()
+    const loggedSets = dropSuperseded(
+      after.sets.filter((s) => s.sessionId === sessionId && s.exerciseId === active.exerciseId && !s.isWarmup),
+    )
+    const bestWeightKg = loggedSets.reduce((max, s) => Math.max(max, s.weight), 0)
+
+    // An AMRAP finisher has no numeric target — the attempt itself is the
+    // record, so any completed set clears it. A PR attempt is binary: the
+    // target weight or nothing, which is the "no partial credit" canon rule.
+    const cleared =
+      loggedSets.length === 0
+        ? false
+        : active.redGate.kind === 'amrap_finisher'
+          ? true
+          : bestWeightKg >= (active.targetWeightKg ?? Number.POSITIVE_INFINITY)
+
+    if (cleared) {
+      await repo.updateProgress({ redGatesCleared: after.progress.redGatesCleared + 1 })
+      await get().refresh()
+      get().pushMessage({
+        title: '[Red Gate cleared.]',
+        body: 'The gate closes behind you. The record stands.',
+        tone: 'good',
+        kind: 'window',
+      })
+    } else {
+      get().pushMessage({
+        title: '[Red Gate failed.]',
+        body: 'Nothing has been taken away. The gate closes and pays out nothing.',
+        tone: 'warn',
+        kind: 'window',
+      })
+    }
   },
 
   substituteExercise(plannedId, substituteId, reason) {
@@ -898,7 +1018,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (!sessionId) return
 
     const session = before.sessions.find((s) => s.id === sessionId)
-    set({ activeSubstitutions: {} })
+    set({ activeSubstitutions: {}, activeInstantDungeon: null })
     await repo.endSession(sessionId)
     await get().refresh()
 
@@ -909,14 +1029,21 @@ export const useApp = create<AppState>((set, get) => ({
     const summary = projection.sessionSummaries.find((s) => s.session.id === sessionId)
     if (!summary) return
 
-    if (session?.routineId) {
+    // Gated on a real rank rather than `session.routineId`, so an Instant
+    // Dungeon (routineId: null, m7-plan commit 2) pays the same gate-clear
+    // bonus a scheduled routine does — `gateDifficulty` already returns null
+    // for no planned work, which is the "no session at all" case this was
+    // always meant to exclude.
+    if (summary.gateRank !== null) {
       await repo.updateProgress({
         gatesCleared: after.progress.gatesCleared + 1,
         gold: after.progress.gold + 25,
       })
-      const substitutionLine = summarizeSubstitutions(session.routineId, sessionId, after)
+      const substitutionLine = session?.routineId
+        ? summarizeSubstitutions(session.routineId, sessionId, after)
+        : ''
       get().pushMessage({
-        title: `[Gate cleared. Rank ${summary.gateRank ?? 'E'}.]`,
+        title: `[Gate cleared. Rank ${summary.gateRank}.]`,
         body: `${Math.round(summary.tonnageKg)} kg moved across ${summary.hardSets} hard sets. ${Math.round(summary.xp)} experience gained.${substitutionLine ? ` ${substitutionLine}` : ''}`,
         tone: 'good',
         kind: 'window',
@@ -994,7 +1121,7 @@ export const useApp = create<AppState>((set, get) => ({
   async abandonGate() {
     const sessionId = get().activeSessionId
     if (!sessionId) return
-    set({ activeSubstitutions: {} })
+    set({ activeSubstitutions: {}, activeInstantDungeon: null, activeRedGate: null })
     await repo.abandonSession(sessionId)
     await get().refresh()
   },

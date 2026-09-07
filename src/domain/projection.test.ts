@@ -152,14 +152,40 @@ describe('gateDifficulty reads the bodyweight-adjusted weight, not the raw set w
   })
 })
 
+describe('a routineless session still earns a real gate rank (M7 finding, commit 2)', () => {
+  it('scores identically to the same work logged against a routine', () => {
+    // An Instant Dungeon Key or a Red Gate carries routineId: null — real
+    // work with no matching Routine used to read as gateRank: null, which
+    // silently withheld the GATE_CLEAR_BONUS XP term for a session that did
+    // exactly the same work as a scheduled one.
+    const sets = Array.from({ length: 6 }, (_, i) => set('s1', 'situps', 0, 20, i, 1000 + i, { rpe: 8 }))
+    const withRoutine = projectPlayer(baseInput({ sessions: [session('s1', TODAY, 1000)], sets }))
+    const withoutRoutine = projectPlayer(baseInput({ sessions: [session('s1', TODAY, 1000, null)], sets }))
+
+    expect(withoutRoutine.sessionSummaries[0]!.gateRank).toBe('D')
+    expect(withoutRoutine.sessionSummaries[0]!.gateRank).toBe(withRoutine.sessionSummaries[0]!.gateRank)
+    expect(withoutRoutine.sessionSummaries[0]!.xp).toBeCloseTo(withRoutine.sessionSummaries[0]!.xp, 6)
+  })
+
+  it('still reads null with no real work logged, same as a routine-based session', () => {
+    const projection = projectPlayer(baseInput({ sessions: [session('s1', TODAY, 1000, null)], sets: [] }))
+    expect(projection.sessionSummaries[0]!.gateRank).toBeNull()
+  })
+})
+
 describe('time-based work pays XP through the per-minute term', () => {
   // Before commit 27c12f0, `isHardSet` rejected `reps <= 0` outright, so a
-  // treadmill interval earned zero XP and zero gate credit.
+  // treadmill interval earned zero XP and zero gate credit. `routineId: null`
+  // here used to also mean "no gate-clear bonus, regardless of the work
+  // actually done" — a side effect of the old routine-gated rank computation,
+  // fixed by M7 commit 2 for Instant Dungeon Key and Red Gate, both of which
+  // are real routineless sessions. 20 minutes at this pace scores a D-rank
+  // gate (bonus 300), on top of the 20 min * 20 XP/min per-minute term.
   it('a treadmill interval with no reps earns XP, not the historical zero', () => {
     const sessions = [session('s1', TODAY, 1000, null)]
     const sets = [set('s1', 'treadmill-intervals', 0, 0, 0, 1000, { seconds: 1200, rpe: 8 })]
     const projection = projectPlayer(baseInput({ sessions, sets }))
-    expect(projection.sessionSummaries[0]!.xp).toBeCloseTo(20 * 20, 6) // 20 min * 20 XP/min
+    expect(projection.sessionSummaries[0]!.xp).toBeCloseTo(20 * 20 + 300, 6)
   })
 
   it('counts the interval as a hard set for display, without also charging it the flat hard-set rate', () => {
@@ -167,7 +193,7 @@ describe('time-based work pays XP through the per-minute term', () => {
     const sets = [set('s1', 'treadmill-intervals', 0, 0, 0, 1000, { seconds: 1200, rpe: 8 })]
     const projection = projectPlayer(baseInput({ sessions, sets }))
     expect(projection.sessionSummaries[0]!.hardSets).toBe(1)
-    expect(projection.sessionSummaries[0]!.xp).toBeCloseTo(400, 6)
+    expect(projection.sessionSummaries[0]!.xp).toBeCloseTo(700, 6)
   })
 })
 

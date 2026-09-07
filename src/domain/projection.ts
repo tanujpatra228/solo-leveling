@@ -67,7 +67,8 @@ export interface SessionSummary {
   /** Exercises that set a new record in this session. */
   prExerciseIds: string[]
   xp: number
-  /** Null when the session was not logged against a routine. */
+  /** Null when nothing but warmups were logged — not when the session had no
+   *  routine. An Instant Dungeon Key or a Red Gate still earns a real rank. */
   gateRank: Rank | null
 }
 
@@ -203,26 +204,27 @@ export function projectPlayer(input: ProjectionInput): Projection {
     }
 
     // The gate rank is recomputed from what was actually performed, so a session
-    // cut short is not paid as though it had been finished.
-    const routine = input.routines.find((r) => r.id === session.routineId)
-    const gateRank = routine
-      ? gateDifficulty(
-          sessionSets
-            .filter((s) => !s.isWarmup)
-            .map((s) => ({
-              exerciseId: s.exerciseId,
-              sets: 1,
-              reps: s.reps,
-              // A bodyweight set's own weight is often 0, and gateDifficulty
-              // reading that raw would score a bodyweight block as free work.
-              weightKg:
-                s.weight +
-                (session.bodyweightKg !== undefined ? session.bodyweightKg * bodyweightFactor(s.exerciseId) : 0),
-              e1rmKg: runningBestE1rm.get(s.exerciseId) ?? 0,
-              workMinutes: (s.seconds ?? 0) / 60,
-            })),
-        ).rank
-      : null
+    // cut short is not paid as though it had been finished. Independent of
+    // whether a routine matched `session.routineId` — an Instant Dungeon Key
+    // or a Red Gate carries `routineId: null` and still did real work
+    // (M7 finding, commit 2). `gateDifficulty` already returns null for an
+    // empty plan, which is the only case that means "no session at all".
+    const gateRank = gateDifficulty(
+      sessionSets
+        .filter((s) => !s.isWarmup)
+        .map((s) => ({
+          exerciseId: s.exerciseId,
+          sets: 1,
+          reps: s.reps,
+          // A bodyweight set's own weight is often 0, and gateDifficulty
+          // reading that raw would score a bodyweight block as free work.
+          weightKg:
+            s.weight +
+            (session.bodyweightKg !== undefined ? session.bodyweightKg * bodyweightFactor(s.exerciseId) : 0),
+          e1rmKg: runningBestE1rm.get(s.exerciseId) ?? 0,
+          workMinutes: (s.seconds ?? 0) / 60,
+        })),
+    ).rank
 
     // Includes work-interval sets (a treadmill block counts as one hard set
     // here, for the finish-gate summary's "N hard sets" line). XP must not
