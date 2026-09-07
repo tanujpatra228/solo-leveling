@@ -257,6 +257,32 @@ export function resolveDungeonBreaks(
 }
 
 /* ------------------------------------------------------------------ */
+/* The week view                                                       */
+/* ------------------------------------------------------------------ */
+
+export type WeekDayStatus = 'rest' | 'scheduled' | GateState
+
+/**
+ * A day's status on the week view. Distinct from `gateStateFor`: that
+ * function tracks one already-opened gate across the days until it breaks,
+ * while this classifies a flat calendar day that may not have arrived yet —
+ * `daysBetweenKeys` alone would read a future day as merely "not yet broken"
+ * and print it as `open`, which is wrong in a different way: the Dungeon
+ * Break clock has not started, because the day has not happened.
+ */
+export function weekDayStatus(input: {
+  dayKey: DayKey
+  today: DayKey
+  hasRoutine: boolean
+  cleared: boolean
+}): WeekDayStatus {
+  if (!input.hasRoutine) return 'rest'
+  if (input.cleared) return 'cleared'
+  if (input.dayKey > input.today) return 'scheduled'
+  return daysBetweenKeys(input.dayKey, input.today) >= DUNGEON_BREAK_DAYS ? 'broken' : 'open'
+}
+
+/* ------------------------------------------------------------------ */
 /* Red Gate                                                            */
 /* ------------------------------------------------------------------ */
 

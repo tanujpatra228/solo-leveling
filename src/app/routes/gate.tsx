@@ -16,13 +16,21 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
+import { RankBadge } from '../../components/RankBadge'
 import { SegmentedRing } from '../../components/SegmentedRing'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
+import { weekDayStatus, type WeekDayStatus } from '../../domain/gates'
 import { dropSuperseded } from '../../domain/projection'
 import type { NextTarget, ProgressionKind } from '../../domain/progression'
 import type { SubstituteCandidate } from '../../domain/substitution'
-import { addDaysToKey, dayKeyStart, dayOfWeekForKey } from '../../domain/time'
+import {
+  addDaysToKey,
+  dayKeyRange,
+  dayKeyStart,
+  dayOfWeekForKey,
+  weekStartKey,
+} from '../../domain/time'
 import type {
   Block,
   BlockItem,
@@ -48,6 +56,22 @@ const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday
 function formatDayKey(key: DayKey): string {
   const date = dayKeyStart(key)
   return `${WEEKDAY[date.getDay()]} ${date.getDate()} ${date.toLocaleString('en-GB', { month: 'long' })}`
+}
+
+const WEEK_STATUS_LABEL: Record<WeekDayStatus, string> = {
+  rest: 'Rest',
+  scheduled: 'Scheduled',
+  open: 'Open',
+  cleared: 'Cleared',
+  broken: 'Broken',
+}
+
+const WEEK_STATUS_TONE: Record<WeekDayStatus, string> = {
+  rest: 'text-ink-faint',
+  scheduled: 'text-ink-faint',
+  open: 'text-system',
+  cleared: 'text-good',
+  broken: 'text-danger',
 }
 
 /** Rest in the shape a person reads it: "2m 30s", not "150 seconds". */
@@ -109,6 +133,21 @@ function TodaysGateScreen() {
         (s) => s.dayKey === today && s.routineId === todaysRoutine.id && s.endedAt !== null,
       )
     : false
+
+  const weekDays = useMemo(() => {
+    const start = weekStartKey(today)
+    return dayKeyRange(start, addDaysToKey(start, 6)).map((dayKey) => {
+      const routine = routineFor(dayKey)
+      const cleared = routine
+        ? sessions.some((s) => s.dayKey === dayKey && s.routineId === routine.id && s.endedAt !== null)
+        : false
+      return {
+        dayKey,
+        routine,
+        status: weekDayStatus({ dayKey, today, hasRoutine: routine !== undefined, cleared }),
+      }
+    })
+  }, [today, routines, sessions])
 
   if (activeSession && activeRoutine) {
     return (
@@ -194,7 +233,50 @@ function TodaysGateScreen() {
           upcomingLabel={todaysRoutine ? 'Next' : formatDayKey(nextDay)}
         />
       ) : null}
+
+      <WeekView days={weekDays} today={today} />
     </main>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/* The week view — read only (m7-plan commit 1)                        */
+/* ------------------------------------------------------------------ */
+
+interface WeekDayEntry {
+  dayKey: DayKey
+  routine: Routine | undefined
+  status: WeekDayStatus
+}
+
+function WeekView({ days, today }: { days: WeekDayEntry[]; today: DayKey }) {
+  return (
+    <SystemWindow title="This Week">
+      <ul className="flex flex-col gap-2">
+        {days.map((day) => (
+          <li key={day.dayKey} className="flex items-center justify-between gap-3">
+            <span className="flex min-w-0 items-baseline gap-2">
+              <span
+                className={`font-system text-xs uppercase ${
+                  day.dayKey === today ? 'text-system' : 'text-ink-faint'
+                }`}
+              >
+                {WEEKDAY[dayKeyStart(day.dayKey).getDay()]!.slice(0, 3)}
+              </span>
+              <span className="min-w-0 truncate text-sm text-ink">
+                {day.routine?.name ?? 'Rest day'}
+              </span>
+            </span>
+            <span className="flex shrink-0 items-center gap-2">
+              {day.routine ? <RankBadge rank={day.routine.gateRank} /> : null}
+              <span className={`font-system text-[11px] uppercase ${WEEK_STATUS_TONE[day.status]}`}>
+                {WEEK_STATUS_LABEL[day.status]}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </SystemWindow>
   )
 }
 

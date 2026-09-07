@@ -12,6 +12,7 @@ import {
   resolveBosses,
   resolveDungeonBreaks,
   resolveRepRecords,
+  weekDayStatus,
 } from './gates'
 import type { Exercise, SetLog } from './types'
 
@@ -217,6 +218,47 @@ describe('Dungeon Break', () => {
 
   it('leaves gates still inside the window alone', () => {
     expect(resolveDungeonBreaks([gate], '2026-03-05')).toEqual([])
+  })
+})
+
+describe('the week view (m7-plan commit 1)', () => {
+  it('reads a day with no routine as rest, regardless of when it falls', () => {
+    expect(
+      weekDayStatus({ dayKey: '2026-03-01', today: '2026-03-05', hasRoutine: false, cleared: false }),
+    ).toBe('rest')
+    expect(
+      weekDayStatus({ dayKey: '2026-03-10', today: '2026-03-05', hasRoutine: false, cleared: false }),
+    ).toBe('rest')
+  })
+
+  it('reads a future day with a routine as scheduled, never open or broken', () => {
+    expect(
+      weekDayStatus({ dayKey: '2026-03-10', today: '2026-03-05', hasRoutine: true, cleared: false }),
+    ).toBe('scheduled')
+  })
+
+  it('reads today as open until cleared', () => {
+    expect(
+      weekDayStatus({ dayKey: '2026-03-05', today: '2026-03-05', hasRoutine: true, cleared: false }),
+    ).toBe('open')
+  })
+
+  it('reads a cleared day as cleared even past the break window', () => {
+    expect(
+      weekDayStatus({ dayKey: '2026-02-01', today: '2026-03-05', hasRoutine: true, cleared: true }),
+    ).toBe('cleared')
+  })
+
+  it('reads an unslain past day as broken once the canon window has passed', () => {
+    expect(
+      weekDayStatus({ dayKey: '2026-02-20', today: '2026-03-05', hasRoutine: true, cleared: false }),
+    ).toBe('broken')
+  })
+
+  it('reads an unslain recent day as still open, not yet broken', () => {
+    expect(
+      weekDayStatus({ dayKey: '2026-03-02', today: '2026-03-05', hasRoutine: true, cleared: false }),
+    ).toBe('open')
   })
 })
 
