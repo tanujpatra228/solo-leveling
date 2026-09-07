@@ -12,13 +12,25 @@
  * push still shows current information, because the text is built at the moment
  * it is displayed rather than when it was sent.
  */
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 declare const self: ServiceWorkerGlobalScope
 
 // Workbox replaces this at build time with the list of built assets.
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
+
+/**
+ * `precacheAndRoute` only matches a navigation to an *exact* precached URL
+ * (`/index.html`). Every other route — `/gate`, `/link`, anything TanStack
+ * Router owns client-side — has no literal file and fell through unhandled,
+ * which the Worker's own SPA fallback covers online but nothing covered
+ * offline: a reload on `/gate` with no network 404'd while a reload on `/`
+ * happened to work. This is the standard fix — every navigation gets the
+ * cached shell, and the router takes it from there.
+ */
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')))
 
 /**
  * The app asks before reloading, so the worker waits rather than taking over
