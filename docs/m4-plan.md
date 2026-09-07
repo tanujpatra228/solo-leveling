@@ -73,9 +73,61 @@ it is not the cliff a 200 KB line implies. M4 replaces the invented number with 
 stated reason.
 
 **What is confirmed clean:** `qrcode` and `jsqr` are dependencies for System Link in M6 and are
-correctly tree-shaken out — neither appears in the bundle. `motion` is imported through
+correctly tree-shaken out — neither appears in the bundle. ~~`motion` is imported through
 `LazyMotion` + `m` exactly as M2-D5 required. So there is no obvious dead weight; it is genuinely
-React, the router, Dexie, Zod and app code.
+React, the router, Dexie, Zod and app code.~~ **Wrong, and the same mistake as H1: asserted without
+module-level measurement.** Commit 3's actual attribution below found `motion` was the second-largest
+thing in the bundle, there for one component's one-time fade.
+
+**Commit 3's attribution** (sourcemap build, `vite-bundle-visualizer`, filtered to the main chunk's
+own subtree — `source-map-explorer` itself could not parse Vite 8/Rolldown's sourcemaps, "generated
+column Infinity", so the visualizer's own tree/module JSON was read directly instead):
+
+| Bucket | Gzip (isolated) |
+|---|---|
+| `react-dom` | 87,201 B |
+| `src/` (first-party) | 78,208 B |
+| `motion-dom` + `framer-motion` + `motion-utils` + `motion` | 84,180 B |
+| `dexie` | 35,607 B |
+| `zod` | 28,670 B |
+| `qrcode` | 19,018 B |
+| `react` + `scheduler` + `use-sync-external-store` | 9,324 B |
+| `lucide-react` | 4,439 B |
+| `zustand` | 884 B |
+
+(These are each module's own gzip size in isolation, which double-counts the shared-dictionary
+savings a combined gzip gets — they rank contributors, they do not sum to the real total below.)
+
+`motion` was imported in exactly two files: `main.tsx`, wrapping the **entire app** in a
+`LazyMotion` provider, and `DoubleDungeon.tsx`, the only caller — a first-launch sequence gated on
+`Progress.doubleDungeonSeenAt`, rendered once per install and never again. Paying 84 KB gzip of
+animation engine on every load, forever, for one component's one-time fade is exactly the "genuinely
+large and genuinely unused [after first launch]" case this commit was told to cut. `SystemWindow`
+already plays `--animate-system-in` — the same CSS entrance every other window in the app uses — on
+every mount, so the beat transition needed no library at all: `m.div` became a plain `div` (the
+`key={beatIndex}` still forces the remount that retriggers the CSS animation), and `useReducedMotion()`
+became a direct `matchMedia('(prefers-reduced-motion: reduce)')` read. `motion` removed from
+`package.json` entirely. Verified live in both motion modes (Playwright's `reducedMotion` context
+option) — the beat-by-beat cinematic and the flat reduced-motion list both render identically to
+before.
+
+Measured before/after (real combined gzip, not the isolated per-module figures above):
+
+| Asset | Before | After |
+|---|---|---|
+| `index-*.js` | 218,320 B | **192,790 B** |
+| `index-*.css` | 5,880 B | 5,880 B |
+| `workbox-window` | 2,250 B | 2,200 B |
+| **Total** | **226,450 B** | **200,870 B** |
+
+**The budget, derived rather than invented.** What actually costs the one user anything is time to a
+usable app on the first launch, on whatever connection the gym has. Lighthouse's "Slow 4G" throttling
+profile (1.6 Mbps down, the standard baseline for this kind of estimate) gives roughly 150–160 KB/s of
+real throughput after protocol overhead. At 200.7 KB, that is **about 1.3 seconds** — on the worst
+connection profile in common use, not a typical one. Stated as a budget: **install completes in under
+3 seconds on Slow 4G**, which at that throughput is about 480 KB — more than double today's total, and
+a number tied to an experience a hunter actually feels, rather than a byte count carried over from a
+public website's per-visit cost. Today's bundle uses well under half of it.
 
 ### H3 — CPU is measurable from here, and the expensive path has never been measured
 
