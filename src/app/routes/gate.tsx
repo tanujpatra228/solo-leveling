@@ -196,11 +196,12 @@ function GateWindow({ routine, exerciseById, strong, upcomingLabel, footer }: Ga
       title={upcomingLabel ? `${upcomingLabel} — ${routine.name}` : routine.name}
       strong={strong}
       footer={
-        footer ?? (
+        <div className="flex flex-col gap-3">
           <p className="font-system text-[11px] text-ink-faint">
             Rank {routine.gateRank} · {workingSets} working sets · {routine.blocks.length} blocks
           </p>
-        )
+          {footer}
+        </div>
       }
     >
       <div className="flex flex-col gap-3">
