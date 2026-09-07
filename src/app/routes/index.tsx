@@ -12,12 +12,15 @@ import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
+import { GoldPanel } from '../../components/GoldPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
+import { RunesPanel } from '../../components/RunesPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
+import { TitlesPanel } from '../../components/TitlesPanel'
 import { VolumePanel } from '../../components/VolumePanel'
 import type { HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
@@ -49,6 +52,8 @@ function HomeScreen() {
   const advisories = useApp((s) => s.advisories)
   const allocatePoint = useApp((s) => s.allocatePoint)
   const resetAllocation = useApp((s) => s.resetAllocation)
+  const earnedTitleIds = useApp((s) => s.earnedTitleIds)
+  const gold = useApp((s) => s.progress.gold)
 
   if (!projection) {
     return (
@@ -108,6 +113,9 @@ function HomeScreen() {
         <FatiguePanel fatigue={projection.fatigue} />
         <VolumePanel volume={projection.volume} />
         <DeloadPanel deload={projection.deload} />
+        <RunesPanel level={player.level} />
+        <TitlesPanel titleIds={earnedTitleIds} />
+        <GoldPanel gold={gold} />
         <AdvisoriesPanel advisories={advisories} />
       </SystemWindow>
     </main>
