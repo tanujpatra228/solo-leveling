@@ -2,7 +2,7 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
-## Where everything stands — 2026-09-07
+## Where everything stands — 2026-09-08
 
 The whole picture in three tables. Detail for anything below is further down this file, or in the
 plan named in the row.
@@ -17,9 +17,10 @@ plan named in the row.
 | M4 | Installed, automated, measured | **4 of 5 commits done** | Only the Actions workflow is left, blocked on a Cloudflare API token only the user can create. Plus the phone checklist (install, Lighthouse, airplane mode) |
 | M5 | The game layer | **Done** | — |
 | M6 | Sync and System Link | **Done** | — |
-| M7 | The rest of the fantasy layer | **Done** | Split into M7 (eleven surfaces over a tested engine) and M7b. The System Shop, Job Change Quest and Reawakening Test have no engine at all and are **M7b**, not yet planned |
+| M7 | The rest of the fantasy layer | **Done** | Split into M7 (eleven surfaces over a tested engine) and M7b |
+| M7b | Shop, Job Change Quest, Reawakening Test | **Planned** — `docs/m7b-plan.md` | 7 commits. Each needs an engine designed, not a surface built. `hunterClass` has been hardcoded `'none'` since M2; gold has had two sources and no sink since M3 |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
-| M9 | Flavour text | **Not started** | Build-time generated System lines |
+| M9 | Flavour text | **Planned** — `docs/m9-plan.md` | 4 commits. Generated ahead of time and committed, never at runtime — a network call on the finish-gate path breaks the offline promise |
 
 ### Features outside the milestone track
 
