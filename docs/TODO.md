@@ -21,6 +21,7 @@ plan named in the row.
 | M7b | Shop, Job Change Quest, Reawakening Test | **Done** | — |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Done** | — |
+| M10 | The Status Window, made faithful and readable | **Planned** | Ten commits in `docs/m10-plan.md`, written against a supplied screenshot of the anime Status window (§1.0) plus researched source material (§1.1–§1.8). The Status page becomes the inline head a hunter reads daily plus six windows *summoned* as `.system-frame` overlays — the construction `MessageQueue` already ships — instead of one 9-screen scroll. Includes the canon Daily Quest deadline ring, a rank-driven frame tier, gym-grade targets, and two standalone bug fixes (`keepScreenAwake` never read, rest timer Gate-only) |
 
 ### Features outside the milestone track
 
@@ -47,9 +48,13 @@ plan named in the row.
 | Bundle | 198.49 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.68 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
 | Deployed | Live on workers.dev, redeployed 2026-09-08 with all four M9 commits |
 
-Every milestone in the track is now **Done** or deliberately **Parked**/**blocked on the user** — M4
+Every milestone through M9 is now **Done** or deliberately **Parked**/**blocked on the user** — M4
 commit 4 needs a `CLOUDFLARE_API_TOKEN` only the user can create; M8 stays parked until the user
 decides to revisit it.
+
+M10 is the first milestone driven by using the app rather than building it: the Status page reads as
+sixteen equally-weighted panels in one nine-screen window, and `docs/m10-plan.md` is the plan to fix
+it. Nothing in it touches `src/domain/`.
 
 ## M7 — The rest of the fantasy layer, landed 2026-09-08
 
