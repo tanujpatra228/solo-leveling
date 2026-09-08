@@ -15,6 +15,7 @@ import { lastSetsForExercise } from '../domain/projection'
 import { addDaysToKey, dayOfWeekForKey } from '../domain/time'
 import { addShadow, putQuest, updateProgress, wipeEverything } from '../db/repo'
 import { generateDailyQuest, type DailyQuestPayload } from '../domain/quests'
+import { QUEST_REROLL_PRICE_GOLD, REST_TOKEN_PRICE_GOLD } from '../domain/shop'
 import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
 import { useApp } from './state'
 
@@ -773,6 +774,60 @@ describe('Daily Quest per-item progress (F2)', () => {
       await useApp.getState().rerollDailyQuest()
       expect(useApp.getState().quests.filter((q) => q.type === 'daily')).toHaveLength(1)
     })
+  })
+})
+
+describe('purchaseShopItem (m7b-plan commit 6)', () => {
+  it('buys a Rest Token: deducts gold, grants the token', async () => {
+    await updateProgress({ gold: REST_TOKEN_PRICE_GOLD, restTokens: 2 })
+    await useApp.getState().refresh()
+
+    await useApp.getState().purchaseShopItem('rest_token')
+
+    expect(useApp.getState().progress.gold).toBe(0)
+    expect(useApp.getState().progress.restTokens).toBe(3)
+    expect(useApp.getState().messages.at(-1)?.title).toContain('purchased')
+  })
+
+  it('refuses short of the price, and changes nothing', async () => {
+    await updateProgress({ gold: REST_TOKEN_PRICE_GOLD - 1 })
+    await useApp.getState().refresh()
+
+    await useApp.getState().purchaseShopItem('rest_token')
+
+    expect(useApp.getState().progress.gold).toBe(REST_TOKEN_PRICE_GOLD - 1)
+    expect(useApp.getState().messages.at(-1)?.title).toContain('Not enough gold')
+  })
+
+  it('buys a Quest Reroll: deducts gold and supersedes the open Daily Quest', async () => {
+    const today = useApp.getState().today
+    const quest = generateDailyQuest({ dayKey: today, level: 1, allocated: useApp.getState().allocated })
+    await putQuest({
+      id: `daily-${today}`,
+      dayKey: today,
+      type: 'daily',
+      status: 'issued',
+      issuedAt: Date.now(),
+      expiresAt: null,
+      payload: { ...quest, progress: {} },
+    })
+    await updateProgress({ gold: QUEST_REROLL_PRICE_GOLD })
+    await useApp.getState().refresh()
+
+    await useApp.getState().purchaseShopItem('quest_reroll')
+
+    expect(useApp.getState().progress.gold).toBe(0)
+    expect(useApp.getState().quests.filter((q) => q.type === 'daily')).toHaveLength(2)
+  })
+
+  it('refuses a Quest Reroll with nothing open, and never charges for it', async () => {
+    await updateProgress({ gold: QUEST_REROLL_PRICE_GOLD })
+    await useApp.getState().refresh()
+
+    await useApp.getState().purchaseShopItem('quest_reroll')
+
+    expect(useApp.getState().progress.gold).toBe(QUEST_REROLL_PRICE_GOLD)
+    expect(useApp.getState().messages.at(-1)?.title).toContain('Nothing to reroll')
   })
 })
 

@@ -13,7 +13,6 @@ import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
-import { GoldPanel } from '../../components/GoldPanel'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
@@ -39,6 +38,7 @@ const TowerPanel = lazy(() => import('../../components/TowerPanel').then((m) => 
 const HunterLicenseCard = lazy(() =>
   import('../../components/HunterLicenseCard').then((m) => ({ default: m.HunterLicenseCard })),
 )
+const ShopPanel = lazy(() => import('../../components/ShopPanel').then((m) => ({ default: m.ShopPanel })))
 
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -73,7 +73,6 @@ function HomeScreen() {
   const allocatePoint = useApp((s) => s.allocatePoint)
   const resetAllocation = useApp((s) => s.resetAllocation)
   const earnedTitleIds = useApp((s) => s.earnedTitleIds)
-  const gold = useApp((s) => s.progress.gold)
   const exercises = useApp((s) => s.exercises)
   const setShadowActive = useApp((s) => s.setShadowActive)
   const identity = useApp((s) => s.identity)
@@ -153,7 +152,9 @@ function HomeScreen() {
             bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
           />
         </Suspense>
-        <GoldPanel gold={gold} />
+        <Suspense fallback={null}>
+          <ShopPanel />
+        </Suspense>
         {identity ? (
           <Suspense fallback={null}>
             <HunterLicenseCard

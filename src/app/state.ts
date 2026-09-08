@@ -20,6 +20,7 @@ import {
   type DailyItemKind,
   type DailyQuestPayload,
 } from '../domain/quests'
+import { purchase, shopItemById, type ShopItemId } from '../domain/shop'
 import {
   dropSuperseded,
   lastSetsForExercise,
@@ -295,6 +296,12 @@ export interface AppState extends LoadedData {
   /** The issued-but-not-completed Job Change Quest row, if one exists. */
   activeJobChangeQuest: () => QuestLog | null
   completeJobChangeQuest: () => Promise<void>
+  /**
+   * Buys one item from the System Shop. A no-op with a toast, not a thrown
+   * error, when gold is short or (for a Quest Reroll) there is nothing open
+   * to reroll — gold is deducted only once the purchase can actually apply.
+   */
+  purchaseShopItem: (id: ShopItemId) => Promise<void>
   dismissAdvisory: (id: string) => Promise<void>
   declareAbsence: (dayKey: DayKey, reason: 'illness' | 'travel') => Promise<void>
   spendRestToken: () => Promise<boolean>
@@ -1272,6 +1279,52 @@ export const useApp = create<AppState>((set, get) => ({
       body: 'The stat distribution you trained into has spoken. This is not a cap — it is a description of who you have already become.',
       tone: 'good',
       kind: 'window',
+    })
+  },
+
+  async purchaseShopItem(id) {
+    const state = get()
+    const item = shopItemById(id)
+    if (!item) return
+
+    // A Quest Reroll must be affordable to *apply*, not just to pay for —
+    // charging gold for a reroll that turns out to be a no-op (nothing
+    // open today, or today's quest already complete) would be a sink with
+    // nothing behind it.
+    if (item.id === 'quest_reroll') {
+      const current = activeQuestFor(state.quests, state.today, 'daily')
+      if (!current || current.status === 'complete') {
+        get().pushMessage({
+          title: '[Nothing to reroll.]',
+          body: 'There is no open Daily Quest today.',
+          tone: 'warn',
+        })
+        return
+      }
+    }
+
+    const result = purchase(state.progress.gold, item)
+    if (!result.ok) {
+      get().pushMessage({
+        title: '[Not enough gold.]',
+        body: `${item.name} costs ${item.priceGold} gold.`,
+        tone: 'warn',
+      })
+      return
+    }
+
+    await repo.updateProgress({ gold: result.goldAfter })
+    if (item.id === 'rest_token') {
+      await repo.updateProgress({ restTokens: get().progress.restTokens + 1 })
+      await get().refresh()
+    } else {
+      await get().rerollDailyQuest()
+    }
+
+    get().pushMessage({
+      title: `[${item.name} purchased.]`,
+      body: item.description,
+      tone: 'good',
     })
   },
 
