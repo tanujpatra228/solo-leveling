@@ -474,10 +474,31 @@ dropping it would remove 213 lines of Worker code, four API routes, a D1 table, 
 dependency and the VAPID secret. The app is complete without it.
 
 ### M9 — Flavour
-Build-time generated System flavour text. Any runtime AI, if it ever happens, uses Workers AI so
-no external key exists to leak — and not one of the model families that require a paid plan.
 
-*Budget impact:* none at build time.
+Variety pools for the System's eight most-repeated announcements (level up, Daily Quest arrived,
+rest token spent, penalty issued, Red Gate cleared/failed, boss slain, deload recorded), so the
+hundredth gate does not read identically to the first. `ARISE.` stays fixed — the one line canon
+treats as immovable.
+
+Generated ahead of time and committed as data, never at runtime: a network call on the finish-gate
+path would put the app's most important moment behind a request, in exactly the gym-basement
+environment the offline rule exists for. Landed across four commits: `domain/flavour.ts`'s
+`flavourFor(table, key, seed, fallback)`, a pure, deterministic lookup that falls back to the
+caller's own current line on a missing key or an empty table (commit 1); `scripts/generate-flavour.mjs`,
+run by hand like the other `generate-*.mjs` scripts, producing gitignored candidates for review —
+not a build step, so a bad line can never ship unread (commit 2); every call site rewired to read
+through `flavourFor`, reviewable as a pure refactor since the table started empty and behaviour
+stayed byte-for-byte identical (commit 3); and the table itself, filled with lines curated from 37
+generated candidates — each pool keeps the exact line already shipped, so old behaviour stays one
+of the possible outcomes rather than being replaced (commit 4). One real mismatch was caught during
+that last step (a curated line read "The Daily Quest has arrived" against a fallback of "Daily Quest
+has arrived", no "The") and fixed before it shipped.
+
+*Acceptance:* `flavourFor` is pure — same key, seed and table always return the same line, so an
+event never flickers across re-renders; a missing key or empty table always falls back to the
+line the app ships today; every line in the committed table was read before it shipped.
+*Budget impact:* none at build time. Bundle after commit 4: 198.49 KB JS + 5.99 KB CSS + 2.20 KB
+`workbox-window` ≈ 206.68 KB gzipped, still comfortably under M4's ~480 KB Slow-4G install budget.
 
 ---
 

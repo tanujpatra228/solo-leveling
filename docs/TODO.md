@@ -20,7 +20,7 @@ plan named in the row.
 | M7 | The rest of the fantasy layer | **Done** | Split into M7 (eleven surfaces over a tested engine) and M7b |
 | M7b | Shop, Job Change Quest, Reawakening Test | **Done** | — |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
-| M9 | Flavour text | **Planned** — `docs/m9-plan.md` | 4 commits. Generated ahead of time and committed, never at runtime — a network call on the finish-gate path breaks the offline promise |
+| M9 | Flavour text | **Done** | — |
 
 ### Features outside the milestone track
 
@@ -42,10 +42,14 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 676 passing |
+| Tests | 686 passing |
 | Typecheck, `check:render`, build | Clean |
-| Bundle | 197.91 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.10 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
-| Deployed | Live on workers.dev, redeployed 2026-09-08 with all seven M7b commits |
+| Bundle | 198.49 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.68 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
+| Deployed | Live on workers.dev, redeployed 2026-09-08 with all four M9 commits |
+
+Every milestone in the track is now **Done** or deliberately **Parked**/**blocked on the user** — M4
+commit 4 needs a `CLOUDFLARE_API_TOKEN` only the user can create; M8 stays parked until the user
+decides to revisit it.
 
 ## M7 — The rest of the fantasy layer, landed 2026-09-08
 
@@ -80,6 +84,29 @@ cleared today kept re-offering Start Gate on return to `/gate` (`39a9626`); relo
 route after installing the PWA 404'd instead of serving the app shell (`8f35261`).
 
 Bundle after M7: 196.16 KB JS + 5.97 KB CSS + 2.20 KB `workbox-window` ≈ 204.33 KB gzipped initial
+route — still under half the ~480 KB Slow-4G install budget M4 commit 3 derived.
+
+## M9 — Flavour, landed 2026-09-08
+
+All four commits of `docs/m9-plan.md` (now `git rm`'d — detail recoverable at the commit below,
+summary in `docs/implementation-plan.md` §4). 686 tests passing, typecheck and `check:render` clean.
+
+- [x] **Commit 1** `domain/flavour.ts`: `flavourFor(table, key, seed, fallback)`, pure and
+      deterministic per seed, falling back to the caller's current line on a missing key or an
+      empty table. `ARISE.` deliberately excluded from the key set (`984d74b`)
+- [x] **Commit 2** `scripts/generate-flavour.mjs`, run by hand like `generate-standards.mjs` and
+      `generate-icons.mjs` already are — not a build step, so a bad line can never ship unread.
+      Output is gitignored; 37 candidates generated across the 8 keys (`5161f1d`)
+- [x] **Commit 3** Every call site rewired through `flavourFor` — reviewable as a pure refactor,
+      since the table started empty and the full suite passed with no assertions touched (`12da4a0`)
+- [x] **Commit 4** The table filled, curated from the 37 candidates down to 3-4 per key, each pool
+      keeping the exact line already shipped. Caught and fixed one real mismatch along the way: a
+      curated `daily_quest_arrived` line read "The Daily Quest has arrived" against a fallback of
+      "Daily Quest has arrived" (no "The") — surfaced two Red Gate store tests that had been
+      asserting an exact title substring, now checking tone and the unflavoured body instead
+      (`55d4a32`)
+
+Bundle after M9: 198.49 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.68 KB gzipped initial
 route — still under half the ~480 KB Slow-4G install budget M4 commit 3 derived.
 
 ## M7b — The System Shop, the Job Change Quest, and the Reawakening Test, landed 2026-09-08
