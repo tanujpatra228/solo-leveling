@@ -31,3 +31,7 @@ Thumbs.db
 
 # test / coverage
 coverage/
+
+# scripts/generate-flavour.mjs's output — reviewed by hand, then the
+# survivors are hand-written into src/domain/flavour.ts. Never committed.
+flavour-candidates.json
