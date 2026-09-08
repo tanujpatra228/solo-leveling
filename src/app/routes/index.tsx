@@ -8,26 +8,35 @@
  */
 import { createRoute, redirect } from '@tanstack/react-router'
 import { Brain, Dumbbell, Footprints, HeartPulse, Radar } from 'lucide-react'
+import { lazy, Suspense } from 'react'
 import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
 import { GoldPanel } from '../../components/GoldPanel'
-import { HunterLicenseCard } from '../../components/HunterLicenseCard'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { RunesPanel } from '../../components/RunesPanel'
-import { ShadowsPanel } from '../../components/ShadowsPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
-import { TowerPanel } from '../../components/TowerPanel'
 import { VolumePanel } from '../../components/VolumePanel'
 import type { HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
 import { rootRoute } from './root'
+
+// None of these three sit on the path to logging a set (m7-plan F5), so they
+// ship in their own chunks rather than growing the bundle every hunter pays
+// for on first paint.
+const ShadowsPanel = lazy(() =>
+  import('../../components/ShadowsPanel').then((m) => ({ default: m.ShadowsPanel })),
+)
+const TowerPanel = lazy(() => import('../../components/TowerPanel').then((m) => ({ default: m.TowerPanel })))
+const HunterLicenseCard = lazy(() =>
+  import('../../components/HunterLicenseCard').then((m) => ({ default: m.HunterLicenseCard })),
+)
 
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -123,28 +132,32 @@ function HomeScreen() {
         <DeloadPanel deload={projection.deload} />
         <RunesPanel level={player.level} />
         <TitlesPanel titleIds={earnedTitleIds} />
-        <ShadowsPanel
-          roster={projection.roster}
-          exercises={exercises}
-          onToggle={(id, active) => void setShadowActive(id, active)}
-        />
-        <TowerPanel
-          floorCleared={projection.towerFloorCleared}
-          nextFloor={projection.nextTowerFloor}
-          bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
-        />
+        <Suspense fallback={null}>
+          <ShadowsPanel
+            roster={projection.roster}
+            exercises={exercises}
+            onToggle={(id, active) => void setShadowActive(id, active)}
+          />
+          <TowerPanel
+            floorCleared={projection.towerFloorCleared}
+            nextFloor={projection.nextTowerFloor}
+            bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
+          />
+        </Suspense>
         <GoldPanel gold={gold} />
         {identity ? (
-          <HunterLicenseCard
-            hunterId={identity.hunterId}
-            rank={player.rank}
-            level={player.level}
-            hunterClassLabel={HUNTER_CLASS_LABELS[player.hunterClass]}
-            total={player.total}
-            titlesHeld={earnedTitleIds.length}
-            gatesCleared={gatesCleared}
-            awakenedAt={profile?.awakenedAt ?? null}
-          />
+          <Suspense fallback={null}>
+            <HunterLicenseCard
+              hunterId={identity.hunterId}
+              rank={player.rank}
+              level={player.level}
+              hunterClassLabel={HUNTER_CLASS_LABELS[player.hunterClass]}
+              total={player.total}
+              titlesHeld={earnedTitleIds.length}
+              gatesCleared={gatesCleared}
+              awakenedAt={profile?.awakenedAt ?? null}
+            />
+          </Suspense>
         ) : null}
         <AdvisoriesPanel advisories={advisories} />
       </SystemWindow>
