@@ -388,14 +388,34 @@ reconnect; two simultaneous triggers produce one request; a failing Worker backs
 100,000, with a 300/day client-side cap as a backstop.
 
 ### M7 — The rest of the fantasy layer
-Gates with ranks and the week view, Dungeon Break, Red Gate, Instant Dungeon Key, the shadow army
-with the INT-capped roster, marshals, titles, gold and the System Shop, runes surfaced in the
-session screen, the Job Change Quest, the Demon Castle, Monarchs, the Reawakening Test, and the
-Hunter License PNG card.
 
-*Acceptance:* every engine feature already tested has a surface; the licence card renders and
-shares via the Web Share adapter.
-*Budget impact:* none.
+Split in two once written (`docs/m7-plan.md` §0), because eleven of the fourteen originally listed
+items were surfaces over engine code that already existed and was already tested, while three —
+the System Shop, the Job Change Quest, and the Reawakening Test — need designing from scratch. Only
+the eleven shipped as M7; the other three are **M7b**, planned separately.
+
+Landed across seven commits: the gate week view with Dungeon Break marked (commit 1); Red Gate and
+Instant Dungeon Key made fully playable, which required real store actions
+(`startInstantDungeon`, `enterRedGate`, `resolveRedGate`) rather than the read-only surface first
+assumed, and surfaced a structural bug where `gateRank` was silently null for any session without a
+matching `Routine` — fixed in `projection.ts` (commit 2); titles, runes and gold on the Status
+Window, gold shown honestly with no Shop to spend it in yet (commit 3); the Demon Castle tower and
+Monarchs, read from `projection.nextTowerFloor` and `towerFloorCleared` (commit 4); the shadow army
+roster with the INT-derived cap made legible — benching an active shadow promotes a dormant one by
+`resolveRoster`'s existing ordering, so the hunter chooses who stays rather than the System picking
+(commit 5); the Hunter License PNG card, the app's first canvas rendering, drawn at the real device
+pixel ratio and shared through the `shareImage` adapter with a download fallback, showing
+`identity.hunterId` and never the license key (commit 6); and route-level code splitting for the
+tower, roster and license card panels via `React.lazy`, since none of them sits on the path to
+logging a set (commit 7).
+
+*Acceptance:* every engine feature already tested has a surface; the licence card renders sharp at
+3x device pixel ratio and shares via the Web Share adapter with a working download fallback; a
+shadow going dormant when the cap falls is explained rather than silently dropped.
+*Budget impact:* none. Initial-route bundle after commit 7: 196.16 KB JS + 5.97 KB CSS + 2.20 KB
+`workbox-window` ≈ 204.33 KB gzipped — the tower, roster and license card panels now ship in their
+own chunks (0.49 + 0.84 + 1.47 KB gzip) fetched only when the Status Window renders, rather than
+growing the initial chunk. Still under M4's ~480 KB Slow-4G install budget.
 
 ### M8 — Push notifications — **parked 2026-09-07**
 

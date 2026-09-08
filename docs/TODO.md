@@ -17,7 +17,7 @@ plan named in the row.
 | M4 | Installed, automated, measured | **4 of 5 commits done** | Only the Actions workflow is left, blocked on a Cloudflare API token only the user can create. Plus the phone checklist (install, Lighthouse, airplane mode) |
 | M5 | The game layer | **Done** | — |
 | M6 | Sync and System Link | **Done** | — |
-| M7 | The rest of the fantasy layer | **Planned** — `docs/m7-plan.md` | Most of it is surface over a tested engine. Shop, Job Change Quest and Reawakening Test have no engine at all |
+| M7 | The rest of the fantasy layer | **Done** | Split into M7 (eleven surfaces over a tested engine) and M7b. The System Shop, Job Change Quest and Reawakening Test have no engine at all and are **M7b**, not yet planned |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Not started** | Build-time generated System lines |
 
@@ -41,10 +41,45 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 613 passing |
+| Tests | 630 passing |
 | Typecheck, `check:render`, build | Clean |
-| Bundle | 200.87 KB gzipped, under half the ~480 KB (install under 3s on Slow 4G) budget M4 commit 3 derived |
-| Deployed | Live on workers.dev, redeployed 2026-09-07 with M4 commit 3 (`motion` removed) |
+| Bundle | 196.16 KB JS + 5.97 KB CSS + 2.20 KB `workbox-window` ≈ 204.33 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster and license card panels ship in their own lazy chunks (M7 commit 7) |
+| Deployed | Live on workers.dev, redeployed 2026-09-08 with all seven M7 commits |
+
+## M7 — The rest of the fantasy layer, landed 2026-09-08
+
+All seven commits of `docs/m7-plan.md` (now `git rm`'d — detail recoverable at the commit below,
+summary in `docs/implementation-plan.md` §4). 630 tests passing, typecheck and `check:render` clean.
+Split from the original fourteen-item M7 in `implementation-plan.md` because eleven were surfaces
+over a tested engine and three — Shop, Job Change Quest, Reawakening Test — need designing from
+scratch; those three are **M7b**, not yet planned.
+
+- [x] **Commit 1** The gate week view: seven days, each with routine, rank and cleared state, Dungeon
+      Break marked (`4459ab6`)
+- [x] **Commit 2** Red Gate and Instant Dungeon Key made fully playable — needed real store actions
+      (`startInstantDungeon`, `enterRedGate`, `resolveRedGate`), not just presentation as first
+      assumed. Found and fixed a structural bug along the way: `projection.ts` computed `gateRank:
+      null` for any session without a matching `Routine`, silently blocking the gate-clear XP bonus
+      and progress bonus for both new gate kinds, since both use `routineId: null` (`b893d7a`)
+- [x] **Commit 3** Titles, runes and gold panels on the Status Window — gold shown with an honest
+      line about the Shop not existing yet (`9acb97b`)
+- [x] **Commit 4** The Demon Castle tower and Monarchs, read from `projection.nextTowerFloor` and
+      `towerFloorCleared` (`d49d194`)
+- [x] **Commit 5** The shadow army roster: the INT-derived cap made legible, and benching an active
+      shadow promotes a dormant one by `resolveRoster`'s existing ordering — the hunter chooses who
+      stays rather than the System picking for them (`43f44e9`)
+- [x] **Commit 6** The Hunter License PNG card — the app's first canvas rendering, drawn at the real
+      device pixel ratio, shared via the existing `shareImage` adapter with a download fallback.
+      Shows `identity.hunterId`, never the license key (`c2d1530`)
+- [x] **Commit 7** Route-level code splitting: the tower, roster and license card panels load via
+      `React.lazy`, since none of them sits on the path to logging a set (`ff45ef2`)
+
+**Also landed the same week, found on a real device, not part of the seven:** a gate already
+cleared today kept re-offering Start Gate on return to `/gate` (`39a9626`); reloading a non-root
+route after installing the PWA 404'd instead of serving the app shell (`8f35261`).
+
+Bundle after M7: 196.16 KB JS + 5.97 KB CSS + 2.20 KB `workbox-window` ≈ 204.33 KB gzipped initial
+route — still under half the ~480 KB Slow-4G install budget M4 commit 3 derived.
 
 ## M6 — Sync and System Link, landed 2026-09-06
 
