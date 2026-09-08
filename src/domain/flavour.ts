@@ -26,12 +26,52 @@ export type FlavourKey =
 export type FlavourTable = Readonly<Partial<Record<FlavourKey, readonly string[]>>>
 
 /**
- * The committed table (m9-plan commit 4): reviewed by a person before it
- * ships, not invented here as a placeholder. Empty until that review
- * lands — `flavourFor` treats an empty or missing pool identically to a
- * missing key, so this file being incomplete never breaks anything.
+ * The reviewed table (m9-plan commit 4). Curated down from
+ * `scripts/generate-flavour.mjs`'s candidate pool — every line here was
+ * read before it shipped, not generated at build time or invented as a
+ * placeholder. Each pool keeps the line the app already shipped with, so
+ * today's exact behaviour stays one of the possible outcomes rather than
+ * being replaced outright.
  */
-export const FLAVOUR_TABLE: FlavourTable = {}
+export const FLAVOUR_TABLE: FlavourTable = {
+  level_up: [
+    'New stat points are waiting to be spent.',
+    'The gap between who you were and who you are just widened.',
+    'Every session since the last level added up to this.',
+    'Growth like this does not happen by accident.',
+  ],
+  daily_quest_arrived: [
+    '[Daily Quest has arrived.]',
+    "[Today's Daily Quest is set.]",
+    '[A new Daily Quest awaits.]',
+  ],
+  rest_token_spent: [
+    'Yesterday is forgiven and your streak holds. Nothing has been taken away.',
+    'The gap is closed without a mark against it. Nothing has been taken away.',
+    'One token, spent on your behalf, and nothing else. Nothing has been taken away.',
+  ],
+  penalty_issued: [
+    '[You have failed to complete the Daily Quest. A Penalty Quest has been issued.]',
+    '[The Daily Quest went unfinished. A Penalty Quest follows.]',
+    "[Yesterday's Daily Quest was not met. A Penalty Quest has been issued.]",
+  ],
+  red_gate_cleared: [
+    '[Red Gate cleared.]',
+    '[The Red Gate yields.]',
+    '[Red Gate closed. You are still standing.]',
+  ],
+  red_gate_failed: [
+    '[Red Gate failed.]',
+    '[The Red Gate holds.]',
+    '[Red Gate closed. Nothing was claimed.]',
+  ],
+  boss_slain: ['[Boss slain.]', '[A boss falls.]', '[The record breaks.]'],
+  deload_recorded: [
+    'The System will not ask again for five weeks.',
+    'This week counts as work, not rest.',
+    'Recovery is the other half of the programme.',
+  ],
+}
 
 /**
  * Deterministic string hash — the same shape as `shadows.ts`'s `pickName`,

@@ -211,8 +211,11 @@ describe('Red Gate (m7-plan commit 2)', () => {
 
     expect(useApp.getState().progress.redGatesCleared).toBe(1)
     expect(useApp.getState().activeRedGate).toBeNull()
+    // Title text varies now (m9-plan flavour), so assert on what does not:
+    // tone and the fixed body.
     const last = useApp.getState().messages.at(-1)
-    expect(last?.title).toContain('Red Gate cleared')
+    expect(last?.tone).toBe('good')
+    expect(last?.body).toContain('record stands')
   })
 
   it('a PR attempt below target weight fails and pays nothing', async () => {
@@ -223,7 +226,8 @@ describe('Red Gate (m7-plan commit 2)', () => {
 
     expect(useApp.getState().progress.redGatesCleared).toBe(0)
     const last = useApp.getState().messages.at(-1)
-    expect(last?.title).toContain('Red Gate failed')
+    expect(last?.tone).toBe('warn')
+    expect(last?.body).toContain('pays out nothing')
   })
 
   it('an AMRAP finisher clears on any completed set, with no numeric target', async () => {
