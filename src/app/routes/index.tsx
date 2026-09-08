@@ -13,6 +13,7 @@ import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
 import { GoldPanel } from '../../components/GoldPanel'
+import { HunterLicenseCard } from '../../components/HunterLicenseCard'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { RunesPanel } from '../../components/RunesPanel'
@@ -58,6 +59,9 @@ function HomeScreen() {
   const gold = useApp((s) => s.progress.gold)
   const exercises = useApp((s) => s.exercises)
   const setShadowActive = useApp((s) => s.setShadowActive)
+  const identity = useApp((s) => s.identity)
+  const gatesCleared = useApp((s) => s.progress.gatesCleared)
+  const profile = useApp((s) => s.profile)
 
   if (!projection) {
     return (
@@ -130,6 +134,18 @@ function HomeScreen() {
           bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
         />
         <GoldPanel gold={gold} />
+        {identity ? (
+          <HunterLicenseCard
+            hunterId={identity.hunterId}
+            rank={player.rank}
+            level={player.level}
+            hunterClassLabel={HUNTER_CLASS_LABELS[player.hunterClass]}
+            total={player.total}
+            titlesHeld={earnedTitleIds.length}
+            gatesCleared={gatesCleared}
+            awakenedAt={profile?.awakenedAt ?? null}
+          />
+        ) : null}
         <AdvisoriesPanel advisories={advisories} />
       </SystemWindow>
     </main>
