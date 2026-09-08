@@ -10,7 +10,7 @@
  * and 10 km run, reaching those figures at the level the XP curve is calibrated
  * to arrive at after a consistent year.
  */
-import type { DayKey, QuestType, StatBlock } from './types'
+import type { DayKey, HunterClass, QuestType, StatBlock } from './types'
 import { addDaysToKey } from './time'
 import { questBiasFromAllocation, type QuestBias } from './stats'
 
@@ -289,6 +289,67 @@ export function nextStreak(
     case 'missed':
       return 0
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Job Change                                                          */
+/* ------------------------------------------------------------------ */
+
+/** The level at which the Job Change Quest becomes available (m7b-plan F1). */
+export const JOB_CHANGE_LEVEL = 20
+
+/**
+ * Whether the Job Change Quest should be offered. Completion is a fact in the
+ * log (m7b-plan F6), so once true this never needs to become false again —
+ * `alreadyCompleted` just stops it from being offered a second time.
+ */
+export function isJobChangeDue(level: number, alreadyCompleted: boolean): boolean {
+  return level >= JOB_CHANGE_LEVEL && !alreadyCompleted
+}
+
+type CombatClass = Exclude<HunterClass, 'none' | 'shadow_monarch'>
+
+/**
+ * Which of the four combat stats maps to which class. INT is excluded on
+ * purpose — it already has a role (mana capacity for the shadow roster,
+ * `activeShadowCap`) and is not one of the four archetypes the brief names.
+ */
+const CLASS_BY_STAT: Record<'STR' | 'VIT' | 'AGI' | 'PER', CombatClass> = {
+  STR: 'fighter',
+  VIT: 'tanker',
+  AGI: 'assassin',
+  PER: 'ranger',
+}
+
+/**
+ * Priority order for a tie. Rule 2: a function returning an enum states what
+ * an ambiguous input returns explicitly, rather than falling through to
+ * whichever key an object happened to iterate first.
+ */
+const TIE_PRIORITY: readonly ('STR' | 'VIT' | 'AGI' | 'PER')[] = ['STR', 'VIT', 'AGI', 'PER']
+
+/**
+ * Fighter, Tanker, Assassin or Ranger, from whichever of STR/VIT/AGI/PER is
+ * highest. An all-equal distribution (a fresh hunter with `ZERO_STATS`, or
+ * any exact tie) explicitly resolves to Fighter via `TIE_PRIORITY`, never to
+ * an arbitrary object-iteration order.
+ */
+export function classFromStats(total: StatBlock): CombatClass {
+  let winner: 'STR' | 'VIT' | 'AGI' | 'PER' = TIE_PRIORITY[0]!
+  for (const key of TIE_PRIORITY) {
+    if (total[key] > total[winner]) winner = key
+  }
+  return CLASS_BY_STAT[winner]
+}
+
+/** The completion payload: the read stats plus the class they picked, kept together so the pick stays auditable. */
+export interface JobChangeResult {
+  statsRead: StatBlock
+  class: CombatClass
+}
+
+export function resolveJobChange(total: StatBlock): JobChangeResult {
+  return { statsRead: total, class: classFromStats(total) }
 }
 
 /* ------------------------------------------------------------------ */

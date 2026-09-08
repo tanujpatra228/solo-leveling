@@ -105,7 +105,15 @@ export type LoadUnit = z.infer<typeof LoadUnitSchema>
 export const SubstitutionReasonSchema = z.enum(['occupied', 'unavailable', 'injury', 'preference'])
 export type SubstitutionReason = z.infer<typeof SubstitutionReasonSchema>
 
-export const QuestTypeSchema = z.enum(['daily', 'gate', 'penalty', 'recovery', 'red_gate', 'instant_dungeon'])
+export const QuestTypeSchema = z.enum([
+  'daily',
+  'gate',
+  'penalty',
+  'recovery',
+  'red_gate',
+  'instant_dungeon',
+  'job_change',
+])
 export type QuestType = z.infer<typeof QuestTypeSchema>
 
 export const QuestStatusSchema = z.enum(['issued', 'complete', 'failed', 'forgiven', 'expired'])

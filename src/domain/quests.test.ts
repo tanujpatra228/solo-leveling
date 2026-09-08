@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest'
 import {
   CANON_LEVEL,
   CANON_TARGETS,
+  JOB_CHANGE_LEVEL,
   PENALTY_SURCHARGE,
   REST_TOKENS_PER_MONTH,
+  classFromStats,
   dailyScale,
   generateDailyQuest,
   generatePenaltyQuest,
   generateRecoveryQuest,
   isDailyQuestComplete,
+  isJobChangeDue,
   mergeDailyQuestProgress,
   nextStreak,
   planDay,
+  resolveJobChange,
   resolveMissedDay,
 } from './quests'
 import { ZERO_STATS } from './stats'
@@ -214,6 +218,51 @@ describe('forgiveness', () => {
     expect(nextStreak(10, 'completed')).toBe(11)
     expect(nextStreak(10, 'forgiven')).toBe(10)
     expect(nextStreak(10, 'missed')).toBe(0)
+  })
+})
+
+describe('isJobChangeDue (m7b-plan commit 1)', () => {
+  it('is not due below the threshold level', () => {
+    expect(isJobChangeDue(JOB_CHANGE_LEVEL - 1, false)).toBe(false)
+  })
+
+  it('is due once the threshold level is reached', () => {
+    expect(isJobChangeDue(JOB_CHANGE_LEVEL, false)).toBe(true)
+    expect(isJobChangeDue(JOB_CHANGE_LEVEL + 30, false)).toBe(true)
+  })
+
+  it('is never due again once already completed', () => {
+    expect(isJobChangeDue(JOB_CHANGE_LEVEL + 30, true)).toBe(false)
+  })
+})
+
+describe('classFromStats (m7b-plan commit 1)', () => {
+  it('picks the class matching whichever combat stat is highest', () => {
+    expect(classFromStats({ ...ZERO_STATS, STR: 10 })).toBe('fighter')
+    expect(classFromStats({ ...ZERO_STATS, VIT: 10 })).toBe('tanker')
+    expect(classFromStats({ ...ZERO_STATS, AGI: 10 })).toBe('assassin')
+    expect(classFromStats({ ...ZERO_STATS, PER: 10 })).toBe('ranger')
+  })
+
+  it('ignores INT, which already has a role', () => {
+    expect(classFromStats({ ...ZERO_STATS, INT: 999, STR: 1 })).toBe('fighter')
+  })
+
+  it('resolves an all-equal distribution to Fighter, explicitly rather than by accident', () => {
+    expect(classFromStats(ZERO_STATS)).toBe('fighter')
+    expect(classFromStats({ STR: 5, VIT: 5, AGI: 5, INT: 5, PER: 5 })).toBe('fighter')
+  })
+
+  it('resolves any tie by the same fixed priority, not by object-iteration order', () => {
+    expect(classFromStats({ STR: 0, VIT: 8, AGI: 8, INT: 0, PER: 8 })).toBe('tanker')
+    expect(classFromStats({ STR: 0, VIT: 0, AGI: 8, INT: 0, PER: 8 })).toBe('assassin')
+  })
+})
+
+describe('resolveJobChange (m7b-plan commit 1)', () => {
+  it('carries the stats it read alongside the class they picked, so the pick stays auditable', () => {
+    const total = { ...ZERO_STATS, AGI: 20 }
+    expect(resolveJobChange(total)).toEqual({ statsRead: total, class: 'assassin' })
   })
 })
 
