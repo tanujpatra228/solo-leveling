@@ -12,6 +12,7 @@ import { computeOverallRank, rankBarbellLift, rankPullupByReps, standardsTableFo
 import { activeShadowCap, deriveStats, questBiasFromAllocation, unspentPoints, type DerivedStatsInput, type QuestBias } from './stats'
 import { addStats, ZERO_STATS } from './stats'
 import { GATE_CLEAR_BONUS, XP_DAILY_QUEST, computeSessionXp, levelFromTotalXp } from './xp'
+import { isJobChangeDue, type JobChangeResult } from './quests'
 import { resolveRoster, selectMarshals, type RosterState } from './shadows'
 import { evaluateTitles, type TitleDef } from './titles'
 import { unlockedRunes, type RuneDef } from './runes'
@@ -100,6 +101,8 @@ export interface Projection {
    */
   marshals: { exerciseId: string; score: number; rank: Rank }[]
   age: number | null
+  /** Whether the Job Change Quest is available to offer right now (m7b-plan commit 1/2). */
+  jobChangeDue: boolean
 }
 
 /** Groups sets by their session, once, so nothing else has to scan them. */
@@ -414,6 +417,12 @@ export function projectPlayer(input: ProjectionInput): Projection {
     input.earnedTitleIds,
   )
 
+  /* ---- hunter class, from the completed Job Change Quest (m7b-plan F6) ---- */
+  // The row is the fact; `hunterClass` is never stored, so a corrected quest
+  // re-grades the class the same way every other derived figure re-grades.
+  const completedJobChange = input.quests.find((q) => q.type === 'job_change' && q.status === 'complete')
+  const hunterClass = completedJobChange ? (completedJobChange.payload as JobChangeResult).class : 'none'
+
   /* ---- the tower ---- */
   const towerContext = {
     bodyweightKg,
@@ -438,7 +447,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
     fatigue: fatigue.gauge,
     fatigueMultiplier: fatigue.xpMultiplier,
     rank: rank.rank,
-    hunterClass: 'none',
+    hunterClass,
     gold: input.gold,
     streak: input.currentStreak,
     longestStreak: input.longestStreak,
@@ -466,6 +475,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
     shadowCap: activeShadowCap(total.INT),
     marshals: selectMarshals(new Map(perLift.map((l, i) => [standardLiftExerciseIds[i] ?? l.lift, l.score]))),
     age: input.profile ? ageFromBirthYear(input.profile.birthYear, input.now) : null,
+    jobChangeDue: isJobChangeDue(level.level, completedJobChange !== undefined),
   }
 }
 

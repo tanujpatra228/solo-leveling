@@ -9,7 +9,7 @@ import {
 } from './projection'
 import { SEED_EXERCISES, SEED_ROUTINES } from '../db/seed'
 import { XP_DAILY_QUEST } from './xp'
-import type { Profile, SessionLog, SetLog } from './types'
+import type { Profile, QuestLog, SessionLog, SetLog } from './types'
 
 const profile: Profile = {
   id: 'profile',
@@ -342,6 +342,95 @@ describe('completed daily quests pay XP', () => {
       }),
     )
     expect(withQuests.player.xp).toBe(2 * XP_DAILY_QUEST)
+  })
+})
+
+describe('hunterClass is derived from the completed Job Change Quest (m7b-plan commit 2)', () => {
+  it('stays none with no completed Job Change Quest', () => {
+    expect(projectPlayer(baseInput()).player.hunterClass).toBe('none')
+  })
+
+  it('takes the class from the completed quest\'s payload', () => {
+    const result = projectPlayer(
+      baseInput({
+        quests: [
+          {
+            id: 'jc1',
+            dayKey: '2026-03-01',
+            type: 'job_change',
+            status: 'complete',
+            issuedAt: 0,
+            expiresAt: null,
+            payload: { statsRead: { STR: 0, VIT: 0, AGI: 20, INT: 0, PER: 0 }, class: 'assassin' },
+          },
+        ],
+      }),
+    )
+    expect(result.player.hunterClass).toBe('assassin')
+  })
+
+  it('ignores an issued-but-not-completed Job Change Quest', () => {
+    const result = projectPlayer(
+      baseInput({
+        quests: [
+          {
+            id: 'jc1',
+            dayKey: '2026-03-01',
+            type: 'job_change',
+            status: 'issued',
+            issuedAt: 0,
+            expiresAt: null,
+            payload: { statsRead: { STR: 0, VIT: 0, AGI: 20, INT: 0, PER: 0 }, class: 'assassin' },
+          },
+        ],
+      }),
+    )
+    expect(result.player.hunterClass).toBe('none')
+  })
+})
+
+describe('jobChangeDue (m7b-plan commit 1/2)', () => {
+  // 700 completed daily quests is comfortably more XP than level 20 needs
+  // under the real curve (LEVEL_CURVE_BASE/EXPONENT) — the point is being
+  // well past the threshold, not landing on it exactly.
+  const dailies: QuestLog[] = Array.from({ length: 700 }, (_, i) => ({
+    id: `d${i}`,
+    dayKey: '2026-02-01',
+    type: 'daily',
+    status: 'complete',
+    issuedAt: 0,
+    expiresAt: null,
+    payload: null,
+  }))
+
+  it('is not due before level 20', () => {
+    expect(projectPlayer(baseInput()).jobChangeDue).toBe(false)
+  })
+
+  it('is due at level 20 or above with no completed quest yet', () => {
+    const result = projectPlayer(baseInput({ quests: dailies }))
+    expect(result.player.level).toBeGreaterThanOrEqual(20)
+    expect(result.jobChangeDue).toBe(true)
+  })
+
+  it('is not due again once already completed, even at a high level', () => {
+    const result = projectPlayer(
+      baseInput({
+        quests: dailies.concat([
+          {
+            id: 'jc1',
+            dayKey: '2026-03-01',
+            type: 'job_change',
+            status: 'complete',
+            issuedAt: 0,
+            expiresAt: null,
+            payload: { statsRead: { STR: 0, VIT: 0, AGI: 0, INT: 0, PER: 0 }, class: 'fighter' },
+          },
+        ]),
+      }),
+    )
+    expect(result.jobChangeDue).toBe(false)
+    expect(result.player.hunterClass).toBe('fighter')
   })
 })
 

@@ -23,6 +23,7 @@ import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
 import { VolumePanel } from '../../components/VolumePanel'
+import { JOB_CHANGE_LEVEL } from '../../domain/quests'
 import type { HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
 import { rootRoute } from './root'
@@ -59,6 +60,12 @@ const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
   shadow_monarch: 'Shadow Monarch',
 }
 
+/** What the class line says before a class exists, so "no class" is explained rather than dead-ended. */
+function classLine(hunterClass: HunterClass, jobChangeDue: boolean): string {
+  if (hunterClass !== 'none') return HUNTER_CLASS_LABELS[hunterClass]
+  return jobChangeDue ? 'Job Change Quest available' : `No class — unlocks at level ${JOB_CHANGE_LEVEL}`
+}
+
 function HomeScreen() {
   const projection = useApp((s) => s.projection)
   const advisories = useApp((s) => s.advisories)
@@ -89,7 +96,7 @@ function HomeScreen() {
         <div className="flex items-center justify-between gap-3">
           <RankBadge rank={player.rank} />
           <span className="font-system text-[11px] text-ink-faint uppercase">
-            {HUNTER_CLASS_LABELS[player.hunterClass]}
+            {classLine(player.hunterClass, projection.jobChangeDue)}
           </span>
         </div>
 
