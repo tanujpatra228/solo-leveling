@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
 import { dayOfWeekForKey } from '../domain/time'
-import { putQuest, updateProgress, wipeEverything } from '../db/repo'
+import { addShadow, putQuest, updateProgress, wipeEverything } from '../db/repo'
 import { generateDailyQuest } from '../domain/quests'
 import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
 import { useApp } from './state'
@@ -245,6 +245,50 @@ describe('Red Gate (m7-plan commit 2)', () => {
 
   it('is a no-op with no Red Gate open', async () => {
     await expect(useApp.getState().resolveRedGate()).resolves.toBeUndefined()
+  })
+})
+
+describe('setShadowActive lets the hunter choose who stays when the cap is full (m7-plan commit 5, F2)', () => {
+  it('promotes a benched shadow once an active one is benched, rather than picking for the hunter', async () => {
+    await addShadow({
+      id: 's-a',
+      exerciseId: 'ex-a',
+      name: 'A',
+      rank: 'C',
+      extractedAt: 1,
+      buff: 'buff',
+      buffKind: 'xp_bonus',
+      buffMagnitude: 0.02,
+      isMarshal: false,
+      active: true,
+    })
+    await addShadow({
+      id: 's-b',
+      exerciseId: 'ex-b',
+      name: 'B',
+      rank: 'C',
+      extractedAt: 2,
+      buff: 'buff',
+      buffKind: 'xp_bonus',
+      buffMagnitude: 0.02,
+      isMarshal: false,
+      active: true,
+    })
+    await useApp.getState().refresh()
+
+    const before = useApp.getState().projection!.roster
+    // Fresh profile, no allocation: INT sits low enough that the cap holds
+    // only one, which is the scenario this behavior exists for.
+    expect(before.cap).toBe(1)
+    expect(before.overCap).toBe(true)
+    const activeId = before.active[0]!.id
+    const dormantId = before.benched.find((s) => s.active)!.id
+
+    await useApp.getState().setShadowActive(activeId, false)
+
+    const after = useApp.getState().projection!.roster
+    expect(after.active.map((s) => s.id)).toEqual([dormantId])
+    expect(after.active.map((s) => s.id)).not.toContain(activeId)
   })
 })
 

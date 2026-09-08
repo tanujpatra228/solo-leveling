@@ -16,6 +16,7 @@ import { GoldPanel } from '../../components/GoldPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { RunesPanel } from '../../components/RunesPanel'
+import { ShadowsPanel } from '../../components/ShadowsPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SystemPanel } from '../../components/SystemPanel'
@@ -55,6 +56,8 @@ function HomeScreen() {
   const resetAllocation = useApp((s) => s.resetAllocation)
   const earnedTitleIds = useApp((s) => s.earnedTitleIds)
   const gold = useApp((s) => s.progress.gold)
+  const exercises = useApp((s) => s.exercises)
+  const setShadowActive = useApp((s) => s.setShadowActive)
 
   if (!projection) {
     return (
@@ -116,6 +119,11 @@ function HomeScreen() {
         <DeloadPanel deload={projection.deload} />
         <RunesPanel level={player.level} />
         <TitlesPanel titleIds={earnedTitleIds} />
+        <ShadowsPanel
+          roster={projection.roster}
+          exercises={exercises}
+          onToggle={(id, active) => void setShadowActive(id, active)}
+        />
         <TowerPanel
           floorCleared={projection.towerFloorCleared}
           nextFloor={projection.nextTowerFloor}
