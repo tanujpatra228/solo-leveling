@@ -10,7 +10,7 @@
  * and 10 km run, reaching those figures at the level the XP curve is calibrated
  * to arrive at after a consistent year.
  */
-import type { DayKey, HunterClass, QuestType, StatBlock } from './types'
+import type { DayKey, HunterClass, QuestLog, QuestType, StatBlock } from './types'
 import { addDaysToKey } from './time'
 import { questBiasFromAllocation, type QuestBias } from './stats'
 
@@ -71,6 +71,24 @@ export function mergeDailyQuestProgress(
     next[kind] = (next[kind] ?? 0) + amount
   }
   return next
+}
+
+/**
+ * The quest of a given type for a day that nothing else supersedes — the
+ * live one. A reroll (m7b-plan F3, commit 4) adds a new row rather than
+ * deleting the old one, so a plain dayKey+type lookup could return either;
+ * this always returns the current one. Same pattern as `SetLog.supersedes`.
+ */
+export function activeQuestFor(
+  quests: readonly QuestLog[],
+  dayKey: DayKey,
+  type: QuestType,
+): QuestLog | null {
+  const candidates = quests.filter((q) => q.dayKey === dayKey && q.type === type)
+  const supersededIds = new Set(
+    candidates.map((q) => q.supersedes).filter((id): id is string => id !== undefined),
+  )
+  return candidates.find((q) => !supersededIds.has(q.id)) ?? null
 }
 
 /** The canon Daily Quest, reached at the level the XP curve targets for a year. */

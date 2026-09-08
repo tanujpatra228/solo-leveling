@@ -13,7 +13,7 @@
  */
 import { useMemo, useState } from 'react'
 import { useApp } from '../app/state'
-import type { DailyQuestItem, DailyQuestPayload } from '../domain/quests'
+import { activeQuestFor, type DailyQuestItem, type DailyQuestPayload } from '../domain/quests'
 import { SystemMeter } from './SystemMeter'
 import { SystemPanel } from './SystemPanel'
 
@@ -28,7 +28,7 @@ export function DailyQuestPanel() {
   const completeDailyQuest = useApp((s) => s.completeDailyQuest)
 
   const quest = useMemo(() => {
-    const row = quests.find((q) => q.dayKey === today && q.type === 'daily')
+    const row = activeQuestFor(quests, today, 'daily')
     return (row?.payload as DailyQuestPayload | undefined) ?? null
   }, [quests, today])
 

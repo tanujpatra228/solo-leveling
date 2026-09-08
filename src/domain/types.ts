@@ -396,6 +396,8 @@ export const QuestLogSchema = z.object({
   /** After this instant a gate has been open too long and breaks. */
   expiresAt: TimestampSchema.nullable(),
   payload: z.unknown(),
+  /** Set to the id of an earlier quest this one replaces — a reroll (m7b-plan F3), same pattern as SetLog.supersedes. */
+  supersedes: z.string().optional(),
 })
 export type QuestLog = z.infer<typeof QuestLogSchema>
 

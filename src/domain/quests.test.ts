@@ -5,6 +5,7 @@ import {
   JOB_CHANGE_LEVEL,
   PENALTY_SURCHARGE,
   REST_TOKENS_PER_MONTH,
+  activeQuestFor,
   classFromStats,
   dailyScale,
   generateDailyQuest,
@@ -18,6 +19,7 @@ import {
   resolveJobChange,
   resolveMissedDay,
 } from './quests'
+import type { QuestLog } from './types'
 import { ZERO_STATS } from './stats'
 
 describe('the Daily Quest scales toward canon', () => {
@@ -218,6 +220,46 @@ describe('forgiveness', () => {
     expect(nextStreak(10, 'completed')).toBe(11)
     expect(nextStreak(10, 'forgiven')).toBe(10)
     expect(nextStreak(10, 'missed')).toBe(0)
+  })
+})
+
+function quest(partial: Partial<QuestLog> & { id: string }): QuestLog {
+  return {
+    id: partial.id,
+    dayKey: partial.dayKey ?? '2026-03-01',
+    type: partial.type ?? 'daily',
+    status: partial.status ?? 'issued',
+    issuedAt: partial.issuedAt ?? 0,
+    expiresAt: partial.expiresAt ?? null,
+    payload: partial.payload ?? null,
+    supersedes: partial.supersedes,
+  }
+}
+
+describe('activeQuestFor (m7b-plan commit 4)', () => {
+  it('returns the only match when nothing supersedes anything', () => {
+    const original = quest({ id: 'd1' })
+    expect(activeQuestFor([original], '2026-03-01', 'daily')).toEqual(original)
+  })
+
+  it('returns the reroll rather than the row it supersedes', () => {
+    const original = quest({ id: 'd1' })
+    const reroll = quest({ id: 'd2', supersedes: 'd1' })
+    expect(activeQuestFor([original, reroll], '2026-03-01', 'daily')).toEqual(reroll)
+    // Order in the array must not matter — a superseded row is excluded by
+    // being referenced, not by arrival position.
+    expect(activeQuestFor([reroll, original], '2026-03-01', 'daily')).toEqual(reroll)
+  })
+
+  it('returns null with no match', () => {
+    expect(activeQuestFor([], '2026-03-01', 'daily')).toBeNull()
+  })
+
+  it('ignores rows for a different day or type', () => {
+    const daily = quest({ id: 'd1', dayKey: '2026-03-01', type: 'daily' })
+    const gate = quest({ id: 'g1', dayKey: '2026-03-01', type: 'gate' })
+    const otherDay = quest({ id: 'd2', dayKey: '2026-03-02', type: 'daily' })
+    expect(activeQuestFor([daily, gate, otherDay], '2026-03-01', 'daily')).toEqual(daily)
   })
 })
 

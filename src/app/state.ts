@@ -10,6 +10,7 @@ import { detectAdvisories, activeAdvisories, type Advisory } from '../domain/adv
 import { hardSetsPerMuscle } from '../domain/volume'
 import { computeStreak, type StreakState } from '../domain/streak'
 import {
+  activeQuestFor,
   generateDailyQuest,
   generatePenaltyQuest,
   generateRecoveryQuest,
@@ -269,6 +270,14 @@ export interface AppState extends LoadedData {
    */
   completeDailyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
   todaysDailyQuest: () => DailyQuestPayload | null
+  /**
+   * Replaces today's Daily Quest with a freshly generated one. The old row
+   * stays — marked `supersedes` on the new one, not deleted or reassigned
+   * (m7b-plan F3) — so it is simply no longer the active row, and generates
+   * no penalty for being "unfinished". Ungated here; the Shop (m7b-plan
+   * commit 5/6) is what will charge gold for calling this.
+   */
+  rerollDailyQuest: () => Promise<void>
 
   allocatePoint: (stat: StatKey) => Promise<void>
   resetAllocation: () => Promise<void>
@@ -744,7 +753,9 @@ export const useApp = create<AppState>((set, get) => ({
     // Yesterday's unfinished daily becomes today's penalty, and yesterday's row
     // is marked so the streak calculation can see what happened.
     const yesterday = addDaysToKey(today, -1)
-    const yesterdayDaily = state.quests.find((q) => q.dayKey === yesterday && q.type === 'daily')
+    // The active row, not just any row for the day — a rerolled-away quest
+    // (m7b-plan F3) must not generate a penalty for the one it replaced.
+    const yesterdayDaily = activeQuestFor(state.quests, yesterday, 'daily')
     if (
       yesterdayDaily &&
       yesterdayDaily.status === 'issued' &&
@@ -1161,13 +1172,13 @@ export const useApp = create<AppState>((set, get) => ({
 
   todaysDailyQuest() {
     const state = get()
-    const row = state.quests.find((q) => q.dayKey === state.today && q.type === 'daily')
+    const row = activeQuestFor(state.quests, state.today, 'daily')
     return (row?.payload as DailyQuestPayload | undefined) ?? null
   },
 
   async completeDailyQuest(progressByKind) {
     const state = get()
-    const row = state.quests.find((q) => q.dayKey === state.today && q.type === 'daily')
+    const row = activeQuestFor(state.quests, state.today, 'daily')
     if (!row || row.status === 'complete') return
 
     const payload = row.payload as DailyQuestPayload
@@ -1198,6 +1209,26 @@ export const useApp = create<AppState>((set, get) => ({
       tone: 'good',
       kind: 'window',
     })
+  },
+
+  async rerollDailyQuest() {
+    const state = get()
+    const current = activeQuestFor(state.quests, state.today, 'daily')
+    if (!current || current.status === 'complete') return
+
+    const level = state.projection?.player.level ?? 1
+    const quest = generateDailyQuest({ dayKey: state.today, level, allocated: state.allocated })
+    await repo.putQuest({
+      id: `daily-${state.today}-reroll-${Date.now()}`,
+      dayKey: state.today,
+      type: 'daily',
+      status: 'issued',
+      issuedAt: Date.now(),
+      expiresAt: null,
+      payload: { ...quest, progress: {} },
+      supersedes: current.id,
+    })
+    await get().refresh()
   },
 
   async allocatePoint(stat) {

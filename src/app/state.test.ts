@@ -12,9 +12,9 @@ import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
-import { dayOfWeekForKey } from '../domain/time'
+import { addDaysToKey, dayOfWeekForKey } from '../domain/time'
 import { addShadow, putQuest, updateProgress, wipeEverything } from '../db/repo'
-import { generateDailyQuest } from '../domain/quests'
+import { generateDailyQuest, type DailyQuestPayload } from '../domain/quests'
 import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
 import { useApp } from './state'
 
@@ -716,6 +716,63 @@ describe('Daily Quest per-item progress (F2)', () => {
 
     const quest = useApp.getState().todaysDailyQuest()!
     expect(Object.keys(quest.progress)).toHaveLength(0)
+  })
+
+  describe('rerollDailyQuest supersedes rather than replaces (m7b-plan commit 4, F3)', () => {
+    it('leaves the old row in place, pointed to by the new one', async () => {
+      await seedTodaysQuest()
+      const original = useApp.getState().quests.find((q) => q.type === 'daily')!
+
+      await useApp.getState().rerollDailyQuest()
+
+      const rows = useApp.getState().quests.filter((q) => q.type === 'daily')
+      expect(rows).toHaveLength(2)
+      const reroll = rows.find((q) => q.id !== original.id)!
+      expect(reroll.supersedes).toBe(original.id)
+      expect(useApp.getState().quests.find((q) => q.id === original.id)).toBeDefined()
+    })
+
+    it('makes the reroll the active quest for progress and completion', async () => {
+      await seedTodaysQuest()
+      await useApp.getState().rerollDailyQuest()
+
+      const active = useApp.getState().todaysDailyQuest()!
+      const reroll = useApp.getState().quests.find((q) => q.type === 'daily' && q.supersedes)!
+      expect(active).toEqual(reroll.payload)
+    })
+
+    it('completing the reroll counts, even though the superseded original sits forever unfinished', async () => {
+      const today = useApp.getState().today
+      await seedTodaysQuest()
+      await useApp.getState().rerollDailyQuest()
+
+      const reroll = useApp.getState().quests.find((q) => q.type === 'daily' && q.supersedes)!
+      const payload = reroll.payload as DailyQuestPayload
+      const full: Partial<Record<string, number>> = {}
+      for (const item of payload.items) full[item.kind] = item.target
+      await useApp.getState().completeDailyQuest(full)
+      expect(useApp.getState().quests.find((q) => q.id === reroll.id)!.status).toBe('complete')
+
+      // The superseded original never left 'issued' — a naive dayKey+type
+      // lookup would find *it* instead of the completed reroll and wrongly
+      // generate a penalty for work that was, in fact, done (F3).
+      const tomorrow = addDaysToKey(today, 1)
+      useApp.setState({ today: tomorrow })
+      await useApp.getState().ensureQuestsForToday()
+
+      expect(useApp.getState().quests.some((q) => q.type === 'penalty')).toBe(false)
+    })
+
+    it('is a no-op once the quest is already complete', async () => {
+      await seedTodaysQuest()
+      const quest = useApp.getState().todaysDailyQuest()!
+      const full: Partial<Record<string, number>> = {}
+      for (const item of quest.items) full[item.kind] = item.target
+      await useApp.getState().completeDailyQuest(full)
+
+      await useApp.getState().rerollDailyQuest()
+      expect(useApp.getState().quests.filter((q) => q.type === 'daily')).toHaveLength(1)
+    })
   })
 })
 
