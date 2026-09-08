@@ -18,7 +18,7 @@ plan named in the row.
 | M5 | The game layer | **Done** | — |
 | M6 | Sync and System Link | **Done** | — |
 | M7 | The rest of the fantasy layer | **Done** | Split into M7 (eleven surfaces over a tested engine) and M7b |
-| M7b | Shop, Job Change Quest, Reawakening Test | **Planned** — `docs/m7b-plan.md` | 7 commits. Each needs an engine designed, not a surface built. `hunterClass` has been hardcoded `'none'` since M2; gold has had two sources and no sink since M3 |
+| M7b | Shop, Job Change Quest, Reawakening Test | **Done** | — |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Planned** — `docs/m9-plan.md` | 4 commits. Generated ahead of time and committed, never at runtime — a network call on the finish-gate path breaks the offline promise |
 
@@ -42,10 +42,10 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 630 passing |
+| Tests | 676 passing |
 | Typecheck, `check:render`, build | Clean |
-| Bundle | 196.16 KB JS + 5.97 KB CSS + 2.20 KB `workbox-window` ≈ 204.33 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster and license card panels ship in their own lazy chunks (M7 commit 7) |
-| Deployed | Live on workers.dev, redeployed 2026-09-08 with all seven M7 commits |
+| Bundle | 197.91 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.10 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
+| Deployed | Live on workers.dev, redeployed 2026-09-08 with all seven M7b commits |
 
 ## M7 — The rest of the fantasy layer, landed 2026-09-08
 
@@ -80,6 +80,37 @@ cleared today kept re-offering Start Gate on return to `/gate` (`39a9626`); relo
 route after installing the PWA 404'd instead of serving the app shell (`8f35261`).
 
 Bundle after M7: 196.16 KB JS + 5.97 KB CSS + 2.20 KB `workbox-window` ≈ 204.33 KB gzipped initial
+route — still under half the ~480 KB Slow-4G install budget M4 commit 3 derived.
+
+## M7b — The System Shop, the Job Change Quest, and the Reawakening Test, landed 2026-09-08
+
+All seven commits of `docs/m7b-plan.md` (now `git rm`'d — detail recoverable at the commit below,
+summary in `docs/implementation-plan.md` §4). 676 tests passing, typecheck and `check:render` clean.
+The three items M7 was split away from because each needed an engine designed, not a surface built.
+
+- [x] **Commit 1** `classFromStats`: Fighter/Tanker/Assassin/Ranger from whichever of STR/VIT/AGI/PER
+      is highest, INT excluded (it already governs the shadow roster's mana capacity), with an
+      explicit tie-break priority rather than an accidental one (`9b444ff`)
+- [x] **Commit 2** `hunterClass` derived from a completed `job_change` `QuestLog` row rather than
+      stored on `Progress`, so a correction re-grades it like every other derived figure. The Status
+      Window's class line now explains "no class yet" instead of dead-ending on it (`3c6c190`)
+- [x] **Commit 3** The Job Change Quest wired into `ensureQuestsForToday` and its surface — the
+      "benchmark week" is framing, not an enforced timer, since nothing in the brief specifies what
+      a partial week should do (`51dfdaf`)
+- [x] **Commit 4** `QuestLog.supersedes` (same pattern as `SetLog.supersedes`) and the Daily Quest
+      reroll — required fixing every dayKey+type quest lookup to resolve the active row rather than
+      assume one row per day (`a115e04`)
+- [x] **Commit 5** The Shop engine: a two-item catalogue (Rest Token, Quest Reroll) priced by
+      calibration against real gold income, not invented — a closed-set test enforces "gold never
+      buys what the log has to earn" (`bd8f2cf`)
+- [x] **Commit 6** The Shop surface, replacing `GoldPanel` (deleted — its "no Shop yet" copy was no
+      longer true). A Quest Reroll purchase checks something is open to reroll *before* charging
+      gold (`0df488b`)
+- [x] **Commit 7** The Reawakening Test — reframed from "recomputes rank" (rank already recomputes
+      on every call) to "a prompt to re-measure": the input goes stale, not the arithmetic. Reuses
+      the Awakening Test's own physique-step fields (`605a3f3`)
+
+Bundle after M7b: 197.91 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.10 KB gzipped initial
 route — still under half the ~480 KB Slow-4G install budget M4 commit 3 derived.
 
 ## M6 — Sync and System Link, landed 2026-09-06
@@ -432,16 +463,20 @@ Step-by-step plan: docs/m4-plan.md
 - [x] Red Gate (voluntary, no partial credit)
 - [x] Instant Dungeon Key (bodyweight-only from available equipment)
 - [x] Hunter Rank from published strength standards, offline table
-- [ ] Reawakening Test every 8 to 12 weeks
+- [x] Reawakening Test every 8 to 12 weeks (M7b commit 7 — a prompt to re-measure, not a
+      recalculation; see F4)
 - [x] Shadow extraction, shadow ranks from e1RM percentile, INT-capped roster
 - [x] Marshal shadows for strongest lifts
-- [x] Titles and achievements (engine; screen pending)
-- [ ] Gold and the System Shop
+- [x] Titles and achievements
+- [x] Gold and the System Shop (M7b commits 5-6 — Rest Token and Quest Reroll only; themes and
+      cosmetics dropped pending a contrast audit, see m7b-plan F5)
 - [x] Runes and Skills gated by level (drop sets at 10, rest-pause at 15, clusters at 25)
-- [ ] Job Change Quest around level 20
-- [x] Demon Castle 100-floor tower (engine; screen pending)
-- [ ] Monarchs (own past PRs, Monarch of Sloth is the longest missed streak)
-- [ ] Hunter License shareable PNG stat card
+- [x] Job Change Quest around level 20 (M7b commits 1-3)
+- [x] Demon Castle 100-floor tower
+- [x] Monarchs — shipped as canon boss names on every tenth tower floor (M7 commit 4), not the
+      richer "own past PRs, Monarch of Sloth" concept this line originally meant. That version was
+      never built; if it is still wanted, it needs its own plan
+- [x] Hunter License shareable PNG stat card
 
 ## Phase 5 — Push
 - [ ] VAPID keypair via setup script, private key as a Worker secret

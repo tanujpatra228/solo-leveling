@@ -417,6 +417,40 @@ shadow going dormant when the cap falls is explained rather than silently droppe
 own chunks (0.49 + 0.84 + 1.47 KB gzip) fetched only when the Status Window renders, rather than
 growing the initial chunk. Still under M4's ~480 KB Slow-4G install budget.
 
+### M7b — The System Shop, the Job Change Quest, and the Reawakening Test
+
+The three items M7 was split away from (`docs/m7b-plan.md` §0), because each needed an engine
+designed rather than a surface built: `hunterClass` had been hardcoded `'none'` since M2, gold had
+had two sources and no sink since M3, and `domain/bodycomp.ts`'s `remeasureDue` had been written and
+never called.
+
+Landed across seven commits: `classFromStats` picks Fighter/Tanker/Assassin/Ranger from whichever of
+STR/VIT/AGI/PER is highest, with an explicit tie-break rather than an accidental one — INT is
+excluded, since it already governs the shadow roster's mana capacity (commit 1); `hunterClass`
+derived from a completed `job_change` `QuestLog` row rather than stored on `Progress`, so a
+correction re-grades the class exactly like every other derived figure, plus a `jobChangeDue`
+Status Window line that explains "no class yet" instead of dead-ending on it (commit 2); the Job
+Change Quest wired into `ensureQuestsForToday` and a surface with the benchmark-week framing — made
+explicit as framing, not an enforced timer, since nothing in the brief specifies what a partial
+week should do (commit 3); `QuestLog.supersedes` (the same pattern as `SetLog.supersedes`) and the
+Daily Quest reroll, which required fixing every dayKey+type quest lookup to resolve the active
+(non-superseded) row rather than assuming one row per day (commit 4); the Shop engine — a two-item
+catalogue (Rest Token, Quest Reroll), priced by calibration against real gold income rather than
+invented, with a closed-set test enforcing "gold never buys what the log has to earn" (commit 5);
+the Shop surface, replacing the now-inaccurate GoldPanel (deleted) — a Quest Reroll purchase checks
+there is something open to reroll *before* charging gold, so a no-op purchase never happens (commit
+6); and the Reawakening Test, reframed from "recomputes rank" (rank already recomputes on every
+call) to "a prompt to re-measure" — the input goes stale, not the arithmetic — reusing the
+Awakening Test's own physique-step fields (commit 7).
+
+*Acceptance:* nothing in the Shop catalogue grants XP, stats, rank, a gate clear, or an untrained
+streak day; a rerolled-away Daily Quest generates no penalty for the row it replaced; the Job Change
+Quest is offered exactly once, at level 20, and never again once completed; the Reawakening Test
+prompts on an 8-to-12-week cadence and changes no derived figure except through the new
+measurement's own inputs.
+*Budget impact:* none. Initial-route bundle after commit 7: 197.91 KB JS + 5.99 KB CSS + 2.20 KB
+`workbox-window` ≈ 206.10 KB gzipped, still under M4's ~480 KB Slow-4G install budget.
+
 ### M8 — Push notifications — **parked 2026-09-07**
 
 Deliberately deferred until the rest of the platform is finished, at the user's decision. Nothing is
