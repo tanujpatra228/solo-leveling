@@ -831,6 +831,29 @@ describe('purchaseShopItem (m7b-plan commit 6)', () => {
   })
 })
 
+describe('completeReawakeningTest (m7b-plan commit 7)', () => {
+  it('records the new metric and announces the change since the last one', async () => {
+    await useApp.getState().addBodyMetric({ weightKg: 80, waistCm: 85 })
+    const before = useApp.getState().messages.length
+
+    await useApp.getState().completeReawakeningTest({ weightKg: 82, waistCm: 83 })
+
+    expect(useApp.getState().projection!.latestBodyMetric!.weightKg).toBe(82)
+    const message = useApp.getState().messages.at(-1)!
+    expect(message.title).toBe('[Reawakening Test complete.]')
+    expect(message.body).toContain('+2.0 kg')
+    expect(message.body).toContain('-2.0 cm')
+    expect(useApp.getState().messages.length).toBe(before + 1)
+  })
+
+  it('has nothing to compare against on the very first measurement', async () => {
+    await useApp.getState().completeReawakeningTest({ weightKg: 80 })
+
+    const message = useApp.getState().messages.at(-1)!
+    expect(message.body).toContain('Nothing to compare')
+  })
+})
+
 describe('a level change announces itself as a window notification', () => {
   // `messages` is ephemeral UI state, not persisted to Dexie, so nothing
   // clears it between tests in this file, and other, unrelated tests

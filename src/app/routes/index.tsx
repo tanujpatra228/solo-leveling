@@ -16,6 +16,7 @@ import { FatiguePanel } from '../../components/FatiguePanel'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
+import { ReawakeningTestPanel } from '../../components/ReawakeningTestPanel'
 import { RunesPanel } from '../../components/RunesPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
@@ -106,6 +107,7 @@ function HomeScreen() {
 
         <DailyQuestPanel />
         <JobChangeQuestPanel />
+        <ReawakeningTestPanel />
 
         <StreakPanel />
 

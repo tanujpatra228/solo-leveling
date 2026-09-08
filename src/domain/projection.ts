@@ -5,6 +5,7 @@
  * and `PlayerState` is therefore never synced between devices.
  */
 import { bestE1rm, countHardSets, epley, isHardSet, tonnage, workIntervalMinutes } from './e1rm'
+import { remeasureDue } from './bodycomp'
 import { computeFatigue, tonnagePerDay, type FatigueState } from './fatigue'
 import { checkDeload, type DeloadVerdict } from './deload'
 import { gateDifficulty, resolveBosses, resolveRepRecords } from './gates'
@@ -103,6 +104,13 @@ export interface Projection {
   age: number | null
   /** Whether the Job Change Quest is available to offer right now (m7b-plan commit 1/2). */
   jobChangeDue: boolean
+  /**
+   * Whether the Reawakening Test is due — a prompt to re-measure, not a
+   * recalculation (m7b-plan F4). Rank and every other derived figure
+   * already recompute on every call; what goes stale is the input, not the
+   * arithmetic.
+   */
+  reawakeningDue: boolean
 }
 
 /** Groups sets by their session, once, so nothing else has to scan them. */
@@ -476,6 +484,7 @@ export function projectPlayer(input: ProjectionInput): Projection {
     marshals: selectMarshals(new Map(perLift.map((l, i) => [standardLiftExerciseIds[i] ?? l.lift, l.score]))),
     age: input.profile ? ageFromBirthYear(input.profile.birthYear, input.now) : null,
     jobChangeDue: isJobChangeDue(level.level, completedJobChange !== undefined),
+    reawakeningDue: remeasureDue(latestBodyMetric?.dayKey ?? null, input.today),
   }
 }
 

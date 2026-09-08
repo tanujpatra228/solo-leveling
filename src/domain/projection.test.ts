@@ -8,8 +8,10 @@ import {
   type ProjectionInput,
 } from './projection'
 import { SEED_EXERCISES, SEED_ROUTINES } from '../db/seed'
+import { REMEASURE_MIN_DAYS } from './bodycomp'
+import { addDaysToKey } from './time'
 import { XP_DAILY_QUEST } from './xp'
-import type { Profile, QuestLog, SessionLog, SetLog } from './types'
+import type { BodyMetric, Profile, QuestLog, SessionLog, SetLog } from './types'
 
 const profile: Profile = {
   id: 'profile',
@@ -431,6 +433,35 @@ describe('jobChangeDue (m7b-plan commit 1/2)', () => {
     )
     expect(result.jobChangeDue).toBe(false)
     expect(result.player.hunterClass).toBe('fighter')
+  })
+})
+
+describe('reawakeningDue (m7b-plan commit 7, F4)', () => {
+  function metric(dayKey: string): BodyMetric {
+    return { id: `bm-${dayKey}`, dayKey, recordedAt: 0, weightKg: 80 }
+  }
+
+  it('is due with no body metric at all — nothing to compute anything from', () => {
+    expect(projectPlayer(baseInput()).reawakeningDue).toBe(true)
+  })
+
+  it('is not due just under the cadence', () => {
+    const recent = addDaysToKey(TODAY, -(REMEASURE_MIN_DAYS - 1))
+    const result = projectPlayer(baseInput({ bodyMetrics: [metric(recent)] }))
+    expect(result.reawakeningDue).toBe(false)
+  })
+
+  it('is due once the cadence is reached', () => {
+    const due = addDaysToKey(TODAY, -REMEASURE_MIN_DAYS)
+    const result = projectPlayer(baseInput({ bodyMetrics: [metric(due)] }))
+    expect(result.reawakeningDue).toBe(true)
+  })
+
+  it('reads from the most recent metric, not the oldest', () => {
+    const old = metric(addDaysToKey(TODAY, -200))
+    const recent = { ...metric(addDaysToKey(TODAY, -1)), recordedAt: 1 }
+    const result = projectPlayer(baseInput({ bodyMetrics: [old, recent] }))
+    expect(result.reawakeningDue).toBe(false)
   })
 })
 

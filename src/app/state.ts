@@ -292,6 +292,20 @@ export interface AppState extends LoadedData {
     bodyFatSource?: BodyFatSource
   }) => Promise<void>
 
+  /**
+   * Records a new measurement and announces what changed since the last one
+   * (m7b-plan commit 7) — a prompt to re-measure, not a recalculation (F4):
+   * rank and every other derived figure already recompute on every call.
+   */
+  completeReawakeningTest: (input: {
+    weightKg: number
+    waistCm?: number
+    neckCm?: number
+    hipCm?: number
+    bodyFatPct?: number
+    bodyFatSource?: BodyFatSource
+  }) => Promise<void>
+
   setShadowActive: (id: string, active: boolean) => Promise<void>
   /** The issued-but-not-completed Job Change Quest row, if one exists. */
   activeJobChangeQuest: () => QuestLog | null
@@ -1254,6 +1268,32 @@ export const useApp = create<AppState>((set, get) => ({
   async addBodyMetric(input) {
     await repo.addBodyMetric(input)
     await get().refresh()
+  },
+
+  async completeReawakeningTest(input) {
+    const before = get().projection?.latestBodyMetric ?? null
+    await repo.addBodyMetric(input)
+    await get().refresh()
+
+    const lines: string[] = []
+    if (before) {
+      const weightDelta = input.weightKg - before.weightKg
+      lines.push(`Bodyweight ${weightDelta >= 0 ? '+' : ''}${weightDelta.toFixed(1)} kg`)
+      if (before.waistCm !== undefined && input.waistCm !== undefined) {
+        const waistDelta = input.waistCm - before.waistCm
+        lines.push(`waist ${waistDelta >= 0 ? '+' : ''}${waistDelta.toFixed(1)} cm`)
+      }
+    }
+
+    get().pushMessage({
+      title: '[Reawakening Test complete.]',
+      body:
+        lines.length > 0
+          ? `${lines.join(', ')} since the last measurement. Rank and every other derived figure already reflect it.`
+          : 'First measurement recorded. Nothing to compare it against yet.',
+      tone: 'system',
+      kind: 'window',
+    })
   },
 
   async setShadowActive(id, active) {
