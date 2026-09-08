@@ -15,6 +15,7 @@ import {
   generateRecoveryQuest,
   isDailyQuestComplete,
   mergeDailyQuestProgress,
+  resolveJobChange,
   type DailyItemKind,
   type DailyQuestPayload,
 } from '../domain/quests'
@@ -282,6 +283,9 @@ export interface AppState extends LoadedData {
   }) => Promise<void>
 
   setShadowActive: (id: string, active: boolean) => Promise<void>
+  /** The issued-but-not-completed Job Change Quest row, if one exists. */
+  activeJobChangeQuest: () => QuestLog | null
+  completeJobChangeQuest: () => Promise<void>
   dismissAdvisory: (id: string) => Promise<void>
   declareAbsence: (dayKey: DayKey, reason: 'illness' | 'travel') => Promise<void>
   spendRestToken: () => Promise<boolean>
@@ -800,6 +804,26 @@ export const useApp = create<AppState>((set, get) => ({
       })
       get().pushMessage({ title: recovery.announcement, body: recovery.detail, tone: 'warn' })
     }
+
+    // Level-triggered rather than day-keyed, and issued exactly once — a row
+    // existing at all (issued or complete) means never again (m7b-plan F6).
+    if (state.projection?.jobChangeDue && !state.quests.some((q) => q.type === 'job_change')) {
+      await repo.putQuest({
+        id: 'job-change',
+        dayKey: today,
+        type: 'job_change',
+        status: 'issued',
+        issuedAt: Date.now(),
+        expiresAt: null,
+        payload: null,
+      })
+      get().pushMessage({
+        title: '[The Job Change Quest has arrived.]',
+        body: 'A benchmark week. Train as you have been — your stat distribution, read whenever you take the test, picks your class.',
+        tone: 'system',
+        kind: 'window',
+      })
+    }
   },
 
   async announceBodyweightFactorRegradeIfNeeded() {
@@ -1111,6 +1135,11 @@ export const useApp = create<AppState>((set, get) => ({
       })
     }
 
+    // Level-triggered rather than day-keyed (m7b-plan commit 3), so a gate
+    // that crosses level 20 must offer it now rather than waiting for the
+    // next app load, unlike the day-keyed quests ensureQuestsForToday
+    // otherwise only re-checks at boot.
+    await get().ensureQuestsForToday()
     await get().refresh()
     // One of the two active triggers (F3, the other is app foreground). Not
     // awaited: a finished gate must show its summary at once, not after a
@@ -1192,6 +1221,27 @@ export const useApp = create<AppState>((set, get) => ({
   async setShadowActive(id, active) {
     await repo.setShadowActive(id, active)
     await get().refresh()
+  },
+
+  activeJobChangeQuest() {
+    return get().quests.find((q) => q.type === 'job_change' && q.status === 'issued') ?? null
+  },
+
+  async completeJobChangeQuest() {
+    const state = get()
+    const row = state.activeJobChangeQuest()
+    const total = state.projection?.player.total
+    if (!row || !total) return
+    const result = resolveJobChange(total)
+    await repo.putQuest({ ...row, status: 'complete', payload: result })
+    await get().refresh()
+    const className = result.class.charAt(0).toUpperCase() + result.class.slice(1)
+    get().pushMessage({
+      title: `[Job Change complete. You are now a ${className}.]`,
+      body: 'The stat distribution you trained into has spoken. This is not a cap — it is a description of who you have already become.',
+      tone: 'good',
+      kind: 'window',
+    })
   },
 
   async dismissAdvisory(id) {

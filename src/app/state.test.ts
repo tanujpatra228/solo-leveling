@@ -292,6 +292,45 @@ describe('setShadowActive lets the hunter choose who stays when the cap is full 
   })
 })
 
+describe('the Job Change Quest is issued at level 20 and completes on demand (m7b-plan commit 3)', () => {
+  it('issues once the level threshold is crossed, and completion reads the stats at that moment', async () => {
+    // Push level to 20+ with completed daily quests — the XP source does
+    // not matter here, only that a real projection reaches the threshold.
+    for (let i = 0; i < 700; i += 1) {
+      await putQuest({
+        id: `d${i}`,
+        dayKey: '2020-01-01',
+        type: 'daily',
+        status: 'complete',
+        issuedAt: 0,
+        expiresAt: null,
+        payload: null,
+      })
+    }
+    await useApp.getState().refresh()
+    expect(useApp.getState().projection!.player.level).toBeGreaterThanOrEqual(20)
+
+    // Lean the allocation toward AGI so the class the test picks is
+    // unambiguous against a fresh profile's otherwise-flat derived stats.
+    for (let i = 0; i < 10; i += 1) await useApp.getState().allocatePoint('AGI')
+
+    await useApp.getState().ensureQuestsForToday()
+    await useApp.getState().refresh()
+    expect(useApp.getState().activeJobChangeQuest()).not.toBeNull()
+    expect(useApp.getState().projection!.jobChangeDue).toBe(true)
+
+    await useApp.getState().completeJobChangeQuest()
+
+    expect(useApp.getState().activeJobChangeQuest()).toBeNull()
+    expect(useApp.getState().projection!.jobChangeDue).toBe(false)
+    expect(useApp.getState().projection!.player.hunterClass).toBe('assassin')
+  })
+
+  it('is a no-op with nothing issued', async () => {
+    await expect(useApp.getState().completeJobChangeQuest()).resolves.toBeUndefined()
+  })
+})
+
 describe('abandonGate discards an open session instead of finishing it', () => {
   it('deletes the session and its sets, and clears activeSessionId', async () => {
     const sessionId = await useApp.getState().startGate('friday-legs')

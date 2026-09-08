@@ -14,6 +14,7 @@ import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
 import { GoldPanel } from '../../components/GoldPanel'
+import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
 import { RunesPanel } from '../../components/RunesPanel'
@@ -105,6 +106,7 @@ function HomeScreen() {
         </div>
 
         <DailyQuestPanel />
+        <JobChangeQuestPanel />
 
         <StreakPanel />
 
