@@ -21,6 +21,7 @@ import { StreakPanel } from '../../components/StreakPanel'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
+import { TowerPanel } from '../../components/TowerPanel'
 import { VolumePanel } from '../../components/VolumePanel'
 import type { HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
@@ -115,6 +116,11 @@ function HomeScreen() {
         <DeloadPanel deload={projection.deload} />
         <RunesPanel level={player.level} />
         <TitlesPanel titleIds={earnedTitleIds} />
+        <TowerPanel
+          floorCleared={projection.towerFloorCleared}
+          nextFloor={projection.nextTowerFloor}
+          bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
+        />
         <GoldPanel gold={gold} />
         <AdvisoriesPanel advisories={advisories} />
       </SystemWindow>
