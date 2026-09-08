@@ -7,6 +7,7 @@
 import { create } from 'zustand'
 import * as repo from '../db/repo'
 import { detectAdvisories, activeAdvisories, type Advisory } from '../domain/advisories'
+import { FLAVOUR_TABLE, flavourFor } from '../domain/flavour'
 import { hardSetsPerMuscle } from '../domain/volume'
 import { computeStreak, type StreakState } from '../domain/streak'
 import {
@@ -737,7 +738,12 @@ export const useApp = create<AppState>((set, get) => ({
     if (previousLevel !== null && projection.player.level > previousLevel) {
       get().pushMessage({
         title: `[Level up. LV ${projection.player.level}.]`,
-        body: 'New stat points are waiting to be spent.',
+        body: flavourFor(
+          FLAVOUR_TABLE,
+          'level_up',
+          String(projection.player.level),
+          'New stat points are waiting to be spent.',
+        ),
         tone: 'good',
         kind: 'window',
       })
@@ -768,7 +774,10 @@ export const useApp = create<AppState>((set, get) => ({
         expiresAt: null,
         payload: { ...quest, progress: {} },
       })
-      get().pushMessage({ title: '[Daily Quest has arrived.]', tone: 'system' })
+      get().pushMessage({
+        title: flavourFor(FLAVOUR_TABLE, 'daily_quest_arrived', today, '[Daily Quest has arrived.]'),
+        tone: 'system',
+      })
     }
 
     // Yesterday's unfinished daily becomes today's penalty, and yesterday's row
@@ -792,7 +801,12 @@ export const useApp = create<AppState>((set, get) => ({
         await repo.updateProgress({ restTokens: state.progress.restTokens - 1 })
         get().pushMessage({
           title: '[A rest token has been spent.]',
-          body: 'Yesterday is forgiven and your streak holds. Nothing has been taken away.',
+          body: flavourFor(
+            FLAVOUR_TABLE,
+            'rest_token_spent',
+            yesterday,
+            'Yesterday is forgiven and your streak holds. Nothing has been taken away.',
+          ),
           tone: 'warn',
         })
       } else {
@@ -999,14 +1013,14 @@ export const useApp = create<AppState>((set, get) => ({
       await repo.updateProgress({ redGatesCleared: after.progress.redGatesCleared + 1 })
       await get().refresh()
       get().pushMessage({
-        title: '[Red Gate cleared.]',
+        title: flavourFor(FLAVOUR_TABLE, 'red_gate_cleared', sessionId, '[Red Gate cleared.]'),
         body: 'The gate closes behind you. The record stands.',
         tone: 'good',
         kind: 'window',
       })
     } else {
       get().pushMessage({
-        title: '[Red Gate failed.]',
+        title: flavourFor(FLAVOUR_TABLE, 'red_gate_failed', sessionId, '[Red Gate failed.]'),
         body: 'Nothing has been taken away. The gate closes and pays out nothing.',
         tone: 'warn',
         kind: 'window',
@@ -1109,7 +1123,7 @@ export const useApp = create<AppState>((set, get) => ({
     for (const exerciseId of summary.prExerciseIds) {
       const exercise = after.exercises.find((e) => e.id === exerciseId)
       get().pushMessage({
-        title: '[Boss slain.]',
+        title: flavourFor(FLAVOUR_TABLE, 'boss_slain', `${sessionId}-${exerciseId}`, '[Boss slain.]'),
         body: `New record on ${exercise?.name ?? exerciseId}.`,
         tone: 'good',
         kind: 'window',
@@ -1399,11 +1413,12 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async markDeload() {
-    await repo.updateProgress({ lastDeloadDayKey: get().today })
+    const today = get().today
+    await repo.updateProgress({ lastDeloadDayKey: today })
     await get().refresh()
     get().pushMessage({
       title: '[Deload recorded.]',
-      body: 'The System will not ask again for five weeks.',
+      body: flavourFor(FLAVOUR_TABLE, 'deload_recorded', today, 'The System will not ask again for five weeks.'),
       tone: 'system',
     })
   },

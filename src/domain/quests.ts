@@ -12,6 +12,7 @@
  */
 import type { DayKey, HunterClass, QuestLog, QuestType, StatBlock } from './types'
 import { addDaysToKey } from './time'
+import { FLAVOUR_TABLE, flavourFor } from './flavour'
 import { questBiasFromAllocation, type QuestBias } from './stats'
 
 /* ------------------------------------------------------------------ */
@@ -218,7 +219,12 @@ export function generatePenaltyQuest(input: {
   return {
     dayKey: addDaysToKey(input.missed.dayKey, 1),
     items: outstanding,
-    announcement: '[You have failed to complete the Daily Quest. A Penalty Quest has been issued.]',
+    announcement: flavourFor(
+      FLAVOUR_TABLE,
+      'penalty_issued',
+      input.missed.dayKey,
+      '[You have failed to complete the Daily Quest. A Penalty Quest has been issued.]',
+    ),
     reassurance:
       'Nothing has been taken away. Your level, your stats, and your logged work are untouched. This is the outstanding work carried forward with a surcharge.',
   }
