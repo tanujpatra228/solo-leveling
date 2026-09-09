@@ -3,6 +3,7 @@ import { ProfileSchema } from '../domain/types'
 import { isComplete, stepsFor, toProfileInput, validateStep, type AwakeningAnswers } from './awakening'
 
 const FILLED: AwakeningAnswers = {
+  hunterName: 'Jinwoo',
   unitPref: 'metric',
   sex: 'male',
   birthYear: 1995,
@@ -33,10 +34,10 @@ describe('stepsFor', () => {
 })
 
 describe('validateStep', () => {
-  it('never rejects the name step, since it is skippable', () => {
-    expect(validateStep('name', {})).toBeNull()
-    expect(validateStep('name', { hunterName: '' })).toBeNull()
-    expect(validateStep('name', { hunterName: '   ' })).toBeNull()
+  it('requires a name — a blank or missing answer is rejected', () => {
+    expect(validateStep('name', {})).not.toBeNull()
+    expect(validateStep('name', { hunterName: '' })).not.toBeNull()
+    expect(validateStep('name', { hunterName: '   ' })).not.toBeNull()
     expect(validateStep('name', { hunterName: 'Jinwoo' })).toBeNull()
   })
 
@@ -106,6 +107,12 @@ describe('isComplete', () => {
     const { heightCm: _heightCm, ...withoutHeight } = FILLED
     expect(isComplete(withoutHeight)).toBe(false)
   })
+
+  it('is false with no hunter name, or a blank one', () => {
+    const { hunterName: _hunterName, ...withoutName } = FILLED
+    expect(isComplete(withoutName)).toBe(false)
+    expect(isComplete({ ...FILLED, hunterName: '   ' })).toBe(false)
+  })
 })
 
 describe('toProfileInput', () => {
@@ -129,13 +136,8 @@ describe('toProfileInput', () => {
     })
   })
 
-  it('carries a trimmed hunter name through when answered', () => {
+  it('carries a trimmed hunter name through', () => {
     const input = toProfileInput({ ...FILLED, hunterName: '  Jinwoo  ' })
     expect(input.profile.hunterName).toBe('Jinwoo')
-  })
-
-  it('leaves hunterName undefined when declined', () => {
-    expect(toProfileInput(FILLED).profile.hunterName).toBeUndefined()
-    expect(toProfileInput({ ...FILLED, hunterName: '   ' }).profile.hunterName).toBeUndefined()
   })
 })

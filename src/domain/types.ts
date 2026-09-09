@@ -294,8 +294,11 @@ export const ProfileSchema = z.object({
   id: z.literal('profile'),
   /**
    * User-entered at the Awakening Test, never pre-filled from a device or
-   * account name. Absent means declined — `hunterDisplayName` (domain/hunterName.ts)
-   * is where a missing name gets a fallback, never here.
+   * account name. The Awakening Test's own `validateStep` requires it for
+   * every new hunter — `.optional()` here only so a profile stored before
+   * that requirement existed still parses; `hunterDisplayName`
+   * (domain/hunterName.ts) is where such a pre-existing blank name gets a
+   * fallback for display, never here.
    */
   hunterName: z.string().trim().min(1).max(40).optional(),
   sex: SexSchema,

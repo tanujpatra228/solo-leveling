@@ -25,7 +25,7 @@ export type AwakeningStepId =
 
 /** Every field optional, filled in as the hunter answers each step. */
 export interface AwakeningAnswers {
-  /** The licence name (m11-plan §7). Skippable — declining falls back to a hunterId-derived label, never invented. */
+  /** The licence name (m11-plan §7). Required — `validateStep` rejects a blank answer. */
   hunterName?: string
   unitPref?: UnitPref
   sex?: Sex
@@ -64,11 +64,8 @@ const CURRENT_YEAR = new Date().getFullYear()
 export function validateStep(step: AwakeningStepId, answers: AwakeningAnswers): string | null {
   switch (step) {
     case 'name': {
-      // Skippable — a blank answer is a decline, not an error (§7 option B
-      // covers the fallback). Only a name that was actually typed gets
-      // checked against the schema's length bound.
       const trimmed = answers.hunterName?.trim()
-      if (!trimmed) return null
+      if (!trimmed) return 'Tell the System what to call you.'
       return ProfileSchema.shape.hunterName.safeParse(trimmed).success
         ? null
         : 'Keep it to 40 characters or fewer.'
@@ -164,11 +161,9 @@ export function toProfileInput(answers: AwakeningAnswers): AwakeningCompletionIn
   }
   const hasOptional = Object.values(optional).some((value) => value !== undefined)
 
-  const hunterName = answers.hunterName?.trim()
-
   return {
     profile: {
-      hunterName: hunterName ? hunterName : undefined,
+      hunterName: answers.hunterName!.trim(),
       sex: answers.sex!,
       birthYear: answers.birthYear!,
       heightCm: answers.heightCm!,

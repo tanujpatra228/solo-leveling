@@ -165,7 +165,7 @@ function StepBody({
             maxLength={40}
             value={answers.hunterName ?? ''}
             onChange={(event) => onChange({ hunterName: event.target.value })}
-            placeholder="Optional — skip to be known by your Hunter ID"
+            placeholder="e.g. Sung Jinwoo"
             className="rounded border border-panel-edge bg-void-soft px-3 py-3 text-lg text-ink placeholder:text-sm placeholder:text-ink-faint"
           />
         </label>

@@ -187,7 +187,16 @@ for that reason, and the rules are absolute:
 
 ---
 
-## 7. `Name:` — decided
+## 7. `Name:` — decided, then reversed
+
+**Correction, 2026-09-09, later the same day: `hunterName` is now compulsory.** The Awakening Test's
+`validateStep('name', …)` rejects a blank answer outright — the "optional, falls back to the hunter
+id" design below was the plan going in, and it shipped that way, but is no longer what the code does.
+`ProfileSchema.hunterName` itself stays `.optional()` regardless — not because decline is still
+allowed, but so a profile stored before this requirement existed still parses. `hunterDisplayName`
+(`domain/hunterName.ts`) is now only a fallback for such a pre-existing row, never for a new one. The
+rest of this section is the original reasoning, kept for context — do not "fix" `validateStep` back
+to accepting blank on the strength of it.
 
 `ProfileSchema` (`domain/types.ts:293-308`) has no name field, and a licence without a name is a
 strange document. **Decided 2026-09-09: add an optional `hunterName`, falling back to the hunter id
@@ -213,7 +222,8 @@ What that means precisely:
 - `AwakeningAnswers` gains `hunterName?: string`; `validateStep('name', …)` returns `null` even when
   blank, because the field is optional. The existing test that the flow completes with every optional
   field empty (`awakening.test.ts`) must keep passing untouched — if it needs editing, the step was
-  made mandatory by mistake.
+  made mandatory by mistake. **Superseded — see the correction at the top of this section: the step
+  was made mandatory on purpose, and `awakening.test.ts` was edited to match.**
 - `toProfileInput` carries it through, trimmed, omitted when empty.
 
 **Changing it later happens in the `[HUNTER LICENSE]` window itself**, not in Link and not in a
@@ -286,10 +296,13 @@ Tests this makes possible, and which the standards require:
 the card (§7). Ships before any drawing changes and stands alone: with it landed, today's dark card
 simply gains a name.
 
-**Tests:** `stepsFor` puts `'name'` first and the flow still completes with it blank; a 21-character
-name fails the schema; a whitespace-only name is treated as unset; `toProfileInput` omits the field
-rather than storing an empty string; renaming persists through `repo.saveProfile` and survives a
-`refresh()`.
+**Tests:** `stepsFor` puts `'name'` first. **Superseded by the §7 correction:** the flow no longer
+completes with it blank — `validateStep` rejects an empty or whitespace-only answer, and
+`awakening.test.ts` asserts the rejection rather than a pass-through. A name over the schema's length
+bound still fails; `toProfileInput` no longer needs to omit an empty field, since `isComplete`
+guarantees one is present by the time it runs. Renaming persists through `repo.saveProfile` and
+survives a `refresh()` — unaffected by the correction, still to build alongside the card in §7's
+rename control.
 
 ### Commit 1 — `domain/license.ts` and its tests
 
