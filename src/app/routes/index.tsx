@@ -107,6 +107,17 @@ function formatDayKey(key: DayKey): string {
 const STAT_ORDER: readonly StatKey[] = ['STR', 'VIT', 'AGI', 'INT', 'PER']
 const STAT_ICON = { STR: Dumbbell, VIT: HeartPulse, AGI: Footprints, INT: Brain, PER: Radar } as const
 
+// One clause per stat (m10-plan commit 8) — what each is derived from. See
+// domain/stats.ts's deriveStr/deriveVit/deriveAgi/deriveInt/deriveP for the
+// arithmetic and reasoning; this only names the source, not the formula.
+const STAT_MEANING: Record<StatKey, string> = {
+  STR: 'From published strength standards',
+  VIT: 'From tonnage moved and streak kept',
+  AGI: 'From conditioning and bodyweight reps',
+  INT: 'From programme adherence — caps active shadows',
+  PER: 'From how closely effort gets logged',
+}
+
 const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
   none: 'No class yet',
   fighter: 'Fighter',
@@ -299,6 +310,7 @@ function HomeScreen() {
                 allocated={player.allocated[key]}
                 total={player.total[key]}
                 max={statMax}
+                caption={STAT_MEANING[key]}
                 onAllocate={unspent > 0 ? () => void allocatePoint(key) : undefined}
               />
             ))}
