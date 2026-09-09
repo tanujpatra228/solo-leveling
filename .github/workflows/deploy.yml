@@ -1,0 +1,35 @@
+name: Deploy
+
+# m4-plan.md commit 4: push to main installs with the frozen lockfile, then
+# `pnpm run deploy` runs verify (typecheck + the full test suite), build,
+# `wrangler deploy`, and the post-deploy smoke check in that order — a red
+# test or a bad deploy fails the job instead of shipping silently.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Pinned to the packageManager field rather than a floating pnpm —
+      # pnpm below 10.16 silently ignores .npmrc's minimum-release-age,
+      # which --frozen-lockfile sidesteps for this install but a stray
+      # unpinned add later would not.
+      - run: corepack enable
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
