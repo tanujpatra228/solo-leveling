@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react'
 import { createRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { ChoiceGroup } from '../../components/ChoiceGroup'
 import { NumberField } from '../../components/NumberField'
+import { SystemValue } from '../../components/SystemValue'
 import { SystemWindow } from '../../components/SystemWindow'
 import { formatHeight, formatLength, formatWeight, parseHeightToCm, parseWeightToKg } from '../../domain/units'
 import type { Equipment, Sex, UnitPref } from '../../domain/types'
@@ -104,8 +105,8 @@ function AwakeningTestScreen() {
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
-      <p className="px-1 font-system text-[11px] tracking-[0.2em] text-ink-faint uppercase">
-        Awakening Test — {index + 1} / {steps.length}
+      <p className="flex items-baseline gap-1 px-1 font-system text-[11px] tracking-[0.2em] text-ink-faint uppercase">
+        Awakening Test — <SystemValue value={index + 1} max={steps.length} size="md" />
       </p>
 
       <SystemWindow title={STEP_TITLES[step]} strong>

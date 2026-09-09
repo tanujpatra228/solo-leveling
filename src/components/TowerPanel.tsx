@@ -6,6 +6,7 @@
  */
 import { describeRequirement, TOWER_FLOORS, type TowerFloor } from '../domain/tower'
 import { SystemPanel } from './SystemPanel'
+import { SystemValue } from './SystemValue'
 
 export function TowerPanel({
   floorCleared,
@@ -20,9 +21,7 @@ export function TowerPanel({
     <SystemPanel className="mt-3 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <p className="font-system text-[11px] tracking-[0.12em] text-system uppercase">Demon Castle</p>
-        <p className="font-system text-xs text-ink-faint tabular-nums">
-          {floorCleared} / {TOWER_FLOORS.length}
-        </p>
+        <SystemValue value={floorCleared} max={TOWER_FLOORS.length} size="md" />
       </div>
       {nextFloor ? (
         <div>

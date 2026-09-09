@@ -10,6 +10,7 @@ import type { RosterState } from '../domain/shadows'
 import type { Exercise, Shadow } from '../domain/types'
 import { RankBadge } from './RankBadge'
 import { SystemPanel } from './SystemPanel'
+import { SystemValue } from './SystemValue'
 
 function exerciseName(exercises: readonly Exercise[], id: string): string {
   return exercises.find((e) => e.id === id)?.name ?? id
@@ -68,9 +69,7 @@ export function ShadowsPanel({
     <SystemPanel className="mt-3 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <p className="font-system text-[11px] tracking-[0.12em] text-system uppercase">Shadow Army</p>
-        <p className="font-system text-xs text-ink-faint tabular-nums">
-          {roster.activeCount} / {roster.cap}
-        </p>
+        <SystemValue value={roster.activeCount} max={roster.cap} size="md" />
       </div>
       <p className="text-xs text-ink-soft">{roster.message}</p>
 

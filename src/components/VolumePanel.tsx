@@ -26,7 +26,7 @@ export function VolumePanel({ volume }: { volume: readonly MuscleVolume[] }) {
             {entry.muscle.replace(/_/g, ' ')}
           </span>
           <div className="min-w-0 flex-1">
-            <SystemMeter segments={[{ pct: entry.fill * 100, tone: VERDICT_TONE[entry.verdict] }]} height={6} />
+            <SystemMeter segments={[{ pct: entry.fill * 100, tone: VERDICT_TONE[entry.verdict] }]} height={8} />
           </div>
           <span className="w-8 shrink-0 text-right font-system text-[10px] text-ink-faint tabular-nums">
             {entry.sets}

@@ -16,6 +16,7 @@ import { useApp } from '../app/state'
 import { activeQuestFor, type DailyQuestItem, type DailyQuestPayload } from '../domain/quests'
 import { SystemMeter } from './SystemMeter'
 import { SystemPanel } from './SystemPanel'
+import { SystemValue } from './SystemValue'
 
 /**
  * Owns its own `SystemPanel` rather than being wrapped in one by its caller,
@@ -76,14 +77,11 @@ function DailyQuestRow({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-baseline justify-between font-system text-[11px] text-ink-soft">
-        <span>{item.label}</span>
-        <span className={met ? 'text-good' : undefined}>
-          {done} / {item.target}
-          {item.unit === 'metres' ? ' m' : ''}
-        </span>
+      <div className="flex items-baseline justify-between">
+        <span className="font-system text-[11px] text-ink-faint uppercase">{item.label}</span>
+        <SystemValue value={done} max={item.target} unit={item.unit === 'metres' ? 'm' : undefined} size="md" />
       </div>
-      <SystemMeter segments={[{ pct, tone: met ? 'good' : 'system' }]} height={6} />
+      <SystemMeter segments={[{ pct, tone: met ? 'good' : 'system' }]} height={10} />
       {met ? null : (
         <div className="flex gap-2">
           <input

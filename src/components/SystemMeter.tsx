@@ -1,7 +1,11 @@
 /**
- * The capsule meter: an outline plus a lit core. A flat gradient reads as
- * *coloured*; an outline with a brighter centre line reads as *emitting*, and
- * that difference is most of the aesthetic (docs/system-visuals-plan.md §6).
+ * The capsule meter, rebuilt to the reference frame (m10-plan section 1.0a):
+ * a near-white outline, a dark inset gap, a dim body under the filled
+ * portion, and a thin bright core line floating inside it. The previous
+ * build was a solid-alpha fill touching a dark outline — a coloured bar, not
+ * an emitting one — because a proportional core collapses to sub-pixel at
+ * small heights. The core here is a fixed 2px regardless of `height`, which
+ * is why every caller passing `height < 8` moved up when this landed.
  *
  * Segments are laid left to right in the order given — one segment is the
  * `solid` variant (XP, HP), two is `split` (derived vs allocated). The
@@ -21,35 +25,34 @@ export interface SystemMeterProps {
   height?: number
 }
 
-function fillFor(tone: MeterTone): string {
-  return (
-    `linear-gradient(to bottom, ` +
-    `color-mix(in oklab, var(--color-${tone}) 60%, transparent) 0%, ` +
-    `var(--color-system-glow) 46%, ` +
-    `var(--color-system-glow) 54%, ` +
-    `color-mix(in oklab, var(--color-${tone}) 60%, transparent) 100%)`
-  )
-}
-
-export function SystemMeter({ segments, height = 10 }: SystemMeterProps) {
+export function SystemMeter({ segments, height = 12 }: SystemMeterProps) {
   let offset = 0
-
   return (
-    <div
-      className="relative overflow-hidden rounded-full bg-void-soft ring-1 ring-panel-edge ring-inset"
-      style={{ height }}
-    >
-      {segments.map((segment, index) => {
-        const left = offset
-        offset += segment.pct
-        return (
-          <div
-            key={index}
-            className="shadow-meter absolute inset-y-0 rounded-full"
-            style={{ left: `${left}%`, width: `${segment.pct}%`, backgroundImage: fillFor(segment.tone) }}
-          />
-        )
-      })}
+    // Near-white outline with the cyan arriving as glow. Reversing those two is
+    // what makes HUD styling look cheap (docs/system-visuals-plan.md section 7).
+    <div className="relative rounded-full border border-ink/45" style={{ height }}>
+      {/* The inset gap. Without it the core touches the outline and the whole
+          thing collapses back into one solid bar (m10-plan section 1.0a). */}
+      <div className="absolute inset-[2px] overflow-hidden rounded-full">
+        {segments.map((segment, index) => {
+          const left = offset
+          offset += segment.pct
+          return (
+            <div key={index} className="absolute inset-y-0" style={{ left: `${left}%`, width: `${segment.pct}%` }}>
+              <div
+                className="absolute inset-0 rounded-full"
+                style={{ background: `color-mix(in oklab, var(--color-${segment.tone}) 22%, transparent)` }}
+              />
+              {/* Fixed 2px, never a percentage: a proportional core is the bug
+                  being fixed, and it vanishes at the 6px volume-row height. */}
+              <div
+                className="shadow-meter absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2 rounded-full"
+                style={{ background: `var(--color-${segment.tone})` }}
+              />
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

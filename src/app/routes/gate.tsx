@@ -19,6 +19,7 @@ import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { RankBadge } from '../../components/RankBadge'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
+import { SystemValue } from '../../components/SystemValue'
 import {
   RED_GATE_MIN_RANK,
   buildInstantDungeon,
@@ -888,8 +889,8 @@ function ActiveBlockItem({
           ) : null}
         </span>
         <span className="flex shrink-0 items-center gap-2">
-          <span className="font-system text-xs text-ink-soft tabular-nums">
-            {logged.length}/{item.sets} sets
+          <span className="flex items-baseline gap-1 font-system text-xs text-ink-faint uppercase">
+            <SystemValue value={logged.length} max={item.sets} size="md" /> sets
           </span>
           <button
             type="button"
