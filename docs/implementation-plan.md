@@ -293,9 +293,8 @@ sync path's CPU, attributing the bundle, and the Actions workflow. **Only on a r
 Home Screen install, a session logged in airplane mode, the rest timer surviving a locked screen,
 and Lighthouse.
 
-Commits 1, 2, 3 and 5 have landed; commit 4 (the Actions workflow) stays blocked on a credential only
-the user can create. **The release path now runs the suite, not just the typechecker**, and a
-post-deploy smoke check (health, an unauthenticated 401, an unknown route's 404, the SPA fallback)
+All five commits have landed. **The release path now runs the suite, not just the typechecker**, and
+a post-deploy smoke check (health, an unauthenticated 401, an unknown route's 404, the SPA fallback)
 runs after every `pnpm run deploy`. **The sync path's real CPU is measured**, not estimated: P50
 3.08 ms, P99 10.82 ms, over a window of M6's real `/api/sync` traffic — over the 10 ms limit at P99,
 on too small a sample to be certain, plausibly the heaviest 17-19-row session pushes the budget was
@@ -305,16 +304,20 @@ cut entirely; the 200 KB line from M2 was replaced with one tied to install time
 3 seconds, about 480 KB) rather than public-website habits. Current total: 200.87 KB gzipped, under
 half that budget. Full detail in `infrastructure.md` §3.
 
-**Detailed step-by-step plan: `docs/m4-plan.md`** (retained until commit 4 lands or is dropped —
-commits 1, 2, 3 and 5 are summarized here and in `docs/TODO.md`, but the plan stays since the
-milestone is not fully shipped). Commit 4 needs one thing from a person — a scoped
-`CLOUDFLARE_API_TOKEN` in the repository's Actions secrets, since the Cloudflare MCP grant cannot
-mint tokens.
+**Commit 4, the Actions workflow, landed 2026-09-09**: `.github/workflows/deploy.yml` installs with
+the frozen lockfile (pnpm pinned to the `packageManager` field, so a floating CI pnpm below 10.16
+cannot silently ignore `.npmrc`'s `minimum-release-age`), then runs `pnpm run deploy` — verify,
+build, `wrangler deploy`, smoke check — on every push to `main`. The user created the scoped
+`CLOUDFLARE_API_TOKEN` the Cloudflare MCP grant could not mint and added it as a repository secret;
+the first run (`run 34400341485`) passed end to end and deployed live.
 
-*Acceptance:* the release path refuses to deploy without a green suite; a push to `main` deploys on
-its own and a failing test blocks it; the smoke check passes against the live URL; sync-path CPU and
-a re-derived bundle budget are both recorded in `infrastructure.md` with reasons; and the phone
-checklist comes back clean.
+Only the phone checklist (Home Screen install, a session logged in airplane mode, the rest timer
+surviving a locked screen, Lighthouse) remains — it needs a physical device, not automation.
+
+*Acceptance:* the release path refuses to deploy without a green suite — met; a push to `main`
+deploys on its own and a failing test blocks it — met; the smoke check passes against the live URL —
+met; sync-path CPU and a re-derived bundle budget are both recorded in `infrastructure.md` with
+reasons — met; the phone checklist comes back clean — outstanding, user-only.
 *Budget impact:* none beyond the deploy itself. Static assets are free and uncounted.
 
 ### M5 — The game layer
