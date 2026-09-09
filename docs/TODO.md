@@ -22,6 +22,7 @@ plan named in the row.
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Done** | — |
 | M10 | The Status Window, made faithful and readable | **Done** | — |
+| M11 | The Hunter License, as the Association issues it | **Planned** | Six commits in `docs/m11-plan.md`. The card is redrawn as a printed ID document — light body, serif masthead, level plate, a 3x3 Category grid filled by class and titles, chip and barcode — because in the anime the License is issued by the Association and is deliberately *not* a System window. Also fixes four standing defects: the shared PNG is only as large as the screen, fonts are not awaited, the canvas has no text equivalent, and it redraws on unrelated projection changes. `Profile` gains an optional `hunterName`, entered as the Awakening's first step and renamed from the card itself (decided 2026-09-09, plan section 7) |
 
 ### Features outside the milestone track
 
@@ -51,6 +52,10 @@ plan named in the row.
 Every milestone through M10 is now **Done** or deliberately **Parked**/**blocked on the user** — M4
 commit 4 needs a `CLOUDFLARE_API_TOKEN` only the user can create; M8 stays parked until the user
 decides to revisit it.
+
+M11 continues M10's pattern of being driven by using the app: the License is the only artifact that
+leaves the app, and it currently leaves as a dark System panel rather than as the printed document the
+anime shows.
 
 ## M10 — The Status Window, made faithful and readable, landed 2026-09-09
 
