@@ -322,6 +322,8 @@ export interface AppState extends LoadedData {
   spendRestToken: () => Promise<boolean>
   updateSettings: (patch: Partial<Settings>) => Promise<void>
   markDeload: () => Promise<void>
+  /** Fires the one-time "how the summon windows work" notification, per hunter, ever. */
+  announceSystemIntroIfNeeded: () => Promise<void>
 
   /**
    * Fire-and-forget: never returns a promise a caller awaits, so a component
@@ -521,6 +523,7 @@ export const useApp = create<AppState>((set, get) => ({
     pushEnabled: false,
     syncEnabled: false,
     dismissedAdvisories: [],
+    systemIntroSeen: false,
   },
   exercises: [],
   routines: [],
@@ -1410,6 +1413,21 @@ export const useApp = create<AppState>((set, get) => ({
   async updateSettings(patch) {
     await repo.saveSettings(patch)
     await get().refresh()
+  },
+
+  async announceSystemIntroIfNeeded() {
+    if (get().settings.systemIntroSeen) return
+    // Set optimistically before the await: StrictMode double-invokes this
+    // effect in dev, and without this the second call's read of
+    // `settings.systemIntroSeen` would still see `false`.
+    set((state) => ({ settings: { ...state.settings, systemIntroSeen: true } }))
+    await get().updateSettings({ systemIntroSeen: true })
+    get().pushMessage({
+      title: '[The System is designed to assist the development of the Player.]',
+      body: 'Open a window to review your progress.',
+      tone: 'system',
+      kind: 'window',
+    })
   },
 
   async markDeload() {

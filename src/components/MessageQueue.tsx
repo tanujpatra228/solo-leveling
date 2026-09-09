@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { useApp, type SystemMessage } from '../app/state'
 import { playSystemChime, vibrate } from '../platform/capabilities'
-import { SystemIcon } from './SystemIcon'
+import { SystemOverlay } from './SystemOverlay'
 
 const TONE_BORDER: Record<SystemMessage['tone'], string> = {
   system: 'border-panel-edge',
@@ -94,62 +94,28 @@ function Toast({ message, onDismiss }: { message: SystemMessage; onDismiss: () =
   )
 }
 
+/**
+ * Renders through `SystemOverlay` (m10-plan commit 3) — the same
+ * icon-box/title-box/close-control shell a summoned archive panel uses, so
+ * the two can never visually drift apart. Escape and a scrim tap now close
+ * a notification too (m10-plan §4a: an overlay must always offer all three
+ * exits), with "Acknowledge" kept in the body as the on-brand affirmative
+ * action rather than the only way out.
+ */
 function SystemMessageWindow({ message, onDismiss }: { message: SystemMessage; onDismiss: () => void }) {
-  const titleId = `system-window-title-${message.id}`
-  const dismissRef = useRef<HTMLButtonElement>(null)
-  const returnFocusRef = useRef<Element | null>(null)
-
-  // Focus the dismiss control on open, return focus to whatever had it on
-  // close (rule 5, docs/system-visuals-plan.md §9) — a window that traps
-  // focus without giving it back strands a keyboard or screen-reader user.
-  useEffect(() => {
-    returnFocusRef.current = document.activeElement
-    dismissRef.current?.focus()
-    return () => {
-      if (returnFocusRef.current instanceof HTMLElement) returnFocusRef.current.focus()
-    }
-  }, [])
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onDismiss()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onDismiss])
-
   return (
-    // Flat bg-void/80, not backdrop-filter — a full-screen blur is one of the
-    // most expensive things a mid-range Android can be asked for, and this
-    // separates just as well for free (rule 3).
-    <div className="fixed inset-0 z-50 grid place-items-center bg-void/80 p-6">
-      <section
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="animate-system-in system-frame relative w-full max-w-md bg-panel px-6 py-8 text-center"
-      >
-        <div className="-mt-12 mb-8 flex items-center justify-center gap-3">
-          <span className="grid size-11 place-items-center border border-ink/70 bg-panel">
-            <SystemIcon icon={AlertCircle} tone={message.tone} size={22} glow="strong" />
-          </span>
-          <span className="border border-ink/70 bg-panel px-6 py-2 font-system text-sm tracking-[0.35em] text-ink uppercase">
-            Notification
-          </span>
-        </div>
-        <p id={titleId} className="text-lg font-semibold text-ink italic">
-          {message.title}
-        </p>
-        {message.body ? <p className="mx-auto mt-3 max-w-sm text-sm text-ink-soft">{message.body}</p> : null}
+    <SystemOverlay title="Notification" icon={AlertCircle} iconTone={message.tone} onClose={onDismiss}>
+      <div className="flex flex-col items-center gap-3 py-2 text-center">
+        <p className="text-lg font-semibold text-ink italic">{message.title}</p>
+        {message.body ? <p className="max-w-sm text-sm text-ink-soft">{message.body}</p> : null}
         <button
-          ref={dismissRef}
           type="button"
           onClick={onDismiss}
-          className="mt-6 border border-ink-faint px-6 py-2 font-system text-xs tracking-[0.2em] text-ink uppercase"
+          className="mt-3 border border-ink-faint px-6 py-2 font-system text-xs tracking-[0.2em] text-ink uppercase"
         >
           Acknowledge
         </button>
-      </section>
-    </div>
+      </div>
+    </SystemOverlay>
   )
 }

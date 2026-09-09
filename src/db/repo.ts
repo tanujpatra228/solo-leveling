@@ -75,6 +75,7 @@ const DEFAULT_SETTINGS: Settings = {
   pushEnabled: false,
   syncEnabled: false,
   dismissedAdvisories: [],
+  systemIntroSeen: false,
 }
 
 const DEFAULT_PROGRESS: Progress = {

@@ -63,7 +63,7 @@ function expectRendered(html: string): void {
 }
 
 /** Like `mountAt`, but keeps the container mounted so a test can click into it. */
-async function mountInteractive(path: string): Promise<{ container: HTMLDivElement; unmount: () => Promise<void> }> {
+async function mountInteractive(path: string) {
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: [path] }),
@@ -78,6 +78,7 @@ async function mountInteractive(path: string): Promise<{ container: HTMLDivEleme
 
   return {
     container,
+    router,
     unmount: async () => {
       await act(async () => root.unmount())
       container.remove()
@@ -178,6 +179,130 @@ describe('the glow rule: exactly one strong window per screen (m10-plan commit 2
 
     const { container, unmount } = await mountInteractive('/gate')
     expect(container.querySelectorAll('.shadow-system-strong').length).toBe(1)
+
+    await unmount()
+  })
+})
+
+/**
+ * The one-time system-intro notification (commit 3 item 7) also fires on a
+ * fresh hunter's first `/` mount, and a `kind: 'window'` message pre-empts
+ * the summon overlay by design (they never render together — tested below).
+ * These tests are about the *summon* overlay specifically, so each marks the
+ * intro already-seen before mounting, same as a hunter well past their first visit.
+ */
+async function awakenPastIntro(): Promise<void> {
+  await awaken()
+  // `messages` is in-memory only (never persisted, never cleared by
+  // wipeEverything+load), so a stray notification from an earlier test in
+  // this file would otherwise leak in as a false "dialog" already open.
+  useApp.setState((s) => ({ settings: { ...s.settings, systemIntroSeen: true }, messages: [] }))
+}
+
+describe('the summon overlay (m10-plan commit 3, F14)', () => {
+  afterEach(() => {
+    useApp.setState({ messages: [] })
+  })
+
+  it('with no window param, renders the summon list and no overlay', async () => {
+    await awakenPastIntro()
+
+    const { container, unmount } = await mountInteractive('/')
+    expect(container.textContent).toContain('[ Analysis ]')
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+
+    await unmount()
+  })
+
+  it('an unknown window value renders no overlay rather than throwing', async () => {
+    await awakenPastIntro()
+
+    // A raw URL, the way a stale link or a tampered address bar arrives —
+    // `router.navigate({ search })` trusts a typed object and skips
+    // `validateSearch` entirely, so only a URL-parsed search exercises the
+    // normalisation this test is actually about.
+    const { container, unmount } = await mountInteractive('/?window=bogus')
+    expectRendered(container.innerHTML)
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+
+    await unmount()
+  })
+
+  it('opens on tapping a summon row, and closes on navigating back', async () => {
+    await awakenPastIntro()
+
+    const { container, router, unmount } = await mountInteractive('/')
+    const runesRow = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('[ Runes ]'),
+    )
+    await click(runesRow)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    await act(async () => {
+      router.history.back()
+    })
+    await vi.waitFor(() => expect(container.querySelector('[role="dialog"]')).toBeNull())
+
+    await unmount()
+  })
+
+  it('Escape closes the overlay and returns focus to the summon row', async () => {
+    await awakenPastIntro()
+
+    const { container, unmount } = await mountInteractive('/')
+    const runesRow = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('[ Runes ]'),
+    )
+    // happy-dom, unlike a real browser, doesn't focus a button as a side
+    // effect of a dispatched click — done explicitly so the overlay's
+    // "what had focus before opening" capture has something real to return.
+    runesRow?.focus()
+    await click(runesRow)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.activeElement).toBe(runesRow)
+
+    await unmount()
+  })
+
+  it('a tap on the scrim closes the overlay', async () => {
+    await awakenPastIntro()
+
+    const { container, unmount } = await mountInteractive('/')
+    const runesRow = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('[ Runes ]'),
+    )
+    await click(runesRow)
+    const scrim = container.querySelector('[role="dialog"]')?.parentElement
+    if (!scrim) throw new Error('overlay scrim not found')
+
+    await act(async () => {
+      scrim.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    })
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+
+    await unmount()
+  })
+
+  it('a notification window and a summoned window never render together', async () => {
+    await awakenPastIntro()
+
+    const { container, unmount } = await mountInteractive('/')
+    const runesRow = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('[ Runes ]'),
+    )
+    await click(runesRow)
+    expect(container.querySelectorAll('[role="dialog"]').length).toBe(1)
+
+    await act(async () => {
+      useApp.getState().pushMessage({ title: '[A new Daily Quest awaits.]', tone: 'system', kind: 'window' })
+    })
+    expect(container.querySelectorAll('[role="dialog"]').length).toBe(1)
+    expect(container.textContent).toContain('A new Daily Quest awaits')
 
     await unmount()
   })

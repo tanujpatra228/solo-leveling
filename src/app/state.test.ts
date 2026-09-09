@@ -935,6 +935,36 @@ describe('a level change announces itself as a window notification', () => {
   })
 })
 
+describe('announceSystemIntroIfNeeded (m10-plan commit 3)', () => {
+  it('pushes the one-time window notification and marks it seen', async () => {
+    useApp.setState((s) => ({ messages: [], settings: { ...s.settings, systemIntroSeen: false } }))
+
+    await useApp.getState().announceSystemIntroIfNeeded()
+
+    expect(useApp.getState().settings.systemIntroSeen).toBe(true)
+    const intro = useApp.getState().messages.find((m) => m.title.startsWith('[The System is designed'))
+    expect(intro).toBeDefined()
+    expect(intro!.kind).toBe('window')
+  })
+
+  it('never fires twice, even called back to back before the first call settles', async () => {
+    useApp.setState((s) => ({ messages: [], settings: { ...s.settings, systemIntroSeen: false } }))
+
+    await Promise.all([useApp.getState().announceSystemIntroIfNeeded(), useApp.getState().announceSystemIntroIfNeeded()])
+
+    const intros = useApp.getState().messages.filter((m) => m.title.startsWith('[The System is designed'))
+    expect(intros).toHaveLength(1)
+  })
+
+  it('does nothing on a later visit, once already seen', async () => {
+    useApp.setState((s) => ({ messages: [], settings: { ...s.settings, systemIntroSeen: true } }))
+
+    await useApp.getState().announceSystemIntroIfNeeded()
+
+    expect(useApp.getState().messages).toHaveLength(0)
+  })
+})
+
 describe('syncNow — coalescing and backoff (M6 commit 1, F3)', () => {
   afterEach(() => {
     vi.useRealTimers()

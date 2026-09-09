@@ -2,18 +2,34 @@
  * Home. Redirects to `/awaken` until a profile exists — there is nothing to
  * show a hunter who has not been awakened yet.
  *
- * The Status Window, split into the shape the other two routes already use
- * (m10-plan commit 2, F1): a stack of single-purpose `SystemWindow`s rather
- * than nine screens nested in one. The archive — Runes, Titles, Demon
- * Castle, Shadow Army, Shop, License — stays mounted inline below the head
- * for now; commit 3 moves it behind a summon list.
+ * The Status Window: a stack of single-purpose `SystemWindow`s for what's
+ * read daily (m10-plan commit 2), plus a summon list for the archive —
+ * Analysis, Shadow Army, Demon Castle, System Shop, Runes, Titles — which
+ * opens as a `SystemOverlay` over the page rather than growing it (m10-plan
+ * commit 3, F14). Which window is open lives in the URL (`?window=`), not in
+ * `Settings`, so the hardware back button closes it for free.
  */
 import { createRoute, redirect } from '@tanstack/react-router'
-import { Brain, Dumbbell, Flame, Footprints, HeartPulse, Radar } from 'lucide-react'
-import { lazy, Suspense, useMemo } from 'react'
+import {
+  Award,
+  Brain,
+  Building2,
+  Dumbbell,
+  Flame,
+  Footprints,
+  HeartPulse,
+  Radar,
+  ShoppingBag,
+  Users,
+  Wand2,
+  AlertTriangle,
+  type LucideIcon,
+} from 'lucide-react'
+import { lazy, Suspense, useEffect, useMemo } from 'react'
 import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
+import { FatiguePanel } from '../../components/FatiguePanel'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { RankBadge } from '../../components/RankBadge'
@@ -22,14 +38,18 @@ import { RunesPanel } from '../../components/RunesPanel'
 import { SegmentedRing } from '../../components/SegmentedRing'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
+import { SummonList, type SummonRow } from '../../components/SummonList'
 import { SystemIcon } from '../../components/SystemIcon'
+import { SystemOverlay } from '../../components/SystemOverlay'
 import { SystemValue } from '../../components/SystemValue'
 import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
 import { VolumePanel } from '../../components/VolumePanel'
 import type { FatigueBand } from '../../domain/fatigue'
 import { activeQuestFor, JOB_CHANGE_LEVEL } from '../../domain/quests'
+import { unlockedRunes } from '../../domain/runes'
 import { dayKeyStart } from '../../domain/time'
+import { TOWER_FLOORS } from '../../domain/tower'
 import type { DayKey, HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
 import { rootRoute } from './root'
@@ -46,9 +66,29 @@ const HunterLicenseCard = lazy(() =>
 )
 const ShopPanel = lazy(() => import('../../components/ShopPanel').then((m) => ({ default: m.ShopPanel })))
 
+export type SummonWindowId = 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles'
+const SUMMON_WINDOW_IDS: readonly SummonWindowId[] = ['analysis', 'army', 'castle', 'shop', 'runes', 'titles']
+
+function isSummonWindowId(value: unknown): value is SummonWindowId {
+  return typeof value === 'string' && (SUMMON_WINDOW_IDS as readonly string[]).includes(value)
+}
+
+export interface IndexSearch {
+  window?: SummonWindowId
+}
+
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
+  // An unrecognised value (a stale link, a hand-edited URL) normalises to no
+  // window open rather than rendering a broken overlay (F14).
+  // A bare `{}` here does not clear an unrecognised value — TanStack merges
+  // a route's validated search onto its parent's raw (unvalidated) search
+  // rather than replacing it, so an omitted key leaves the parent's still
+  // in place. `window: undefined` is what actually overwrites it.
+  validateSearch: (search: Record<string, unknown>): IndexSearch => ({
+    window: isSummonWindowId(search.window) ? search.window : undefined,
+  }),
   beforeLoad: () => {
     if (!useApp.getState().profile) throw redirect({ to: '/awaken' })
   },
@@ -84,6 +124,24 @@ const FATIGUE_RING_TONE: Record<FatigueBand, 'system' | 'warn' | 'danger' | 'goo
   danger: 'danger',
 }
 
+const SUMMON_ICON: Record<SummonWindowId, LucideIcon> = {
+  analysis: AlertTriangle,
+  army: Users,
+  castle: Building2,
+  shop: ShoppingBag,
+  runes: Wand2,
+  titles: Award,
+}
+
+const SUMMON_TITLE: Record<SummonWindowId, string> = {
+  analysis: 'Analysis',
+  army: 'Shadow Army',
+  castle: 'Demon Castle',
+  shop: 'System Shop',
+  runes: 'Runes',
+  titles: 'Titles',
+}
+
 /** What the class line says before a class exists, so "no class" is explained rather than dead-ended. */
 function classLine(hunterClass: HunterClass, jobChangeDue: boolean): string {
   if (hunterClass !== 'none') return HUNTER_CLASS_LABELS[hunterClass]
@@ -103,7 +161,20 @@ function HomeScreen() {
   const setShadowActive = useApp((s) => s.setShadowActive)
   const identity = useApp((s) => s.identity)
   const gatesCleared = useApp((s) => s.progress.gatesCleared)
+  const gold = useApp((s) => s.progress.gold)
   const profile = useApp((s) => s.profile)
+  const announceSystemIntroIfNeeded = useApp((s) => s.announceSystemIntroIfNeeded)
+  // A notification takes the one overlay slot over a summoned window rather
+  // than stacking under it (m10-plan §1.3) — the summon stays closed (in the
+  // URL) and simply stops rendering while one is up, resuming once it clears.
+  const windowMessagePending = useApp((s) => s.messages.some((m) => m.kind === 'window'))
+
+  const { window: openWindow } = indexRoute.useSearch()
+  const navigate = indexRoute.useNavigate()
+
+  useEffect(() => {
+    void announceSystemIntroIfNeeded()
+  }, [announceSystemIntroIfNeeded])
 
   // Reserves the glow for the one window that is speaking
   // (docs/system-visuals-plan.md section 8) — derived here, not in
@@ -131,6 +202,22 @@ function HomeScreen() {
   const unspent = player.unspentStatPoints
   const statMax = Math.max(...STAT_ORDER.map((key) => player.total[key]), 10) * 1.15
   const fatigueReading = projection.fatigue.band === 'insufficient_data' ? '—' : projection.fatigue.gauge
+
+  function toggleSummon(id: SummonWindowId) {
+    void navigate({ search: openWindow === id ? {} : { window: id } })
+  }
+  function closeSummon() {
+    void navigate({ search: {} })
+  }
+
+  const summonRows: SummonRow[] = [
+    { id: 'analysis', label: 'Analysis', figure: `${advisories.length} warnings`, warn: advisories.length > 0 },
+    { id: 'army', label: 'Shadow Army', figure: `${projection.roster.activeCount}/${projection.roster.cap}` },
+    { id: 'castle', label: 'Demon Castle', figure: `${projection.towerFloorCleared}/${TOWER_FLOORS.length}` },
+    { id: 'shop', label: 'System Shop', figure: `${gold} gold` },
+    { id: 'runes', label: 'Runes', figure: `${unlockedRunes(player.level).length}` },
+    { id: 'titles', label: 'Titles', figure: `${earnedTitleIds.length}` },
+  ]
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
@@ -169,7 +256,12 @@ function HomeScreen() {
               </span>
             </div>
             <div className="flex items-center gap-2 p-2.5">
-              <SegmentedRing pct={projection.fatigue.gauge} tone={FATIGUE_RING_TONE[projection.fatigue.band]} size={22} strokeWidth={3} />
+              <SegmentedRing
+                pct={projection.fatigue.gauge}
+                tone={FATIGUE_RING_TONE[projection.fatigue.band]}
+                size={22}
+                strokeWidth={3}
+              />
               <div className="flex flex-col">
                 <span className="font-system text-[9px] tracking-[0.1em] text-ink-faint uppercase">Fatigue</span>
                 <SystemValue value={fatigueReading} size="md" />
@@ -224,24 +316,10 @@ function HomeScreen() {
       <JobChangeQuestPanel strong={speaking === 'jobchange'} />
       <StreakPanel />
 
-      <VolumePanel volume={projection.volume} />
-      <RunesPanel level={player.level} />
-      <TitlesPanel titleIds={earnedTitleIds} />
-      <Suspense fallback={null}>
-        <ShadowsPanel
-          roster={projection.roster}
-          exercises={exercises}
-          onToggle={(id, active) => void setShadowActive(id, active)}
-        />
-        <TowerPanel
-          floorCleared={projection.towerFloorCleared}
-          nextFloor={projection.nextTowerFloor}
-          bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <ShopPanel />
-      </Suspense>
+      <SummonList rows={summonRows} open={openWindow} onToggle={toggleSummon} />
+
+      {/* Not in the summon list (F9) — a share action, so it stays on the
+          page, in the footer's future home (commit 6), inline for now. */}
       {identity ? (
         <Suspense fallback={null}>
           <HunterLicenseCard
@@ -256,7 +334,43 @@ function HomeScreen() {
           />
         </Suspense>
       ) : null}
-      <AdvisoriesPanel advisories={advisories} />
+
+      {openWindow && !windowMessagePending ? (
+        <SystemOverlay title={SUMMON_TITLE[openWindow]} icon={SUMMON_ICON[openWindow]} onClose={closeSummon}>
+          {openWindow === 'analysis' ? (
+            <div className="flex flex-col gap-3">
+              <FatiguePanel fatigue={projection.fatigue} />
+              <VolumePanel volume={projection.volume} />
+              <AdvisoriesPanel advisories={advisories} />
+            </div>
+          ) : null}
+          {openWindow === 'runes' ? <RunesPanel level={player.level} /> : null}
+          {openWindow === 'titles' ? <TitlesPanel titleIds={earnedTitleIds} /> : null}
+          {openWindow === 'army' ? (
+            <Suspense fallback={null}>
+              <ShadowsPanel
+                roster={projection.roster}
+                exercises={exercises}
+                onToggle={(id, active) => void setShadowActive(id, active)}
+              />
+            </Suspense>
+          ) : null}
+          {openWindow === 'castle' ? (
+            <Suspense fallback={null}>
+              <TowerPanel
+                floorCleared={projection.towerFloorCleared}
+                nextFloor={projection.nextTowerFloor}
+                bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
+              />
+            </Suspense>
+          ) : null}
+          {openWindow === 'shop' ? (
+            <Suspense fallback={null}>
+              <ShopPanel />
+            </Suspense>
+          ) : null}
+        </SystemOverlay>
+      ) : null}
     </main>
   )
 }

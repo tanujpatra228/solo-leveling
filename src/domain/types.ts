@@ -437,5 +437,7 @@ export const SettingsSchema = z.object({
   syncEnabled: z.boolean().default(false),
   /** Advisory ids the hunter has dismissed. */
   dismissedAdvisories: z.array(z.string()).default([]),
+  /** Whether the one-time "how the summon windows work" notification has fired (m10-plan commit 3). */
+  systemIntroSeen: z.boolean().default(false),
 })
 export type Settings = z.infer<typeof SettingsSchema>
