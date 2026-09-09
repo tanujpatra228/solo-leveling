@@ -12,6 +12,7 @@
 import { BodyMetricSchema, ProfileSchema, type BodyFatSource, type Equipment, type Profile, type Sex, type UnitPref } from '../domain/types'
 
 export type AwakeningStepId =
+  | 'name'
   | 'units'
   | 'sex'
   | 'standardsTable'
@@ -24,6 +25,8 @@ export type AwakeningStepId =
 
 /** Every field optional, filled in as the hunter answers each step. */
 export interface AwakeningAnswers {
+  /** The licence name (m11-plan §7). Skippable — declining falls back to a hunterId-derived label, never invented. */
+  hunterName?: string
   unitPref?: UnitPref
   sex?: Sex
   /** Which published table to borrow when `sex` is `unspecified`. Absent means declined. */
@@ -49,7 +52,7 @@ export interface AwakeningAnswers {
  * on through what each later field feeds.
  */
 export function stepsFor(answers: AwakeningAnswers): AwakeningStepId[] {
-  const steps: AwakeningStepId[] = ['units', 'sex']
+  const steps: AwakeningStepId[] = ['name', 'units', 'sex']
   if (answers.sex === 'unspecified') steps.push('standardsTable')
   steps.push('age', 'height', 'bodyweight', 'trainingYears', 'equipment', 'physique')
   return steps
@@ -60,6 +63,17 @@ const CURRENT_YEAR = new Date().getFullYear()
 /** `null` means the step's current answer is acceptable. */
 export function validateStep(step: AwakeningStepId, answers: AwakeningAnswers): string | null {
   switch (step) {
+    case 'name': {
+      // Skippable — a blank answer is a decline, not an error (§7 option B
+      // covers the fallback). Only a name that was actually typed gets
+      // checked against the schema's length bound.
+      const trimmed = answers.hunterName?.trim()
+      if (!trimmed) return null
+      return ProfileSchema.shape.hunterName.safeParse(trimmed).success
+        ? null
+        : 'Keep it to 40 characters or fewer.'
+    }
+
     case 'units':
       return ProfileSchema.shape.unitPref.safeParse(answers.unitPref).success
         ? null
@@ -150,8 +164,11 @@ export function toProfileInput(answers: AwakeningAnswers): AwakeningCompletionIn
   }
   const hasOptional = Object.values(optional).some((value) => value !== undefined)
 
+  const hunterName = answers.hunterName?.trim()
+
   return {
     profile: {
+      hunterName: hunterName ? hunterName : undefined,
       sex: answers.sex!,
       birthYear: answers.birthYear!,
       heightCm: answers.heightCm!,

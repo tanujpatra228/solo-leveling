@@ -38,6 +38,7 @@ export const awakenRoute = createRoute({
 })
 
 const STEP_TITLES: Record<AwakeningStepId, string> = {
+  name: 'Name',
   units: 'Units',
   sex: 'Body',
   standardsTable: 'Standards Table',
@@ -153,6 +154,23 @@ function StepBody({
   const unitPref: UnitPref = answers.unitPref ?? 'metric'
 
   switch (step) {
+    case 'name':
+      return (
+        <label className="flex flex-col gap-1">
+          <span className="font-system text-xs tracking-wide text-ink-soft uppercase">
+            What should the System call you?
+          </span>
+          <input
+            type="text"
+            maxLength={40}
+            value={answers.hunterName ?? ''}
+            onChange={(event) => onChange({ hunterName: event.target.value })}
+            placeholder="Optional — skip to be known by your Hunter ID"
+            className="rounded border border-panel-edge bg-void-soft px-3 py-3 text-lg text-ink placeholder:text-sm placeholder:text-ink-faint"
+          />
+        </label>
+      )
+
     case 'units':
       return (
         <ChoiceGroup<UnitPref>

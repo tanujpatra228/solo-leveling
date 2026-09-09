@@ -13,10 +13,11 @@ const FILLED: AwakeningAnswers = {
 }
 
 describe('stepsFor', () => {
-  it('is fixed and starts with units, then sex', () => {
+  it('is fixed and starts with the name, then units, then sex', () => {
     const steps = stepsFor({})
-    expect(steps[0]).toBe('units')
-    expect(steps[1]).toBe('sex')
+    expect(steps[0]).toBe('name')
+    expect(steps[1]).toBe('units')
+    expect(steps[2]).toBe('sex')
   })
 
   it('omits standardsTable unless sex is unspecified', () => {
@@ -32,6 +33,18 @@ describe('stepsFor', () => {
 })
 
 describe('validateStep', () => {
+  it('never rejects the name step, since it is skippable', () => {
+    expect(validateStep('name', {})).toBeNull()
+    expect(validateStep('name', { hunterName: '' })).toBeNull()
+    expect(validateStep('name', { hunterName: '   ' })).toBeNull()
+    expect(validateStep('name', { hunterName: 'Jinwoo' })).toBeNull()
+  })
+
+  it('rejects a name over the schema length bound', () => {
+    expect(validateStep('name', { hunterName: 'x'.repeat(41) })).not.toBeNull()
+    expect(validateStep('name', { hunterName: 'x'.repeat(40) })).toBeNull()
+  })
+
   it('rejects a missing or invalid unit preference', () => {
     expect(validateStep('units', {})).not.toBeNull()
     expect(validateStep('units', { unitPref: 'metric' })).toBeNull()
@@ -114,5 +127,15 @@ describe('toProfileInput', () => {
       bodyFatPct: 18,
       bodyFatSource: 'navy',
     })
+  })
+
+  it('carries a trimmed hunter name through when answered', () => {
+    const input = toProfileInput({ ...FILLED, hunterName: '  Jinwoo  ' })
+    expect(input.profile.hunterName).toBe('Jinwoo')
+  })
+
+  it('leaves hunterName undefined when declined', () => {
+    expect(toProfileInput(FILLED).profile.hunterName).toBeUndefined()
+    expect(toProfileInput({ ...FILLED, hunterName: '   ' }).profile.hunterName).toBeUndefined()
   })
 })

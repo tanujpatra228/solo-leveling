@@ -292,6 +292,12 @@ export type SessionLog = z.infer<typeof SessionLogSchema>
 
 export const ProfileSchema = z.object({
   id: z.literal('profile'),
+  /**
+   * User-entered at the Awakening Test, never pre-filled from a device or
+   * account name. Absent means declined — `hunterDisplayName` (domain/hunterName.ts)
+   * is where a missing name gets a fallback, never here.
+   */
+  hunterName: z.string().trim().min(1).max(40).optional(),
   sex: SexSchema,
   birthYear: z.number().int().min(1900).max(2100),
   heightCm: z.number().positive(),
