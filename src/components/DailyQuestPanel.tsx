@@ -27,6 +27,7 @@ import {
 } from '../domain/quests'
 import { dayFractionRemainingPct, deadlineRingTone } from '../domain/time'
 import type { DayKey } from '../domain/types'
+import { PILL_BUTTON } from './buttonStyles'
 import { SegmentedRing } from './SegmentedRing'
 import { SystemIcon } from './SystemIcon'
 import { SystemMeter } from './SystemMeter'
@@ -37,7 +38,13 @@ import { SystemWindow } from './SystemWindow'
 const PENALTY_LINE = 'Failure to comply with the system may result in a penalty.'
 
 /** Shared so a task row keeps the same footprint whether it is met or not (gym rule 4). */
-const ROW_HEIGHT = 'min-h-[88px]'
+const ROW_HEIGHT = 'min-h-[132px]'
+
+/** Gym rule 1: no keyboard between sets. Manual entry survives behind a MANUAL pill for anything off these steps. */
+const STEP_AMOUNTS: Record<'reps' | 'metres', readonly number[]> = {
+  reps: [1, 5, 10],
+  metres: [100, 250, 500],
+}
 
 export function DailyQuestPanel({ strong = false }: { strong?: boolean }) {
   const quests = useApp((s) => s.quests)
@@ -158,8 +165,10 @@ function DailyQuestRow({
   done: number
   onAdd: (amount: number) => void
 }) {
+  const [manual, setManual] = useState(false)
   const [entry, setEntry] = useState('')
   const pct = Math.min(100, (done / item.target) * 100)
+  const unitSuffix = item.unit === 'metres' ? 'm' : ''
 
   function submit() {
     const amount = Number(entry)
@@ -169,7 +178,7 @@ function DailyQuestRow({
   }
 
   return (
-    <div className={`flex flex-col gap-1 ${ROW_HEIGHT}`}>
+    <div className={`flex flex-col gap-2 ${ROW_HEIGHT}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="font-system text-[11px] text-ink-faint uppercase">{item.label}</span>
         <div className="flex items-center gap-2">
@@ -178,23 +187,46 @@ function DailyQuestRow({
         </div>
       </div>
       <SystemMeter segments={[{ pct, tone: 'system' }]} height={10} />
-      <div className="flex gap-2">
-        <input
-          type="number"
-          inputMode="numeric"
-          value={entry}
-          onChange={(event) => setEntry(event.target.value)}
-          placeholder={item.unit === 'metres' ? 'metres just done' : 'reps just done'}
-          className="w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 py-1.5 text-sm text-ink"
-        />
-        <button
-          type="button"
-          onClick={submit}
-          className="shrink-0 rounded bg-system-deep px-3 py-1.5 font-system text-[10px] text-ink uppercase"
-        >
-          Add
-        </button>
-      </div>
+      {manual ? (
+        <div className="flex gap-2">
+          <input
+            type="number"
+            inputMode="numeric"
+            value={entry}
+            onChange={(event) => setEntry(event.target.value)}
+            placeholder={item.unit === 'metres' ? 'metres just done' : 'reps just done'}
+            className="min-h-14 w-full min-w-0 rounded border border-panel-edge bg-void-soft px-2 text-sm text-ink"
+          />
+          <button
+            type="button"
+            onClick={submit}
+            className="min-h-14 shrink-0 rounded bg-system-deep px-3 font-system text-[10px] text-ink uppercase"
+          >
+            Add
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          {STEP_AMOUNTS[item.unit].map((amount) => (
+            <button
+              key={amount}
+              type="button"
+              onClick={() => onAdd(amount)}
+              className="min-h-14 flex-1 rounded border border-panel-edge bg-void-soft font-body text-xs font-semibold text-ink"
+            >
+              +{amount}
+              {unitSuffix}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setManual(true)}
+            className={`min-h-14 shrink-0 border-panel-edge text-ink-faint ${PILL_BUTTON}`}
+          >
+            Manual
+          </button>
+        </div>
+      )}
     </div>
   )
 }

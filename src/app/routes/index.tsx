@@ -25,7 +25,7 @@ import {
   AlertTriangle,
   type LucideIcon,
 } from 'lucide-react'
-import { lazy, Suspense, useEffect, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
@@ -39,6 +39,7 @@ import { SegmentedRing } from '../../components/SegmentedRing'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SummonList, type SummonRow } from '../../components/SummonList'
+import { PILL_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../../components/buttonStyles'
 import { SystemIcon } from '../../components/SystemIcon'
 import { SystemOverlay } from '../../components/SystemOverlay'
 import { SystemValue } from '../../components/SystemValue'
@@ -169,6 +170,11 @@ function HomeScreen() {
   // URL) and simply stops rendering while one is up, resuming once it clears.
   const windowMessagePending = useApp((s) => s.messages.some((m) => m.kind === 'window'))
 
+  // The canvas chunk (F9, m10-plan commit 6) is never fetched on a normal
+  // visit — React.lazy only resolves once this flips true, behind the
+  // footer button, not on mount.
+  const [showLicense, setShowLicense] = useState(false)
+
   const { window: openWindow } = indexRoute.useSearch()
   const navigate = indexRoute.useNavigate()
 
@@ -225,7 +231,17 @@ function HomeScreen() {
         <p className="font-system text-[11px] tracking-[0.2em] text-ink-faint uppercase">{formatDayKey(today)}</p>
       </header>
 
-      <SystemWindow title="Status Window" strong={speaking === 'status'}>
+      <SystemWindow
+        title="Status Window"
+        strong={speaking === 'status'}
+        footer={
+          <StatusFooter
+            unspent={unspent}
+            onRevoke={() => void resetAllocation()}
+            onShowLicense={() => setShowLicense(true)}
+          />
+        }
+      >
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <RankBadge rank={player.rank} />
@@ -295,15 +311,6 @@ function HomeScreen() {
               </span>
               <div className="flex flex-col items-end gap-1">
                 <SystemValue value={unspent} />
-                {unspent > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => void resetAllocation()}
-                    className="font-system text-[9px] text-ink-faint uppercase underline"
-                  >
-                    Reset allocation
-                  </button>
-                ) : null}
               </div>
             </div>
           </div>
@@ -318,9 +325,10 @@ function HomeScreen() {
 
       <SummonList rows={summonRows} open={openWindow} onToggle={toggleSummon} />
 
-      {/* Not in the summon list (F9) — a share action, so it stays on the
-          page, in the footer's future home (commit 6), inline for now. */}
-      {identity ? (
+      {/* Not in the summon list (F9) — a share action reached from the Status
+          footer's "Hunter License" button, so the canvas chunk is fetched
+          only once tapped, never on a normal visit (m10-plan commit 6). */}
+      {identity && showLicense ? (
         <Suspense fallback={null}>
           <HunterLicenseCard
             hunterId={identity.hunterId}
@@ -372,5 +380,45 @@ function HomeScreen() {
         </SystemOverlay>
       ) : null}
     </main>
+  )
+}
+
+/**
+ * The Status Window's footer (F11, rule 3): every action lives here rather
+ * than inline in the body. Revoke resets the whole allocation, so it is the
+ * one confirmation this milestone adds (rule 6).
+ */
+export function StatusFooter({
+  unspent,
+  onRevoke,
+  onShowLicense,
+}: {
+  unspent: number
+  onRevoke: () => void
+  onShowLicense: () => void
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      {unspent > 0 ? (
+        <>
+          <div className={`flex items-center justify-between gap-2 ${PRIMARY_BUTTON}`}>
+            <span>Ability points to spend</span>
+            <SystemValue value={unspent} size="md" />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Revoke all allocated stat points? This cannot be undone.')) onRevoke()
+            }}
+            className={SECONDARY_BUTTON}
+          >
+            Revoke allocation
+          </button>
+        </>
+      ) : null}
+      <button type="button" onClick={onShowLicense} className={`min-h-11 border-panel-edge text-ink-faint ${PILL_BUTTON}`}>
+        Hunter License
+      </button>
+    </div>
   )
 }

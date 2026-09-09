@@ -73,6 +73,67 @@ describe('DailyQuestWindow (m10-plan commit 4)', () => {
   })
 })
 
+describe('DailyQuestRow steppers (m10-plan commit 6, F16)', () => {
+  let container: HTMLDivElement
+  let root: ReturnType<typeof createRoot>
+
+  beforeEach(() => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+  })
+
+  it('offers rep steps for a reps item and metre steps for a metres item, no keyboard needed', async () => {
+    await act(async () =>
+      root.render(<DailyQuestWindow quest={BASE_QUEST} today={TODAY} now={ROLLOVER} onAdd={() => {}} />),
+    )
+    expect(container.textContent).toContain('+1')
+    expect(container.textContent).toContain('+5')
+    expect(container.textContent).toContain('+10')
+    expect(container.textContent).toContain('+100m')
+    expect(container.textContent).toContain('+250m')
+    expect(container.textContent).toContain('+500m')
+    // The manual fallback is present but the number input stays hidden by default.
+    expect(container.textContent).toContain('Manual')
+    expect(container.querySelector('input')).toBeNull()
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('a stepper tap calls onAdd with that item kind and the step amount', async () => {
+    const calls: Array<[string, number]> = []
+    await act(async () =>
+      root.render(
+        <DailyQuestWindow
+          quest={BASE_QUEST}
+          today={TODAY}
+          now={ROLLOVER}
+          onAdd={(kind, amount) => calls.push([kind, amount])}
+        />,
+      ),
+    )
+    const fivePushups = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === '+5')!
+    await act(async () => fivePushups.click())
+    expect(calls).toEqual([['pushups', 5]])
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('reveals the manual number input only after the MANUAL pill is tapped', async () => {
+    await act(async () =>
+      root.render(<DailyQuestWindow quest={BASE_QUEST} today={TODAY} now={ROLLOVER} onAdd={() => {}} />),
+    )
+    const manualPill = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Manual')!
+    await act(async () => manualPill.click())
+    expect(container.querySelector('input')).not.toBeNull()
+
+    await act(async () => root.unmount())
+    container.remove()
+  })
+})
+
 describe('DailyQuestPanel (m10-plan commit 4)', () => {
   beforeEach(async () => {
     await wipeEverything({ forgetIdentity: true })

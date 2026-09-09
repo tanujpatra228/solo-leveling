@@ -41,7 +41,11 @@ function ShadowRow({
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5">
         <RankBadge rank={shadow.rank} />
-        <button type="button" onClick={onAction} className="text-xs text-ink-faint underline">
+        <button
+          type="button"
+          onClick={onAction}
+          className="flex min-h-11 items-center text-xs text-ink-faint underline"
+        >
           {actionLabel}
         </button>
       </div>

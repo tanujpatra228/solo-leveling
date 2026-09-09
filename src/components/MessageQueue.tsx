@@ -85,7 +85,7 @@ function Toast({ message, onDismiss }: { message: SystemMessage; onDismiss: () =
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="font-system text-xs text-ink-faint"
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center font-system text-xs text-ink-faint"
         >
           ✕
         </button>
@@ -111,7 +111,7 @@ function SystemMessageWindow({ message, onDismiss }: { message: SystemMessage; o
         <button
           type="button"
           onClick={onDismiss}
-          className="mt-3 border border-ink-faint px-6 py-2 font-system text-xs tracking-[0.2em] text-ink uppercase"
+          className="mt-3 min-h-11 border border-ink-faint px-6 font-system text-xs tracking-[0.2em] text-ink uppercase"
         >
           Acknowledge
         </button>

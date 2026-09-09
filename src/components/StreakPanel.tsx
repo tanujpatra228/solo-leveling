@@ -11,6 +11,7 @@
  */
 import { useState } from 'react'
 import { useApp } from '../app/state'
+import { PILL_BUTTON } from './buttonStyles'
 import { SystemWindow } from './SystemWindow'
 
 export function StreakPanel() {
@@ -57,7 +58,7 @@ export function StreakPanel() {
                 type="button"
                 onClick={() => void declare('illness')}
                 disabled={busy}
-                className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
+                className={`min-h-11 border-panel-edge text-ink-faint disabled:opacity-30 ${PILL_BUTTON}`}
               >
                 Ill today
               </button>
@@ -65,7 +66,7 @@ export function StreakPanel() {
                 type="button"
                 onClick={() => void declare('travel')}
                 disabled={busy}
-                className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
+                className={`min-h-11 border-panel-edge text-ink-faint disabled:opacity-30 ${PILL_BUTTON}`}
               >
                 Travelling
               </button>
@@ -73,7 +74,7 @@ export function StreakPanel() {
                 type="button"
                 onClick={() => void spend()}
                 disabled={busy || restTokens <= 0}
-                className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
+                className={`min-h-11 border-panel-edge text-ink-faint disabled:opacity-30 ${PILL_BUTTON}`}
               >
                 Spend rest token
               </button>

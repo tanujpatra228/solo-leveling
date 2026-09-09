@@ -26,7 +26,7 @@ export function StatRow({ icon, onAllocate, ...bar }: StatRowProps) {
           type="button"
           onClick={onAllocate}
           aria-label={`Allocate a point to ${bar.label}`}
-          className="self-end rounded-full border border-panel-edge px-2 py-0.5 font-system text-xs text-mana"
+          className="flex min-h-11 min-w-11 items-center justify-center self-end rounded-full border border-panel-edge font-system text-xs text-mana"
         >
           +
         </button>
