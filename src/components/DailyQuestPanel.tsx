@@ -15,15 +15,15 @@ import { useMemo, useState } from 'react'
 import { useApp } from '../app/state'
 import { activeQuestFor, type DailyQuestItem, type DailyQuestPayload } from '../domain/quests'
 import { SystemMeter } from './SystemMeter'
-import { SystemPanel } from './SystemPanel'
 import { SystemValue } from './SystemValue'
+import { SystemWindow } from './SystemWindow'
 
 /**
- * Owns its own `SystemPanel` rather than being wrapped in one by its caller,
- * so a rest day (no quest issued) renders nothing at all — not an empty
- * bordered section with nothing under it.
+ * Owns its own `SystemWindow` rather than being wrapped in one by its
+ * caller, so a rest day (no quest issued) renders nothing at all — not an
+ * empty bordered window with nothing under it.
  */
-export function DailyQuestPanel() {
+export function DailyQuestPanel({ strong = false }: { strong?: boolean }) {
   const quests = useApp((s) => s.quests)
   const today = useApp((s) => s.today)
   const completeDailyQuest = useApp((s) => s.completeDailyQuest)
@@ -36,22 +36,21 @@ export function DailyQuestPanel() {
   if (!quest) return null
 
   return (
-    <SystemPanel className="mt-3 flex flex-col gap-3">
-      <div className="flex items-baseline justify-between font-system text-[11px] text-ink-faint uppercase">
-        <span>Daily Quest</span>
-        <span>
+    <SystemWindow title="Daily Quest" strong={strong}>
+      <div className="flex flex-col gap-3">
+        <p className="font-system text-[11px] text-ink-faint uppercase">
           {quest.xpReward} xp · {quest.goldReward} gold
-        </span>
+        </p>
+        {quest.items.map((item) => (
+          <DailyQuestRow
+            key={item.kind}
+            item={item}
+            done={quest.progress[item.kind] ?? 0}
+            onAdd={(amount) => void completeDailyQuest({ [item.kind]: amount })}
+          />
+        ))}
       </div>
-      {quest.items.map((item) => (
-        <DailyQuestRow
-          key={item.kind}
-          item={item}
-          done={quest.progress[item.kind] ?? 0}
-          onAdd={(amount) => void completeDailyQuest({ [item.kind]: amount })}
-        />
-      ))}
-    </SystemPanel>
+    </SystemWindow>
   )
 }
 

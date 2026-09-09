@@ -10,11 +10,11 @@
  */
 import { useMemo } from 'react'
 import { useApp } from '../app/state'
-import { SystemPanel } from './SystemPanel'
+import { SystemWindow } from './SystemWindow'
 
 const MS_PER_DAY = 86_400_000
 
-export function JobChangeQuestPanel() {
+export function JobChangeQuestPanel({ strong = false }: { strong?: boolean }) {
   const quests = useApp((s) => s.quests)
   const completeJobChangeQuest = useApp((s) => s.completeJobChangeQuest)
 
@@ -28,19 +28,23 @@ export function JobChangeQuestPanel() {
   const day = Math.max(0, Math.floor((Date.now() - quest.issuedAt) / MS_PER_DAY)) + 1
 
   return (
-    <SystemPanel className="mt-3 flex flex-col gap-2">
-      <p className="font-system text-[11px] tracking-[0.12em] text-mana uppercase">Job Change Quest</p>
-      <p className="text-xs text-ink-soft">
+    <SystemWindow
+      title="Job Change Quest"
+      strong={strong}
+      footer={
+        <button
+          type="button"
+          onClick={() => void completeJobChangeQuest()}
+          className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase"
+        >
+          Take the Job Change Quest
+        </button>
+      }
+    >
+      <p className="text-center text-xs text-ink-soft">
         A benchmark week. Train as you have been — the stat distribution you have built picks your
         class the moment you take the test. Day {day}.
       </p>
-      <button
-        type="button"
-        onClick={() => void completeJobChangeQuest()}
-        className="self-start rounded bg-system-deep px-3 py-1.5 font-system text-[10px] text-ink uppercase"
-      >
-        Take the Job Change Quest
-      </button>
-    </SystemPanel>
+    </SystemWindow>
   )
 }

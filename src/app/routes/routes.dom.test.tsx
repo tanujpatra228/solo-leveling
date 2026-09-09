@@ -148,6 +148,41 @@ describe('every route mounts', () => {
   })
 })
 
+describe('the glow rule: exactly one strong window per screen (m10-plan commit 2, F1)', () => {
+  it('Status renders more than one SystemWindow heading, with [STATUS WINDOW] among them, and exactly one strong window', async () => {
+    await awaken()
+
+    const { container, unmount } = await mountInteractive('/')
+    const headings = Array.from(container.querySelectorAll('h2')).map((h) => h.textContent)
+    expect(headings.length).toBeGreaterThan(1)
+    expect(headings).toContain('[Status Window]')
+    expect(container.querySelectorAll('.shadow-system-strong').length).toBe(1)
+
+    await unmount()
+  })
+
+  it('Gate carries exactly one strong window, with no session open', async () => {
+    await awaken()
+
+    const { container, unmount } = await mountInteractive('/gate')
+    expect(container.querySelectorAll('.shadow-system-strong').length).toBe(1)
+
+    await unmount()
+  })
+
+  it('Gate carries exactly one strong window, with a session open', async () => {
+    await awaken()
+    const routine = useApp.getState().routines[0]
+    if (!routine) throw new Error('seed produced no routines')
+    await useApp.getState().startGate(routine.id)
+
+    const { container, unmount } = await mountInteractive('/gate')
+    expect(container.querySelectorAll('.shadow-system-strong').length).toBe(1)
+
+    await unmount()
+  })
+})
+
 describe('the swap sheet (commit 6b2b0eb, rule 14)', () => {
   it('opens from a block\'s Swap button and lists ranked candidates without crashing', async () => {
     await useApp.getState().completeAwakening({

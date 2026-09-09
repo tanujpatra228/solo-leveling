@@ -11,13 +11,12 @@
  */
 import { useState } from 'react'
 import { useApp } from '../app/state'
-import { SystemPanel } from './SystemPanel'
+import { SystemWindow } from './SystemWindow'
 
 export function StreakPanel() {
   const streak = useApp((s) => s.streak)
   const quests = useApp((s) => s.quests)
   const restTokens = useApp((s) => s.progress.restTokens)
-  const gold = useApp((s) => s.progress.gold)
   const today = useApp((s) => s.today)
   const declareAbsence = useApp((s) => s.declareAbsence)
   const spendRestToken = useApp((s) => s.spendRestToken)
@@ -41,48 +40,47 @@ export function StreakPanel() {
   }
 
   return (
-    <SystemPanel className="mt-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between font-system text-[11px] text-ink-soft">
-        <span>
+    <SystemWindow title="Streak">
+      <div className="flex flex-col gap-2">
+        <p className="font-system text-[11px] text-ink-soft">
           Streak {streak.current}
           {streak.longest > streak.current ? ` · best ${streak.longest}` : ''}
-        </span>
-        <span>{gold} gold</span>
-      </div>
+        </p>
 
-      {canForgiveToday ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="font-system text-[10px] text-ink-faint uppercase">
-            {restTokens} rest token{restTokens === 1 ? '' : 's'}
-          </span>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void declare('illness')}
-              disabled={busy}
-              className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
-            >
-              Ill today
-            </button>
-            <button
-              type="button"
-              onClick={() => void declare('travel')}
-              disabled={busy}
-              className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
-            >
-              Travelling
-            </button>
-            <button
-              type="button"
-              onClick={() => void spend()}
-              disabled={busy || restTokens <= 0}
-              className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
-            >
-              Spend rest token
-            </button>
+        {canForgiveToday ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-system text-[10px] text-ink-faint uppercase">
+              {restTokens} rest token{restTokens === 1 ? '' : 's'}
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void declare('illness')}
+                disabled={busy}
+                className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
+              >
+                Ill today
+              </button>
+              <button
+                type="button"
+                onClick={() => void declare('travel')}
+                disabled={busy}
+                className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
+              >
+                Travelling
+              </button>
+              <button
+                type="button"
+                onClick={() => void spend()}
+                disabled={busy || restTokens <= 0}
+                className="rounded-full border border-panel-edge px-2 py-1 font-system text-[10px] text-ink-faint uppercase disabled:opacity-30"
+              >
+                Spend rest token
+              </button>
+            </div>
           </div>
-        </div>
-      ) : null}
-    </SystemPanel>
+        ) : null}
+      </div>
+    </SystemWindow>
   )
 }

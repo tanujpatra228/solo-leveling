@@ -1,10 +1,8 @@
 /**
  * Twelve arcs on a circle, lit clockwise from twelve o'clock. Built for the
- * fatigue gauge (docs/system-visuals-plan.md §6, still uncalled — the
- * Status Window doesn't show a fatigue reading yet) but the same shape reads
- * just as well as a countdown: drive it with elapsed/total and it becomes a
- * timer ring that fills as time runs out, which is its first real caller —
- * the rest timer in gate.tsx.
+ * fatigue gauge (docs/system-visuals-plan.md §6) and reused for the rest
+ * timer's countdown (`RestTimerDock`) — the same shape reads just as well
+ * driven by elapsed/total as a timer ring that fills as time runs out.
  *
  * A static glow on the wrapper, not a per-segment `drop-shadow` — twelve
  * filtered strokes is exactly the "glowing icons on a scrolling screen"

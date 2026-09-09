@@ -5,9 +5,9 @@
 import { useState } from 'react'
 import { useApp } from '../app/state'
 import type { DeloadVerdict } from '../domain/deload'
-import { SystemPanel } from './SystemPanel'
+import { SystemWindow } from './SystemWindow'
 
-export function DeloadPanel({ deload }: { deload: DeloadVerdict }) {
+export function DeloadPanel({ deload, strong = false }: { deload: DeloadVerdict; strong?: boolean }) {
   const markDeload = useApp((s) => s.markDeload)
   const [busy, setBusy] = useState(false)
 
@@ -21,18 +21,24 @@ export function DeloadPanel({ deload }: { deload: DeloadVerdict }) {
   }
 
   return (
-    <SystemPanel className="mt-3 flex flex-col gap-2 text-warn">
-      <p className="font-system text-[11px] tracking-[0.12em] uppercase">{deload.headline}</p>
-      <p className="text-xs text-ink-soft">{deload.detail}</p>
-      <p className="text-xs text-ink-soft">{deload.prescription}</p>
-      <button
-        type="button"
-        onClick={() => void acknowledge()}
-        disabled={busy}
-        className="self-start rounded border border-warn/60 px-3 py-1.5 font-system text-[10px] text-warn uppercase disabled:opacity-30"
-      >
-        Mark deload done
-      </button>
-    </SystemPanel>
+    <SystemWindow
+      title={deload.headline}
+      strong={strong}
+      footer={
+        <button
+          type="button"
+          onClick={() => void acknowledge()}
+          disabled={busy}
+          className="w-full rounded border border-warn/60 px-5 py-3 font-system text-xs text-warn uppercase disabled:opacity-30"
+        >
+          Mark deload done
+        </button>
+      }
+    >
+      <div className="flex flex-col gap-2 text-center text-warn">
+        <p className="text-xs text-ink-soft">{deload.detail}</p>
+        <p className="text-xs text-ink-soft">{deload.prescription}</p>
+      </div>
+    </SystemWindow>
   )
 }
