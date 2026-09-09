@@ -62,11 +62,11 @@ function drawCard(ctx: CanvasRenderingContext2D, dpr: number, data: HunterLicens
 
   ctx.fillStyle = '#7b90b3'
   ctx.font = '10px monospace'
-  ctx.fillText(`ID ${data.hunterId.slice(0, 16).toUpperCase()}`, 18, h - 26)
+  ctx.fillText(`ID ${data.hunterId.slice(0, 16).toUpperCase()}`, 18, h - 32)
   ctx.fillText(
     data.awakenedAt ? `AWAKENED ${new Date(data.awakenedAt).toLocaleDateString()}` : 'NOT YET AWAKENED',
     18,
-    h - 14,
+    h - 20,
   )
 
   ctx.strokeStyle = rankColor
