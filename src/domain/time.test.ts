@@ -4,9 +4,11 @@ import {
   DUNGEON_BREAK_DAYS,
   addDaysToKey,
   ageFromBirthYear,
+  dayFractionRemainingPct,
   dayKeyRange,
   dayOfWeekForKey,
   daysBetweenKeys,
+  deadlineRingTone,
   isWithinDay,
   rollingWindow,
   toDayKey,
@@ -123,6 +125,39 @@ describe('weeks', () => {
 
   it('changes the week key across a Monday boundary', () => {
     expect(toWeekKey('2026-03-08')).not.toBe(toWeekKey('2026-03-09'))
+  })
+})
+
+describe('dayFractionRemainingPct', () => {
+  it('is 100 right at the rollover', () => {
+    expect(dayFractionRemainingPct('2026-03-06', new Date(2026, 2, 6, 4, 0).getTime())).toBe(100)
+  })
+
+  it('is 0 right at the next rollover', () => {
+    expect(dayFractionRemainingPct('2026-03-06', new Date(2026, 2, 7, 4, 0).getTime())).toBe(0)
+  })
+
+  it('is half at the midpoint', () => {
+    expect(dayFractionRemainingPct('2026-03-06', new Date(2026, 2, 6, 16, 0).getTime())).toBeCloseTo(50)
+  })
+
+  it('clamps rather than going negative or over 100 outside the day', () => {
+    expect(dayFractionRemainingPct('2026-03-06', new Date(2026, 2, 8, 0, 0).getTime())).toBe(0)
+    expect(dayFractionRemainingPct('2026-03-06', new Date(2026, 2, 6, 0, 0).getTime())).toBe(100)
+  })
+})
+
+describe('deadlineRingTone', () => {
+  it('is system fresh at rollover', () => {
+    expect(deadlineRingTone('2026-03-06', new Date(2026, 2, 6, 4, 0).getTime())).toBe('system')
+  })
+
+  it('turns warn exactly two hours before the rollover', () => {
+    expect(deadlineRingTone('2026-03-06', new Date(2026, 2, 7, 2, 0).getTime())).toBe('warn')
+  })
+
+  it('stays system one minute outside the two-hour line', () => {
+    expect(deadlineRingTone('2026-03-06', new Date(2026, 2, 7, 1, 59).getTime())).toBe('system')
   })
 })
 

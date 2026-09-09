@@ -84,6 +84,26 @@ export function isWithinDay(at: number, key: DayKey): boolean {
   return at >= dayKeyStart(key).getTime() && at < dayKeyEnd(key).getTime()
 }
 
+/** The canon Daily Quest deadline ring turns `warn` inside this many hours of the rollover. */
+export const DEADLINE_WARN_HOURS = 2
+
+/**
+ * Fraction of the training day `key` still remaining at `at`, as 0-100 —
+ * 100 right after rollover, 0 at the next one. Clamped, so a caller comparing
+ * a stale `today` against a later clock (the tick between rollover and the
+ * store's next `refresh()`) never reads a negative or over-full ring.
+ */
+export function dayFractionRemainingPct(key: DayKey, at: number): number {
+  const remaining = dayKeyEnd(key).getTime() - at
+  return Math.min(100, Math.max(0, (remaining / MS_PER_DAY) * 100))
+}
+
+/** Tone for the Daily Quest deadline ring: `warn` inside `DEADLINE_WARN_HOURS` of the rollover. */
+export function deadlineRingTone(key: DayKey, at: number): 'system' | 'warn' {
+  const remainingHours = (dayKeyEnd(key).getTime() - at) / (60 * 60 * 1000)
+  return remainingHours <= DEADLINE_WARN_HOURS ? 'warn' : 'system'
+}
+
 /**
  * Monday-anchored ISO-style week key, `YYYY-Www`, for weekly volume landmarks.
  * Weeks are the unit volume is prescribed in, so they need a stable label.
