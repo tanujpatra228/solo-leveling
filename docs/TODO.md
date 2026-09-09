@@ -46,7 +46,7 @@ plan named in the row.
 | Tests | 753 passing |
 | Typecheck, `check:render`, build | Clean |
 | Bundle | 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
-| Deployed | Live on workers.dev, redeployed 2026-09-09 through M10 commit 8 |
+| Deployed | Live on workers.dev, redeployed 2026-09-09 with all ten M10 commits |
 
 Every milestone through M10 is now **Done** or deliberately **Parked**/**blocked on the user** — M4
 commit 4 needs a `CLOUDFLARE_API_TOKEN` only the user can create; M8 stays parked until the user
