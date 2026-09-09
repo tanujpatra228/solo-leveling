@@ -221,11 +221,17 @@ function HomeScreen() {
   const statMax = Math.max(...STAT_ORDER.map((key) => player.total[key]), 10) * 1.15
   const fatigueReading = projection.fatigue.band === 'insufficient_data' ? '—' : projection.fatigue.gauge
 
+  // `resetScroll: false` on both — TanStack Router scrolls the window to
+  // (0, 0) on every navigation by default, search-param-only ones included,
+  // which threw the page under a summoned window back to the top on every
+  // open and close (found on device). This is separate from the SystemOverlay
+  // focus() fix (92a6382): that one covered the close button stealing scroll
+  // on its own, this one is the router itself.
   function toggleSummon(id: SummonWindowId) {
-    void navigate({ search: openWindow === id ? {} : { window: id } })
+    void navigate({ search: openWindow === id ? {} : { window: id }, resetScroll: false })
   }
   function closeSummon() {
-    void navigate({ search: {} })
+    void navigate({ search: {}, resetScroll: false })
   }
 
   const summonRows: SummonRow[] = [
