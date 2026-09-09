@@ -500,6 +500,56 @@ line the app ships today; every line in the committed table was read before it s
 *Budget impact:* none at build time. Bundle after commit 4: 198.49 KB JS + 5.99 KB CSS + 2.20 KB
 `workbox-window` ≈ 206.68 KB gzipped, still comfortably under M4's ~480 KB Slow-4G install budget.
 
+### M10 — The Status Window, made faithful and readable
+
+Driven by using the app rather than building it: the Status page read as sixteen equally-weighted
+panels in one nine-screen scroll, against a supplied screenshot of the anime Status window plus
+researched source material. Landed across ten commits (`docs/m10-plan.md`, now `git rm`'d — detail
+recoverable at the commits named in `docs/TODO.md`'s M10 entry).
+
+Two standalone gym bugs first: `keepScreenAwake` was stored, defaulted true, and read nowhere —
+wired through `createWakeLock()` whenever a session is live, not only while resting; and the rest
+timer dock was Gate-only, so checking the Daily Quest mid-rest lost the countdown — lifted into
+`root.tsx` above the tab bar (commit 0). Then the design pass itself: near-white bold type and
+`font-variant-numeric: tabular-nums` in place of the muted monospace-everywhere read; `SystemIcon`'s
+default stroke doubled to 2.5px; `SystemValue`, the large-figure-over-dim-max pair the reference
+draws at every one of six sites; and `SystemMeter` rebuilt in four layers (near-white outline, inset
+gap, dim body, fixed 2px core) after the previous single-alpha fill was found to collapse at small
+heights (commit 1). The mega-window split into an inline head — vitals strip, two-column stat grid,
+class line — with the six archive panels (fatigue detail, volume, warnings, roster, tower, license)
+moved behind a summon list and a `SystemOverlay`, which window is open living in the URL search
+param rather than `Settings` so the hardware back button closes it for free (commits 2-3).
+
+The Daily Quest gained the canon deadline ring (`SegmentedRing`, freed by commit 2), the penalty
+stake quoted from the System's own voice, a reward block pulled out of the header caption, and
+GOAL/CLEARED task groups in place of a disclosure control (commit 4). Weekly volume split into a
+Trained group and a collapsed Untrained line; advisories went title-only with severity read as a
+left edge rule, revealing finding/suggestion/acknowledge only on the row tapped open and collapsing
+anything past three behind a count (commit 5). Every gym-relevant target reached the 44px floor;
+Daily Quest progress moved from a keyboard-summoning number input to reps/metres steppers with
+manual entry behind a pill; Revoke Allocation became the one new confirmation this milestone adds,
+moved into the Status footer under an allocation banner that only appears with unspent points; and
+the Hunter License canvas moved behind a footer button so its chunk is never fetched on a normal
+visit (commit 6). A blueprint grid layer, a staggered per-window entrance driven by an `index` prop,
+and a copy pass (Dismiss → Acknowledge, Bench/Activate → Return/Summon, and the rest) landed across
+all three routes at once rather than as a Status-only treatment (commit 7). Each stat row gained a
+one-line caption naming what it is derived from, cited back to `domain/stats.ts` rather than
+restated (commit 8). Finally the window title became a bordered box straddling the top border,
+`SystemPanel` gained a `boxed` variant for the vitals strip and stat grid, and the frame itself now
+levels up with the hunter — a `frameTierFor(rank, hunterClass)` lookup threaded through every
+`SystemWindow` via a `FrameTierContext` set once in `root.tsx`, so Gate and Link inherit the same
+tier automatically rather than each route wiring it by hand (commit 9).
+
+*Acceptance:* an open session's screen never sleeps; a gate's rest timer is visible from any route;
+`todaysDailyQuest`'s deadline ring and warn threshold are computed from an injected clock, never
+`Date.now()` inside `src/domain/`; a fully cleared Daily Quest renders as one row; an all-zero
+volume list renders no meters; a stepper tap pays the same store action a manual entry would; the
+Hunter License canvas chunk is absent from the network tab until its button is pressed; the frame
+tier is derived from the projection every render, never stored.
+*Budget impact:* one context provider and a handful of new small components; no new dependency.
+The one item this milestone could not settle from a keyboard — real-device scroll framerate with
+`[ANALYSIS]` summoned and the frame at its brightest — still needs a phone.
+
 ---
 
 ## 5. How the work gets checked

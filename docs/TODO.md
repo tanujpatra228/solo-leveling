@@ -2,7 +2,7 @@
 
 Status key: `[ ]` todo · `[~]` in progress · `[x]` done · `[!]` blocked · `[-]` dropped
 
-## Where everything stands — 2026-09-08
+## Where everything stands — 2026-09-09
 
 The whole picture in three tables. Detail for anything below is further down this file, or in the
 plan named in the row.
@@ -21,7 +21,7 @@ plan named in the row.
 | M7b | Shop, Job Change Quest, Reawakening Test | **Done** | — |
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Done** | — |
-| M10 | The Status Window, made faithful and readable | **Planned** | Ten commits in `docs/m10-plan.md`, written against a supplied screenshot of the anime Status window (§1.0) plus researched source material (§1.1–§1.8). The Status page becomes the inline head a hunter reads daily plus six windows *summoned* as `.system-frame` overlays — the construction `MessageQueue` already ships — instead of one 9-screen scroll. Includes the canon Daily Quest deadline ring, a rank-driven frame tier, gym-grade targets, and two standalone bug fixes (`keepScreenAwake` never read, rest timer Gate-only) |
+| M10 | The Status Window, made faithful and readable | **Done** | — |
 
 ### Features outside the milestone track
 
@@ -43,18 +43,60 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 686 passing |
+| Tests | 753 passing |
 | Typecheck, `check:render`, build | Clean |
-| Bundle | 198.49 KB JS + 5.99 KB CSS + 2.20 KB `workbox-window` ≈ 206.68 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
-| Deployed | Live on workers.dev, redeployed 2026-09-08 with all four M9 commits |
+| Bundle | 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
+| Deployed | Live on workers.dev, redeployed 2026-09-09 through M10 commit 8 |
 
-Every milestone through M9 is now **Done** or deliberately **Parked**/**blocked on the user** — M4
+Every milestone through M10 is now **Done** or deliberately **Parked**/**blocked on the user** — M4
 commit 4 needs a `CLOUDFLARE_API_TOKEN` only the user can create; M8 stays parked until the user
 decides to revisit it.
 
-M10 is the first milestone driven by using the app rather than building it: the Status page reads as
-sixteen equally-weighted panels in one nine-screen window, and `docs/m10-plan.md` is the plan to fix
-it. Nothing in it touches `src/domain/`.
+## M10 — The Status Window, made faithful and readable, landed 2026-09-09
+
+All ten commits of `docs/m10-plan.md` (now `git rm`'d — detail recoverable at the commit below,
+summary in `docs/implementation-plan.md` §4). 753 tests passing, typecheck and `check:render` clean.
+The first milestone driven by using the app rather than building it: the Status page read as sixteen
+equally-weighted panels in one nine-screen scroll, against a supplied screenshot of the anime Status
+window plus researched source material.
+
+- [x] **Commit 0** Two gym bugs: `keepScreenAwake` wired to `createWakeLock()`, the rest timer dock
+      lifted into `root.tsx` so it survives a route change (`1ff1406`)
+- [x] **Commit 1** The type, the icons, the meter and the value pair — near-white bold type,
+      `SystemIcon` at `strokeWidth={2.5}`, `SystemValue`'s large-figure-over-dim-max pair, `SystemMeter`
+      rebuilt in four layers after the single-alpha fill was found to collapse at small heights
+      (`2759358`)
+- [x] **Commit 2** The mega-window split into an inline head, six archive panels moved off the page
+      (`54d8be9`)
+- [x] **Commit 3** The summon list and the `SystemOverlay` window, which window is open living in the
+      URL search param rather than `Settings` so the hardware back button closes it for free
+      (`ad4ee6e`)
+- [x] **Commit 4** The Daily Quest deadline ring, the penalty stake quoted from the System's own
+      voice, the reward block, and GOAL/CLEARED task groups. `domain/time.ts` gained
+      `dayFractionRemainingPct`/`deadlineRingTone`, both clock-injected (`aedce31`)
+- [x] **Commit 5** Weekly volume split into Trained/Untrained, warnings collapsed to title-only rows
+      with severity as a left edge rule (`7223850`)
+- [x] **Commit 6** The house button vocabulary, Daily Quest progress by stepper instead of a
+      keyboard-summoning input, every gym-relevant target at 44px, Revoke Allocation moved into the
+      Status footer as the one new confirmation this milestone adds, the Hunter License canvas moved
+      behind a footer button so its chunk is never fetched on a normal visit (`3dc0d34`)
+- [x] **Commit 7** A blueprint ground-texture layer, a staggered per-window entrance, and the copy
+      pass — landed across Gate, Link and Awaken at the same time as Status, not as a Status-only
+      treatment (`6f25061`)
+- [x] **Commit 8** Each stat row explains what it is derived from, cited to `domain/stats.ts` rather
+      than restated (`5c8d260`)
+- [x] **Commit 9** The window title as a bordered box straddling the top border, `SystemPanel`'s
+      `boxed` variant, and the frame levelling up with the hunter — `domain/frameTier.ts`'s
+      `frameTierFor(rank, hunterClass)` threaded through every `SystemWindow` via a `FrameTierContext`
+      set once in `root.tsx`
+
+**Known gap:** commit 9's real-device scroll-framerate check (`[ANALYSIS]` summoned, the ground
+layer in, the frame at its brightest) needs a phone — nothing reasoning from this machine can settle
+it. If it drops frames, the plan's fallback is to drop the corner brackets and keep the near-white
+hairline.
+
+Bundle after M10: 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial
+route — still under half the ~480 KB Slow-4G install budget M4 commit 3 derived.
 
 ## M7 — The rest of the fantasy layer, landed 2026-09-08
 
