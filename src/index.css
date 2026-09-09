@@ -121,6 +121,29 @@ body {
   border-top: 0;
 }
 
+/**
+ * Frame tiers 3 and 4 (§1.7, m10-plan commit 9): the interface levels up
+ * with the hunter's own power, at the same story beats canon uses. Layered
+ * on top of `.system-frame`, never replacing it, so a tier-3 hunter's frame
+ * is still every tier-2 rule plus these.
+ */
+.system-frame-bright::before,
+.system-frame-bright::after {
+  border-color: #f4f8ff;
+  filter: drop-shadow(0 0 6px var(--color-system));
+}
+
+.system-frame-mana {
+  box-shadow:
+    0 0 24px -8px var(--color-mana),
+    inset 0 0 40px -20px var(--color-mana);
+}
+.system-frame-mana::before,
+.system-frame-mana::after {
+  border-color: var(--color-mana);
+  filter: drop-shadow(0 0 6px var(--color-mana));
+}
+
 /* Respect the notch and the home indicator without hard-coding a device. */
 #root {
   padding-top: env(safe-area-inset-top);

@@ -5,6 +5,7 @@
  */
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import { FrameTierContext } from '../app/frameTierContext'
 import { SystemWindow } from './SystemWindow'
 
 describe('SystemWindow index (m10-plan commit 7)', () => {
@@ -35,5 +36,32 @@ describe('SystemWindow index (m10-plan commit 7)', () => {
       </SystemWindow>,
     )
     expect(far).toContain('animation-delay:240ms')
+  })
+})
+
+describe('SystemWindow frame tier (m10-plan commit 9)', () => {
+  it('renders the plain hairline with no provider mounted (tier 1 default)', () => {
+    const html = renderToStaticMarkup(<SystemWindow title="Status">hi</SystemWindow>)
+    expect(html).not.toContain('system-frame')
+  })
+
+  it('picks up a higher tier from context without the caller passing anything', () => {
+    const html = renderToStaticMarkup(
+      <FrameTierContext.Provider value={3}>
+        <SystemWindow title="Status">hi</SystemWindow>
+      </FrameTierContext.Provider>,
+    )
+    expect(html).toContain('system-frame')
+    expect(html).toContain('system-frame-bright')
+    expect(html).not.toContain('system-frame-mana')
+  })
+
+  it('swings the accent to mana at tier 4 (Shadow Monarch)', () => {
+    const html = renderToStaticMarkup(
+      <FrameTierContext.Provider value={4}>
+        <SystemWindow title="Status">hi</SystemWindow>
+      </FrameTierContext.Provider>,
+    )
+    expect(html).toContain('system-frame-mana')
   })
 })

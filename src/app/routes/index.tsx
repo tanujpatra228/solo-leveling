@@ -42,6 +42,7 @@ import { SummonList, type SummonRow } from '../../components/SummonList'
 import { PILL_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../../components/buttonStyles'
 import { SystemIcon } from '../../components/SystemIcon'
 import { SystemOverlay } from '../../components/SystemOverlay'
+import { SystemPanel } from '../../components/SystemPanel'
 import { SystemValue } from '../../components/SystemValue'
 import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
@@ -269,7 +270,7 @@ function HomeScreen() {
             tokens, forgiveness) stays its own window below — this is just
             the number.
           */}
-          <div className="grid grid-cols-3 gap-2 border border-panel-edge/60">
+          <SystemPanel boxed className="grid grid-cols-3 gap-2">
             <div className="flex flex-col justify-center gap-1 p-2.5">
               <ManaBar level={player.level} xpIntoLevel={player.xpIntoLevel} xpToNext={player.xpToNext} />
             </div>
@@ -295,7 +296,7 @@ function HomeScreen() {
                 <SystemValue value={fatigueReading} size="md" />
               </div>
             </div>
-          </div>
+          </SystemPanel>
 
           {/* The two-column stat grid (m10-plan section 1.0 correction 4) —
               no meters at all in the reference; the split strip StatBar
@@ -314,7 +315,7 @@ function HomeScreen() {
                 onAllocate={unspent > 0 ? () => void allocatePoint(key) : undefined}
               />
             ))}
-            <div className="flex items-center justify-between gap-2 border border-panel-edge/60 p-2.5">
+            <SystemPanel boxed className="flex items-center justify-between gap-2 p-2.5">
               <span className="font-system text-[9px] leading-tight tracking-[0.08em] text-ink-faint uppercase">
                 Available
                 <br />
@@ -325,7 +326,7 @@ function HomeScreen() {
               <div className="flex flex-col items-end gap-1">
                 <SystemValue value={unspent} />
               </div>
-            </div>
+            </SystemPanel>
           </div>
         </div>
       </SystemWindow>
