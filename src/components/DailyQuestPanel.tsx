@@ -37,9 +37,6 @@ import { SystemWindow } from './SystemWindow'
 /** §1.5: quoted System voice, not an invented warning. */
 const PENALTY_LINE = 'Failure to comply with the system may result in a penalty.'
 
-/** Shared so a task row keeps the same footprint whether it is met or not (gym rule 4). */
-const ROW_HEIGHT = 'min-h-[132px]'
-
 /** Gym rule 1: no keyboard between sets. Manual entry survives behind a MANUAL pill for anything off these steps. */
 const STEP_AMOUNTS: Record<'reps' | 'metres', readonly number[]> = {
   reps: [1, 5, 10],
@@ -181,7 +178,7 @@ function DailyQuestRow({
   }
 
   return (
-    <div className={`flex flex-col gap-2 ${ROW_HEIGHT}`}>
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span className="font-system text-[11px] text-ink-faint uppercase">{item.label}</span>
         <div className="flex items-center gap-2">
@@ -234,15 +231,19 @@ function DailyQuestRow({
   )
 }
 
+// No shared min-height with DailyQuestRow: a met item moves from the GOAL
+// group into CLEARED rather than transforming in place, so matching heights
+// bought nothing but a huge dead gap here (found on a real device) — the
+// steppers row and the manual-entry row are already the same height as each
+// other (both a single min-h-14 flex row), which is the only place gym rule
+// 4's "keeps its height" actually applies.
 function DailyQuestClearedRow({ item, done }: { item: DailyQuestItem; done: number }) {
   return (
-    <div className={`flex flex-col justify-center gap-1 ${ROW_HEIGHT}`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-system text-[11px] text-ink-faint/70 uppercase">{item.label}</span>
-        <div className="flex items-center gap-2">
-          <BracketedTaskValue done={done} item={item} />
-          <SystemIcon icon={CheckSquare} tone="good" size={16} glow="none" label={`${item.label} met`} />
-        </div>
+    <div className="flex items-center justify-between gap-2">
+      <span className="font-system text-[11px] text-ink-faint/70 uppercase">{item.label}</span>
+      <div className="flex items-center gap-2">
+        <BracketedTaskValue done={done} item={item} />
+        <SystemIcon icon={CheckSquare} tone="good" size={16} glow="none" label={`${item.label} met`} />
       </div>
     </div>
   )
