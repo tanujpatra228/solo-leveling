@@ -15,10 +15,11 @@ import 'fake-indexeddb/auto'
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createMemoryHistory, createRouter } from '@tanstack/react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { wipeEverything } from '../../db/repo'
 import { dayOfWeekForKey } from '../../domain/time'
 import { useApp } from '../state'
+import { clearRestTimer, startRestTimer } from '../useRestTimer'
 import { awakenRoute } from './awaken'
 import { gateRoute } from './gate'
 import { indexRoute } from './index'
@@ -217,6 +218,30 @@ describe('QR scanning on /link (m6-plan commit 5, rule 14)', () => {
     // null — the real "no camera on this device" path, not a mocked one.
     await vi.waitFor(() => expect(container.textContent).toContain('No camera available'))
     expectRendered(container.innerHTML)
+
+    await unmount()
+  })
+})
+
+describe('the rest-timer dock lives in the shell (m10-plan commit 0, F19)', () => {
+  afterEach(() => clearRestTimer())
+
+  it('renders on the Status route while a timer started elsewhere is running', async () => {
+    await awaken()
+    startRestTimer(90, 'Back Squat')
+
+    const { container, unmount } = await mountInteractive('/')
+    expectRendered(container.innerHTML)
+    expect(container.textContent).toContain('Skip rest')
+
+    await unmount()
+  })
+
+  it('renders nothing when idle', async () => {
+    await awaken()
+
+    const { container, unmount } = await mountInteractive('/')
+    expect(container.textContent).not.toContain('Skip rest')
 
     await unmount()
   })

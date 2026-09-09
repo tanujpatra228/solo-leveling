@@ -5,6 +5,8 @@
  */
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
 import { MessageQueue } from '../../components/MessageQueue'
+import { RestTimerDock } from '../../components/RestTimerDock'
+import { useSessionWakeLock } from '../useSessionWakeLock'
 
 const TABS = [
   { to: '/gate', label: 'Gate' },
@@ -13,6 +15,8 @@ const TABS = [
 ] as const
 
 function RootLayout() {
+  useSessionWakeLock()
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -37,6 +41,7 @@ function RootLayout() {
         </ul>
       </nav>
 
+      <RestTimerDock />
       <MessageQueue />
     </div>
   )

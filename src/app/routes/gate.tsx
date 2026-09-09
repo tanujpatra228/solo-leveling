@@ -17,7 +17,6 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { RankBadge } from '../../components/RankBadge'
-import { SegmentedRing } from '../../components/SegmentedRing'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
 import {
@@ -54,7 +53,7 @@ import type {
   SubstitutionReason,
 } from '../../domain/types'
 import { useApp } from '../state'
-import { useRestTimer } from '../useRestTimer'
+import { clearRestTimer, startRestTimer } from '../useRestTimer'
 import { rootRoute } from './root'
 
 export const gateRoute = createRoute({
@@ -756,11 +755,10 @@ function ActiveGateScreen({
   const abandonGate = useApp((s) => s.abandonGate)
   const [finishing, setFinishing] = useState(false)
   const [abandoning, setAbandoning] = useState(false)
-  const restTimer = useRestTimer()
 
   async function finish() {
     if (finishing) return
-    restTimer.clear()
+    clearRestTimer()
     setFinishing(true)
     await finishGate()
     setFinishing(false)
@@ -771,96 +769,71 @@ function ActiveGateScreen({
     if (!window.confirm('Discard this gate? Anything logged in it is deleted, not just left unfinished.')) {
       return
     }
-    restTimer.clear()
+    clearRestTimer()
     setAbandoning(true)
     await abandonGate()
     setAbandoning(false)
   }
 
   return (
-    <>
-      <SystemWindow
-        title={routine.name}
-        strong
-        footer={
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={() => void finish()}
-              disabled={finishing || abandoning}
-              className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
-            >
-              Finish Gate
-            </button>
-            <button
-              type="button"
-              onClick={() => void abandon()}
-              disabled={finishing || abandoning}
-              className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
-            >
-              Abandon gate
-            </button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          {routine.blocks.map((block, index) => (
-            <SystemPanel key={index}>
-              {block.type === 'superset' ? (
-                <p className="mb-2 font-system text-[10px] tracking-[0.16em] text-system-dim uppercase">
-                  Superset · alternating
-                </p>
-              ) : null}
-              <div
-                className={
-                  block.type === 'superset'
-                    ? 'flex flex-col gap-4 border-l-2 border-system-dim pl-3'
-                    : 'flex flex-col gap-4'
-                }
-              >
-                {block.items.map((item) => {
-                  const exercise = exerciseById.get(item.exerciseId)
-                  if (!exercise) return null
-                  return (
-                    <ActiveBlockItem
-                      key={item.exerciseId}
-                      sessionId={session.id}
-                      item={item}
-                      exercise={exercise}
-                      exerciseById={exerciseById}
-                      onSetLogged={(loggedExercise) => restTimer.start(item.restSec, loggedExercise.name)}
-                    />
-                  )
-                })}
-              </div>
-            </SystemPanel>
-          ))}
+    <SystemWindow
+      title={routine.name}
+      strong
+      footer={
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => void finish()}
+            disabled={finishing || abandoning}
+            className="w-full rounded bg-system-deep px-5 py-3 font-system text-xs text-ink uppercase disabled:opacity-30"
+          >
+            Finish Gate
+          </button>
+          <button
+            type="button"
+            onClick={() => void abandon()}
+            disabled={finishing || abandoning}
+            className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
+          >
+            Abandon gate
+          </button>
         </div>
-      </SystemWindow>
-
-      {restTimer.state ? (
-        <div className="sticky bottom-14 z-30 mx-auto flex w-full max-w-md items-center gap-4 rounded-none border border-panel-edge bg-panel px-4 py-3 shadow-system">
-          <div className="relative size-14 shrink-0">
-            <SegmentedRing pct={restTimer.state.pct} tone={restTimer.state.remaining <= 10 ? 'warn' : 'system'} />
-            <span className="absolute inset-0 grid place-items-center font-system text-xs text-system tabular-nums">
-              {restTimer.state.display}
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-system text-[10px] tracking-[0.18em] text-ink-faint uppercase">
-              {restTimer.state.label}
-            </p>
-            <button
-              type="button"
-              onClick={restTimer.clear}
-              className="mt-1 font-system text-[10px] text-ink-faint uppercase underline"
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {routine.blocks.map((block, index) => (
+          <SystemPanel key={index}>
+            {block.type === 'superset' ? (
+              <p className="mb-2 font-system text-[10px] tracking-[0.16em] text-system-dim uppercase">
+                Superset · alternating
+              </p>
+            ) : null}
+            <div
+              className={
+                block.type === 'superset'
+                  ? 'flex flex-col gap-4 border-l-2 border-system-dim pl-3'
+                  : 'flex flex-col gap-4'
+              }
             >
-              Skip rest
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </>
+              {block.items.map((item) => {
+                const exercise = exerciseById.get(item.exerciseId)
+                if (!exercise) return null
+                return (
+                  <ActiveBlockItem
+                    key={item.exerciseId}
+                    sessionId={session.id}
+                    item={item}
+                    exercise={exercise}
+                    exerciseById={exerciseById}
+                    onSetLogged={(loggedExercise) => startRestTimer(item.restSec, loggedExercise.name)}
+                  />
+                )
+              })}
+            </div>
+          </SystemPanel>
+        ))}
+      </div>
+    </SystemWindow>
   )
 }
 
