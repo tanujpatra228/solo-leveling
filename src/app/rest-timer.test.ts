@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedPct, formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
+import { countdownUrgency, elapsedPct, formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
 
 describe('remainingSeconds', () => {
   it('counts down from the full duration', () => {
@@ -63,5 +63,25 @@ describe('elapsedPct', () => {
 
   it('clamps a remaining value past the total to 0, not negative', () => {
     expect(elapsedPct(300, 210)).toBe(0)
+  })
+})
+
+describe('countdownUrgency', () => {
+  it('is 0 at ten seconds left, the quietest tick of the countdown', () => {
+    expect(countdownUrgency(10)).toBe(0)
+  })
+
+  it('is 1 at one second left, the most tense tick before the final chime', () => {
+    expect(countdownUrgency(1)).toBe(1)
+  })
+
+  it('rises monotonically as seconds left falls', () => {
+    const values = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(countdownUrgency)
+    for (let i = 1; i < values.length; i += 1) expect(values[i]!).toBeGreaterThan(values[i - 1]!)
+  })
+
+  it('clamps outside the 1-10 window rather than extrapolating', () => {
+    expect(countdownUrgency(20)).toBe(0)
+    expect(countdownUrgency(0)).toBe(1)
   })
 })

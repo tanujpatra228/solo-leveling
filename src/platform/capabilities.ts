@@ -80,15 +80,22 @@ export function vibrate(pattern: number | number[]): void {
   }
 }
 
+function getAudioContextCtor(): typeof AudioContext | undefined {
+  return (
+    window.AudioContext ??
+    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  )
+}
+
 /**
  * The System notification sound, synthesised rather than shipped as a file so
  * the app has no audio asset to cache and no autoplay-blocked media element.
- * A short two-tone chime, deliberately terse.
+ * A short two-tone chime, deliberately terse. Reserved for things worth
+ * announcing — a level up, a gate cleared, a PR — never for routine taps,
+ * which is what `playTapTone` below is for.
  */
 export function playSystemChime(): void {
-  const AudioCtor =
-    window.AudioContext ??
-    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  const AudioCtor = getAudioContextCtor()
   if (!AudioCtor) return
 
   try {
@@ -116,6 +123,89 @@ export function playSystemChime(): void {
     window.setTimeout(() => void ctx.close().catch(() => {}), 800)
   } catch {
     // Audio is a nicety. Never let it break a screen.
+  }
+}
+
+// One context, opened lazily on the first tap and kept alive for the rest of
+// the session — a button-mashed stat allocation can fire this dozens of times
+// a second, and opening/closing an AudioContext per call is the kind of thing
+// that stutters on a mid-range Android. The rest-timer countdown tick shares
+// it for the same reason: ten ticks in ten seconds is not rare.
+let tapCtx: AudioContext | null = null
+
+function getTapContext(): AudioContext | null {
+  if (tapCtx) return tapCtx
+  const AudioCtor = getAudioContextCtor()
+  if (!AudioCtor) return null
+  try {
+    tapCtx = new AudioCtor()
+    return tapCtx
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The generic UI click — a single, quiet, ~40 ms blip fired by
+ * `useUiTapSound` on every button and link in the app. Deliberately smaller
+ * and flatter than `playSystemChime`: it has to be pleasant at the rate a
+ * gate screen's rep steppers get tapped, not attention-grabbing.
+ */
+export function playTapTone(): void {
+  const ctx = getTapContext()
+  if (!ctx) return
+
+  try {
+    if (ctx.state === 'suspended') void ctx.resume()
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'square'
+    osc.frequency.value = 1400
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.05, now + 0.004)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start(now)
+    osc.stop(now + 0.05)
+  } catch {
+    // Audio is a nicety. Never let it break a screen.
+  }
+}
+
+/**
+ * The rest timer's countdown tick, fired once per second for the final ten
+ * seconds (`useRestTimer`, gated by `countdownUrgency`). `urgency` runs 0
+ * (ten seconds out) to 1 (the second before the buzzer) and drives both
+ * pitch and volume, so the countdown visibly — audibly — closes in rather
+ * than ticking at one flat volume until it stops. Deliberately a different
+ * timbre from `playTapTone` (sharper attack, no decay tail) so a tick never
+ * reads as a stray button press, and lower-pitched than `playSystemChime`'s
+ * 880-1320 Hz so the final chime still reads as the more important sound.
+ */
+export function playCountdownTick(urgency: number): void {
+  const ctx = getTapContext()
+  if (!ctx) return
+
+  try {
+    if (ctx.state === 'suspended') void ctx.resume()
+    const clamped = Math.min(1, Math.max(0, urgency))
+    const now = ctx.currentTime
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'square'
+    osc.frequency.value = 700 + clamped * 500
+    const peak = 0.09 + clamped * 0.1
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(peak, now + 0.005)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start(now)
+    osc.stop(now + 0.1)
+  } catch {
+    // Audio is a nicety.
   }
 }
 

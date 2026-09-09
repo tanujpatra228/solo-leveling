@@ -18,9 +18,9 @@
  * for the same countdown.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createWakeLock } from '../platform/capabilities'
-import { playSystemChime, vibrate } from '../platform/capabilities'
-import { elapsedPct, formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
+import { createWakeLock, playCountdownTick, playSystemChime, vibrate } from '../platform/capabilities'
+import { countdownUrgency, elapsedPct, formatRemaining, isChimeDue, remainingSeconds } from './rest-timer'
+import { useApp } from './state'
 
 const REST_KEY = 'solo-leveling:rest'
 const REST_EVENT = 'rest-changed'
@@ -92,6 +92,7 @@ export function useRestTimer(): RestTimer {
   const [, forceTick] = useState(0)
   const wakeLock = useRef(createWakeLock())
   const chimed = useRef(false)
+  const tickedSecond = useRef<number | null>(null)
 
   useEffect(() => {
     const sync = () => setRest(readStoredRest())
@@ -106,16 +107,32 @@ export function useRestTimer(): RestTimer {
     }
 
     chimed.current = false
+    tickedSecond.current = null
 
     // The wake lock releases itself whenever the page hides, and does not
     // re-acquire on its own — every tick call here (interval or visibility)
     // asks again, which is a no-op once already held.
     const tick = () => {
       forceTick((t) => t + 1)
-      if (!chimed.current && isChimeDue(Date.now(), rest.endsAt)) {
+      const now = Date.now()
+      const { soundEnabled, hapticsEnabled } = useApp.getState().settings
+
+      if (!chimed.current && isChimeDue(now, rest.endsAt)) {
         chimed.current = true
-        playSystemChime()
-        vibrate([80, 60, 80])
+        if (soundEnabled) playSystemChime()
+        if (hapticsEnabled) vibrate([80, 60, 80])
+      } else {
+        // The final ten seconds get a tick per second, escalating toward the
+        // chime above — read live each tick rather than via `remaining` in
+        // the render below, since that value is only current the instant a
+        // render happens and this runs on its own 250 ms interval.
+        const secondsLeft = remainingSeconds(now, rest.endsAt)
+        if (secondsLeft > 0 && secondsLeft <= 10 && tickedSecond.current !== secondsLeft) {
+          tickedSecond.current = secondsLeft
+          const urgency = countdownUrgency(secondsLeft)
+          if (soundEnabled) playCountdownTick(urgency)
+          if (hapticsEnabled) vibrate(10 + Math.round(urgency * 30))
+        }
       }
       if (document.visibilityState === 'visible') void wakeLock.current.acquire()
     }

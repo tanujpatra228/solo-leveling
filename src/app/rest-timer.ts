@@ -38,3 +38,15 @@ export function elapsedPct(remaining: number, totalSec: number): number {
   if (totalSec <= 0) return 100
   return Math.min(100, Math.max(0, ((totalSec - remaining) / totalSec) * 100))
 }
+
+/**
+ * 0 at ten seconds left, 1 the second before zero — how tense the final
+ * countdown tick should be. `useRestTimer` maps this to a tick's pitch and
+ * volume; kept abstract here (an intensity, not a frequency in hertz) so the
+ * arithmetic stays testable without an AudioContext and reusable if a future
+ * visual cue wants the same ramp.
+ */
+export function countdownUrgency(secondsLeft: number): number {
+  const clamped = Math.min(10, Math.max(1, secondsLeft))
+  return (10 - clamped) / 9
+}

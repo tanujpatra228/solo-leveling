@@ -144,7 +144,34 @@ function LinkScreen() {
         ) : null}
       </SystemWindow>
 
-      <SystemWindow title="Pair a second device" index={3}>
+      <SystemWindow title="System Feedback" index={3}>
+        <SystemPanel className="flex items-center justify-between">
+          <span className="text-sm text-ink">Tap sound</span>
+          <button
+            type="button"
+            onClick={() => void updateSettings({ soundEnabled: !settings.soundEnabled })}
+            className={`rounded-full border px-3 py-1 font-system text-[10px] uppercase ${
+              settings.soundEnabled ? 'border-system text-system' : 'border-panel-edge text-ink-faint'
+            }`}
+          >
+            {settings.soundEnabled ? 'On' : 'Off'}
+          </button>
+        </SystemPanel>
+        <SystemPanel className="mt-3 flex items-center justify-between">
+          <span className="text-sm text-ink">Haptics</span>
+          <button
+            type="button"
+            onClick={() => void updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
+            className={`rounded-full border px-3 py-1 font-system text-[10px] uppercase ${
+              settings.hapticsEnabled ? 'border-system text-system' : 'border-panel-edge text-ink-faint'
+            }`}
+          >
+            {settings.hapticsEnabled ? 'On' : 'Off'}
+          </button>
+        </SystemPanel>
+      </SystemWindow>
+
+      <SystemWindow title="Pair a second device" index={4}>
         <SystemPanel className="flex flex-col gap-2">
           <p className="text-xs text-ink-soft">
             Scan another device's Hunter License Key to sync this one to the same hunter.
@@ -167,7 +194,7 @@ function LinkScreen() {
         </SystemPanel>
       </SystemWindow>
 
-      <SystemWindow title="Forget the mirror" index={4}>
+      <SystemWindow title="Forget the mirror" index={5}>
         <SystemPanel className="flex flex-col gap-2">
           <p className="text-xs text-ink-soft">
             Deletes every row this key has mirrored on the server. Nothing on this device changes —

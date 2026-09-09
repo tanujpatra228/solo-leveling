@@ -10,6 +10,7 @@ import { frameTierFor } from '../../domain/frameTier'
 import { FrameTierContext } from '../frameTierContext'
 import { useApp } from '../state'
 import { useSessionWakeLock } from '../useSessionWakeLock'
+import { useUiTapSound } from '../useUiTapSound'
 
 const TABS = [
   { to: '/gate', label: 'Gate' },
@@ -19,6 +20,7 @@ const TABS = [
 
 function RootLayout() {
   useSessionWakeLock()
+  useUiTapSound()
 
   // A token lookup, not a per-route style (§1.7, m10-plan commit 9): every
   // `SystemWindow` under this provider picks up the tier for free, so Gate

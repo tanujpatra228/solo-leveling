@@ -31,6 +31,7 @@ plan named in the row.
 | Exercise substitution | **Done** | 8 commits, written and shipped the day a real gate needed it |
 | System visuals and notifications | **Done** | lucide, `SystemMeter`, `SystemIcon`, `SegmentedRing`, two notification tiers |
 | Indian club training | **Dropped** | Plan removed 2026-09-07; recoverable at `5eb04b3` if it comes back |
+| Game-style click feedback and countdown tension | **Done**, landed 2026-09-09 | `useUiTapSound` (root.tsx) delegates one capture-phase click listener over the whole app — every button and link gets a synthesised tap tone plus a light haptic buzz, no per-component wiring. The rest timer's final ten seconds now tick once a second, pitch and volume escalating (`countdownUrgency`) into the existing expiry chime. Both respect `settings.soundEnabled`/`hapticsEnabled`, now exposed as an on/off pair on the Link screen ("System Feedback") — previously set but with no UI to change them |
 
 ### Open items that are not features
 
@@ -42,7 +43,7 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 762 passing |
+| Tests | 773 passing |
 | Typecheck, `check:render`, build | Clean |
 | Bundle | 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
 | Deployed | Live on workers.dev, deployed 2026-09-09 by the Actions workflow's first run — the router scroll-to-top fix and the workflow itself |

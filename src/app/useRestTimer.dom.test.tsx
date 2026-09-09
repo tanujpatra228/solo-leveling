@@ -8,8 +8,19 @@
  */
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useApp } from './state'
 import { clearRestTimer, startRestTimer, useRestTimer, type RestTimer } from './useRestTimer'
+
+const capabilitiesMocks = vi.hoisted(() => ({
+  playCountdownTick: vi.fn(),
+  playSystemChime: vi.fn(),
+  vibrate: vi.fn(),
+}))
+vi.mock('../platform/capabilities', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../platform/capabilities')>()
+  return { ...actual, ...capabilitiesMocks }
+})
 
 declare global {
   // eslint-disable-next-line no-var
@@ -112,6 +123,77 @@ describe('useRestTimer, split ownership (m10-plan commit 0)', () => {
       clearRestTimer()
     })
     expect(calls.releases).toBeGreaterThan(0)
+
+    await unmount()
+  })
+})
+
+describe('the countdown tick and the escalation into the final chime', () => {
+  beforeEach(() => {
+    capabilitiesMocks.playCountdownTick.mockClear()
+    capabilitiesMocks.playSystemChime.mockClear()
+    capabilitiesMocks.vibrate.mockClear()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    useApp.setState((state) => ({ settings: { ...state.settings, soundEnabled: true, hapticsEnabled: true } }))
+  })
+
+  it('ticks once per second for the final ten seconds, escalating, then chimes once at zero', async () => {
+    vi.useFakeTimers()
+    const { unmount } = await mount()
+
+    await act(async () => {
+      startRestTimer(11, 'Back Squat')
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(11_500)
+    })
+
+    // 11, 10, 9, ..., 1 — exactly the last ten of those get a tick.
+    expect(capabilitiesMocks.playCountdownTick).toHaveBeenCalledTimes(10)
+    expect(capabilitiesMocks.playSystemChime).toHaveBeenCalledTimes(1)
+
+    const urgencies = capabilitiesMocks.playCountdownTick.mock.calls.map(([u]) => u as number)
+    expect(urgencies[0]).toBeCloseTo(0, 5)
+    expect(urgencies.at(-1)).toBeCloseTo(1, 5)
+    for (let i = 1; i < urgencies.length; i += 1) expect(urgencies[i]!).toBeGreaterThan(urgencies[i - 1]!)
+
+    await unmount()
+  })
+
+  it('never ticks outside the final ten seconds', async () => {
+    vi.useFakeTimers()
+    const { unmount } = await mount()
+
+    await act(async () => {
+      startRestTimer(90, 'Back Squat')
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(79_000)
+    })
+
+    expect(capabilitiesMocks.playCountdownTick).not.toHaveBeenCalled()
+    expect(capabilitiesMocks.playSystemChime).not.toHaveBeenCalled()
+
+    await unmount()
+  })
+
+  it('respects soundEnabled and hapticsEnabled independently, same as every other sound in the app', async () => {
+    useApp.setState((state) => ({ settings: { ...state.settings, soundEnabled: false, hapticsEnabled: true } }))
+    vi.useFakeTimers()
+    const { unmount } = await mount()
+
+    await act(async () => {
+      startRestTimer(11, 'Back Squat')
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(11_500)
+    })
+
+    expect(capabilitiesMocks.playCountdownTick).not.toHaveBeenCalled()
+    expect(capabilitiesMocks.playSystemChime).not.toHaveBeenCalled()
+    expect(capabilitiesMocks.vibrate).toHaveBeenCalled()
 
     await unmount()
   })
