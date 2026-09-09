@@ -75,6 +75,11 @@ body {
     /* Alpha kept near-invisible on purpose: 0.02 reads as a dirty screen, 0.012
        reads as texture (docs/system-visuals-plan.md §6). */
     repeating-linear-gradient(115deg, transparent 0 22px, rgb(125 211 252 / 0.012) 22px 23px),
+    /* The blueprint grid (m10-plan commit 7, §1.0): the reference reads as
+       technical-drawing lines, plainly visible, under the diagonal scratch —
+       not another near-invisible layer stacked on top of the first. */
+    repeating-linear-gradient(0deg, transparent 0 39px, rgb(125 211 252 / 0.05) 39px 40px),
+    repeating-linear-gradient(90deg, transparent 0 39px, rgb(125 211 252 / 0.05) 39px 40px),
     var(--color-void);
   color: var(--color-ink);
   font-family: var(--font-body);

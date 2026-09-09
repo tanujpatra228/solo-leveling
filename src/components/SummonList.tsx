@@ -18,13 +18,15 @@ export function SummonList({
   rows,
   open,
   onToggle,
+  index,
 }: {
   rows: readonly SummonRow[]
   open: SummonWindowId | undefined
   onToggle: (id: SummonWindowId) => void
+  index?: number
 }) {
   return (
-    <SystemWindow title="System">
+    <SystemWindow title="System" index={index}>
       <ul className="flex flex-col gap-2">
         {rows.map((row) => (
           <li key={row.id}>

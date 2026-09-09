@@ -11,7 +11,7 @@ import { formatLength, formatWeight, parseHeightToCm, parseWeightToKg } from '..
 import { NumberField } from './NumberField'
 import { SystemWindow } from './SystemWindow'
 
-export function ReawakeningTestPanel({ strong = false }: { strong?: boolean }) {
+export function ReawakeningTestPanel({ strong = false, index }: { strong?: boolean; index?: number }) {
   const reawakeningDue = useApp((s) => s.projection?.reawakeningDue ?? false)
   const unitPref = useApp((s) => s.profile?.unitPref ?? 'metric')
   const completeReawakeningTest = useApp((s) => s.completeReawakeningTest)
@@ -37,6 +37,7 @@ export function ReawakeningTestPanel({ strong = false }: { strong?: boolean }) {
     <SystemWindow
       title="Reawakening Test"
       strong={strong}
+      index={index}
       footer={
         <button
           type="button"

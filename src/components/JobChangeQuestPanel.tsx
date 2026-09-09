@@ -14,7 +14,7 @@ import { SystemWindow } from './SystemWindow'
 
 const MS_PER_DAY = 86_400_000
 
-export function JobChangeQuestPanel({ strong = false }: { strong?: boolean }) {
+export function JobChangeQuestPanel({ strong = false, index }: { strong?: boolean; index?: number }) {
   const quests = useApp((s) => s.quests)
   const completeJobChangeQuest = useApp((s) => s.completeJobChangeQuest)
 
@@ -31,6 +31,7 @@ export function JobChangeQuestPanel({ strong = false }: { strong?: boolean }) {
     <SystemWindow
       title="Job Change Quest"
       strong={strong}
+      index={index}
       footer={
         <button
           type="button"

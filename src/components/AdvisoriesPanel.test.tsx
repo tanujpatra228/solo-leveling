@@ -64,7 +64,7 @@ describe('AdvisoriesPanel (m10-plan commit 5)', () => {
     await act(async () => button.click())
     expect(container.textContent).toContain('Nothing in the week loads a hinge.')
     expect(container.textContent).toContain('Add a Romanian deadlift.')
-    expect(container.textContent).toContain('Dismiss')
+    expect(container.textContent).toContain('Acknowledge')
   })
 
   it('caps the visible list at three and collapses the rest behind a count', async () => {

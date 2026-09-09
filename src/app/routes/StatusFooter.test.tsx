@@ -33,11 +33,11 @@ afterEach(async () => {
 describe('StatusFooter', () => {
   it('shows the allocation primary and revoke only while points are unspent', async () => {
     await act(async () => root.render(<StatusFooter unspent={0} onRevoke={() => {}} onShowLicense={() => {}} />))
-    expect(container.textContent).not.toContain('Ability points to spend')
+    expect(container.textContent).not.toContain('Allocate')
     expect(container.textContent).not.toContain('Revoke allocation')
 
     await act(async () => root.render(<StatusFooter unspent={3} onRevoke={() => {}} onShowLicense={() => {}} />))
-    expect(container.textContent).toContain('Ability points to spend')
+    expect(container.textContent).toContain('Allocate 3 points')
     expect(container.textContent).toContain('Revoke allocation')
   })
 

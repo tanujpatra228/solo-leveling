@@ -91,7 +91,7 @@ function LinkScreen() {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <SystemWindow title="System Link" strong>
+      <SystemWindow title="System Link" strong index={0}>
         <p className="text-sm text-danger">
           This key is the only way back to your mirrored history. There is no account and no
           password reset — lose the key, and the mirror is gone with it. Your training log on this
@@ -100,7 +100,7 @@ function LinkScreen() {
         </p>
       </SystemWindow>
 
-      <SystemWindow title="Hunter License Key">
+      <SystemWindow title="Hunter License Key" index={1}>
         <p className="text-center font-system text-lg tracking-[0.15em] text-system">
           {formatLicenseKey(identity.licenseKey)}
         </p>
@@ -112,7 +112,7 @@ function LinkScreen() {
         </p>
       </SystemWindow>
 
-      <SystemWindow title="Sync">
+      <SystemWindow title="Sync" index={2}>
         <SystemPanel className="flex items-center justify-between">
           <span className="text-sm text-ink">Sync to the mirror</span>
           <button
@@ -144,7 +144,7 @@ function LinkScreen() {
         ) : null}
       </SystemWindow>
 
-      <SystemWindow title="Pair a second device">
+      <SystemWindow title="Pair a second device" index={3}>
         <SystemPanel className="flex flex-col gap-2">
           <p className="text-xs text-ink-soft">
             Scan another device's Hunter License Key to sync this one to the same hunter.
@@ -167,7 +167,7 @@ function LinkScreen() {
         </SystemPanel>
       </SystemWindow>
 
-      <SystemWindow title="Forget the mirror">
+      <SystemWindow title="Forget the mirror" index={4}>
         <SystemPanel className="flex flex-col gap-2">
           <p className="text-xs text-ink-soft">
             Deletes every row this key has mirrored on the server. Nothing on this device changes —

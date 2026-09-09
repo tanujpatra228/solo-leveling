@@ -20,6 +20,13 @@ export interface SystemWindowProps {
    */
   strong?: boolean
   footer?: ReactNode
+  /**
+   * Position in a stack of windows drawing in together (F13, m10-plan
+   * commit 7) — several fading in with a staggered delay reads as the
+   * System writing them in sequence; all at once reads as a page loading.
+   * Capped so a long list does not end with a visibly stalled last window.
+   */
+  index?: number
 }
 
 /**
@@ -27,12 +34,19 @@ export interface SystemWindowProps {
  * two design systems, not a style choice per screen — the rounding reads as
  * "app"; sharp reads as "System" (docs/system-visuals-plan.md §6).
  */
-export function SystemWindow({ title, strong = false, footer, children }: PropsWithChildren<SystemWindowProps>) {
+export function SystemWindow({
+  title,
+  strong = false,
+  footer,
+  index,
+  children,
+}: PropsWithChildren<SystemWindowProps>) {
   return (
     <section
       className={`animate-system-in rounded-none border border-panel-edge bg-panel/90 p-4 ${
         strong ? 'shadow-system-strong' : 'shadow-system-faint'
       }`}
+      style={index !== undefined ? { animationDelay: `${Math.min(index, 6) * 40}ms` } : undefined}
     >
       <h2 className="font-system text-xs tracking-wide text-system uppercase">[{title}]</h2>
       <div className="mt-3 text-ink">{children}</div>

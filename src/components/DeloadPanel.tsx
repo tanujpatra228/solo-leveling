@@ -7,7 +7,15 @@ import { useApp } from '../app/state'
 import type { DeloadVerdict } from '../domain/deload'
 import { SystemWindow } from './SystemWindow'
 
-export function DeloadPanel({ deload, strong = false }: { deload: DeloadVerdict; strong?: boolean }) {
+export function DeloadPanel({
+  deload,
+  strong = false,
+  index,
+}: {
+  deload: DeloadVerdict
+  strong?: boolean
+  index?: number
+}) {
   const markDeload = useApp((s) => s.markDeload)
   const [busy, setBusy] = useState(false)
 
@@ -24,6 +32,7 @@ export function DeloadPanel({ deload, strong = false }: { deload: DeloadVerdict;
     <SystemWindow
       title={deload.headline}
       strong={strong}
+      index={index}
       footer={
         <button
           type="button"

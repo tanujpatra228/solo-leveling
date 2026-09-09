@@ -164,7 +164,7 @@ export function HunterLicenseCard(props: HunterLicenseCardProps) {
         onClick={() => void handleShare()}
         className="font-system text-xs text-system-glow underline"
       >
-        {status === 'sharing' ? 'Sharing…' : 'Share License'}
+        {status === 'sharing' ? 'Sharing…' : 'Issue License'}
       </button>
       {status === 'downloaded' ? (
         <p className="text-xs text-ink-faint">Sharing isn't available here — saved as an image instead.</p>

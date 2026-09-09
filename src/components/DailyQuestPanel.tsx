@@ -46,7 +46,7 @@ const STEP_AMOUNTS: Record<'reps' | 'metres', readonly number[]> = {
   metres: [100, 250, 500],
 }
 
-export function DailyQuestPanel({ strong = false }: { strong?: boolean }) {
+export function DailyQuestPanel({ strong = false, index }: { strong?: boolean; index?: number }) {
   const quests = useApp((s) => s.quests)
   const today = useApp((s) => s.today)
   const completeDailyQuest = useApp((s) => s.completeDailyQuest)
@@ -72,6 +72,7 @@ export function DailyQuestPanel({ strong = false }: { strong?: boolean }) {
       today={today}
       now={now}
       strong={strong}
+      index={index}
       onAdd={(kind, amount) => void completeDailyQuest({ [kind]: amount })}
     />
   )
@@ -82,12 +83,14 @@ export function DailyQuestWindow({
   today,
   now,
   strong = false,
+  index,
   onAdd,
 }: {
   quest: DailyQuestPayload
   today: DayKey
   now: number
   strong?: boolean
+  index?: number
   onAdd: (kind: DailyItemKind, amount: number) => void
 }) {
   const complete = isDailyQuestComplete(quest, quest.progress)
@@ -98,7 +101,7 @@ export function DailyQuestWindow({
   const cleared = quest.items.filter((item) => (quest.progress[item.kind] ?? 0) >= item.target)
 
   return (
-    <SystemWindow title="Daily Quest" strong={strong}>
+    <SystemWindow title="Daily Quest" strong={strong} index={index}>
       <div className="flex items-center gap-4">
         <SegmentedRing pct={deadlinePct} tone={deadlineTone} size={44} strokeWidth={4} />
         <div className="min-w-0 flex-1">

@@ -234,6 +234,7 @@ function HomeScreen() {
       <SystemWindow
         title="Status Window"
         strong={speaking === 'status'}
+        index={0}
         footer={
           <StatusFooter
             unspent={unspent}
@@ -317,13 +318,13 @@ function HomeScreen() {
         </div>
       </SystemWindow>
 
-      <DailyQuestPanel strong={speaking === 'dailyquest'} />
-      <DeloadPanel deload={projection.deload} strong={speaking === 'deload'} />
-      <ReawakeningTestPanel strong={speaking === 'reawakening'} />
-      <JobChangeQuestPanel strong={speaking === 'jobchange'} />
-      <StreakPanel />
+      <DailyQuestPanel strong={speaking === 'dailyquest'} index={1} />
+      <DeloadPanel deload={projection.deload} strong={speaking === 'deload'} index={2} />
+      <ReawakeningTestPanel strong={speaking === 'reawakening'} index={3} />
+      <JobChangeQuestPanel strong={speaking === 'jobchange'} index={4} />
+      <StreakPanel index={5} />
 
-      <SummonList rows={summonRows} open={openWindow} onToggle={toggleSummon} />
+      <SummonList rows={summonRows} open={openWindow} onToggle={toggleSummon} index={6} />
 
       {/* Not in the summon list (F9) — a share action reached from the Status
           footer's "Hunter License" button, so the canvas chunk is fetched
@@ -401,9 +402,8 @@ export function StatusFooter({
     <div className="flex flex-col gap-2">
       {unspent > 0 ? (
         <>
-          <div className={`flex items-center justify-between gap-2 ${PRIMARY_BUTTON}`}>
-            <span>Ability points to spend</span>
-            <SystemValue value={unspent} size="md" />
+          <div className={PRIMARY_BUTTON}>
+            Allocate {unspent} point{unspent === 1 ? '' : 's'}
           </div>
           <button
             type="button"

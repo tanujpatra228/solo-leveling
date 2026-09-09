@@ -14,7 +14,7 @@ import { useApp } from '../app/state'
 import { PILL_BUTTON } from './buttonStyles'
 import { SystemWindow } from './SystemWindow'
 
-export function StreakPanel() {
+export function StreakPanel({ index }: { index?: number }) {
   const streak = useApp((s) => s.streak)
   const quests = useApp((s) => s.quests)
   const restTokens = useApp((s) => s.progress.restTokens)
@@ -41,7 +41,7 @@ export function StreakPanel() {
   }
 
   return (
-    <SystemWindow title="Streak">
+    <SystemWindow title="Streak" index={index}>
       <div className="flex flex-col gap-2">
         <p className="font-system text-[11px] text-ink-soft">
           Streak {streak.current}

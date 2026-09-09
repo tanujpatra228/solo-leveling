@@ -84,7 +84,7 @@ export function ShadowsPanel({
               key={shadow.id}
               shadow={shadow}
               exercises={exercises}
-              actionLabel="Bench"
+              actionLabel="Return"
               onAction={() => onToggle(shadow.id, false)}
             />
           ))}
@@ -94,7 +94,7 @@ export function ShadowsPanel({
       {dormant.length > 0 ? (
         <div className="mt-1 flex flex-col gap-2 border-t border-ink-faint/20 pt-2">
           <p className="text-xs text-warn">
-            Mana capacity is full. Bench an active shadow to bring one of these in — the System
+            Mana capacity is full. Return an active shadow to bring one of these in — the System
             never chooses for you.
           </p>
           <ul className="flex flex-col gap-3">
@@ -103,7 +103,7 @@ export function ShadowsPanel({
                 key={shadow.id}
                 shadow={shadow}
                 exercises={exercises}
-                actionLabel="Bench"
+                actionLabel="Return"
                 onAction={() => onToggle(shadow.id, false)}
               />
             ))}
@@ -113,14 +113,14 @@ export function ShadowsPanel({
 
       {dismissed.length > 0 ? (
         <div className="mt-1 flex flex-col gap-2 border-t border-ink-faint/20 pt-2">
-          <p className="text-xs text-ink-faint">Benched</p>
+          <p className="text-xs text-ink-faint">Returned</p>
           <ul className="flex flex-col gap-3">
             {dismissed.map((shadow) => (
               <ShadowRow
                 key={shadow.id}
                 shadow={shadow}
                 exercises={exercises}
-                actionLabel="Activate"
+                actionLabel="Summon"
                 onAction={() => onToggle(shadow.id, true)}
               />
             ))}

@@ -86,7 +86,7 @@ function AdvisoryRow({
             onClick={onDismiss}
             className="min-h-11 w-fit shrink-0 font-system text-[10px] text-ink-faint uppercase"
           >
-            Dismiss
+            Acknowledge
           </button>
         </div>
       ) : null}
