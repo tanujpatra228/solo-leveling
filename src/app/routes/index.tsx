@@ -176,6 +176,7 @@ function HomeScreen() {
   const gatesCleared = useApp((s) => s.progress.gatesCleared)
   const gold = useApp((s) => s.progress.gold)
   const profile = useApp((s) => s.profile)
+  const renameHunter = useApp((s) => s.renameHunter)
   const announceSystemIntroIfNeeded = useApp((s) => s.announceSystemIntroIfNeeded)
   // A notification takes the one overlay slot over a summoned window rather
   // than stacking under it (m10-plan §1.3) — the summon stays closed (in the
@@ -352,13 +353,15 @@ function HomeScreen() {
         <Suspense fallback={null}>
           <HunterLicenseCard
             hunterId={identity.hunterId}
+            hunterName={profile?.hunterName}
             rank={player.rank}
             level={player.level}
-            hunterClassLabel={HUNTER_CLASS_LABELS[player.hunterClass]}
+            hunterClass={player.hunterClass}
             total={player.total}
-            titlesHeld={earnedTitleIds.length}
+            earnedTitleIds={earnedTitleIds}
             gatesCleared={gatesCleared}
             awakenedAt={profile?.awakenedAt ?? null}
+            onRename={(name) => void renameHunter(name)}
           />
         </Suspense>
       ) : null}

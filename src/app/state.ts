@@ -185,6 +185,13 @@ export interface AppState extends LoadedData {
       bodyFatSource?: BodyFatSource
     }
   }) => Promise<void>
+  /**
+   * The Hunter License's own rename control (m11-plan §7) — the one place a
+   * name set at the Awakening can be corrected, since the mistake is only
+   * ever visible on the card itself. A no-op on a profile-less state; the
+   * license cannot render without one anyway.
+   */
+  renameHunter: (name: string) => Promise<void>
 
   startGate: (routineId: string | null, bodyweightKg?: number) => Promise<string>
   /**
@@ -434,7 +441,10 @@ async function loadAll(): Promise<LoadedData> {
     shadows,
     allocated,
     progress,
-    earnedTitleIds: titles.map((t) => t.id),
+    // Newest first — the Hunter License's Category grid (m11-plan §4) reads
+    // the most recent title first, and `db.titles` is keyed on `id`, not
+    // `earnedAt`, so Dexie's own ordering can't be trusted for this.
+    earnedTitleIds: [...titles].sort((a, b) => b.earnedAt - a.earnedAt).map((t) => t.id),
     absences: absences.map((a) => a.dayKey),
   }
 }
@@ -947,6 +957,15 @@ export const useApp = create<AppState>((set, get) => ({
       body: 'Your rank is E. Everything from here is measured, not given.',
       tone: 'system',
     })
+  },
+
+  async renameHunter(name) {
+    const profile = get().profile
+    if (!profile) return
+    const trimmed = name.trim()
+    if (!trimmed) return
+    await repo.saveProfile({ ...profile, hunterName: trimmed })
+    await get().refresh()
   },
 
   async startGate(routineId, bodyweightKg) {

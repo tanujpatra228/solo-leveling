@@ -38,6 +38,19 @@ The look is five techniques, not a style anyone needs to freehand:
 5. **A textured ground.** Near-black with faint diagonal scratches and a top vignette. The body
    already has the vignette; the scratches are missing.
 
+### The one exception to "no border radius," and why it proves the rule
+
+The Hunter License card (`HunterLicenseCard.tsx`, m11-plan) has rounded corners, a near-white body
+and a serif masthead — every rule above, inverted. That is deliberate, not an oversight a future pass
+should "fix": **item 1's sharp frame is what makes a surface read as the System**, and the License is
+the one artifact in the app that is explicitly *not* the System. It is a laminated ID card the
+Hunter's Association issued — the only thing in this app meant to leave it, pasted into a chat or a
+feed at thumbnail size. A plastic card has rounded corners because it lives in a pocket; drawing it
+sharp and dark would make it read as another System window, which is exactly the confusion the
+redesign existed to fix. The dark `[HUNTER LICENSE]` window that contains the card stays square, the
+same as every other window — the exception is the card's own drawn surface, not its frame, and it is
+the reason the square-corner rule exists rather than a hole in it.
+
 ## 3. Icons: use a library, restyle it
 
 No icon library is installed. **Decided 2026-09-06: `lucide-react`**, for a specific reason — it

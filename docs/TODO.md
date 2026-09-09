@@ -22,7 +22,7 @@ plan named in the row.
 | M8 | Push notifications | **Parked** | Deliberately deferred until the rest of the platform is finished. The only unverified part of the stack, and the app is complete without it |
 | M9 | Flavour text | **Done** | — |
 | M10 | The Status Window, made faithful and readable | **Done** | — |
-| M11 | The Hunter License, as the Association issues it | **Planned** | Six commits in `docs/m11-plan.md`. The card is redrawn as a printed ID document — light body, serif masthead, level plate, a 3x3 Category grid filled by class and titles, chip and barcode — because in the anime the License is issued by the Association and is deliberately *not* a System window. Also fixes four standing defects: the shared PNG is only as large as the screen, fonts are not awaited, the canvas has no text equivalent, and it redraws on unrelated projection changes. `Profile` gains a `hunterName`, entered as the Awakening's first step and renamed from the card itself (decided 2026-09-09, plan section 7). Made compulsory 2026-09-09 — the Awakening Test no longer accepts a blank answer, though the schema field stays optional so a profile stored before this requirement existed still parses |
+| M11 | The Hunter License, as the Association issues it | **Done** | Landed 2026-09-09. The card is a printed ID document now — light body, serif masthead, level plate, a 3x3 Category grid filled by class and titles, chip and barcode — because in the anime the License is issued by the Association and is deliberately *not* a System window; the rounded corners are the one deliberate exception to the app's square-corner rule (`system-visuals-plan.md` §2). `domain/license.ts` owns every field decision, pure and tested. Also fixed the four standing defects: the shared PNG now renders from a fixed-3x offscreen canvas, `document.fonts.ready` is awaited, the canvas carries `role="img"` plus an `aria-label`, and the redraw effect depends on individual stat values rather than the `total` object. A rename control under the card writes through the new `renameHunter` action. `Profile.hunterName`, entered as the Awakening's first step, is compulsory since 2026-09-09 — the schema field stays optional only so a profile stored before that requirement existed still parses |
 
 ### Features outside the milestone track
 
@@ -43,20 +43,34 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 773 passing |
+| Tests | 786 passing |
 | Typecheck, `check:render`, build | Clean |
 | Bundle | 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
 | Deployed | Live on workers.dev, deployed 2026-09-09 by the Actions workflow's first run — the router scroll-to-top fix and the workflow itself |
 
-Every milestone through M10 is now **Done** or deliberately **Parked** — M4 closed 2026-09-09 once
+Every milestone through M11 is now **Done** or deliberately **Parked** — M4 closed 2026-09-09 once
 the user added `CLOUDFLARE_API_TOKEN` as a repository secret and the Actions workflow's first push
 to `main` deployed cleanly; M8 stays parked until the user decides to revisit it. Deploys are no
 longer manual: a push to `main` now ships on its own, gated on the full suite and a post-deploy
 smoke check.
 
-M11 continues M10's pattern of being driven by using the app: the License is the only artifact that
-leaves the app, and it currently leaves as a dark System panel rather than as the printed document the
-anime shows.
+## M11 — The Hunter License, as the Association issues it, landed 2026-09-09
+
+All six commits of `docs/m11-plan.md` (now `git rm`'d — detail recoverable at the commit removing it,
+summary in `docs/implementation-plan.md` §4). Driven by a supplied frame of the anime's own License
+held against the app's dark card: the card is a printed Association document now, not a System panel
+wearing the word "licence" — near-white, serif, rounded (the one deliberate exception to the app's
+square-corner rule, recorded in `system-visuals-plan.md` §2). `domain/license.ts` extracted every
+field decision as one pure, tested `licenseFields()` call, with `licenseAriaLabel()` built from its
+output so the drawn card and its screen-reader text can't drift apart. The Category grid — class in
+slot 0 (`NO CLASS` before a Job Change, never a blank dash), titles newest-first in slots 1-8, `-- --`
+for an empty one, a `+N MORE` fold past seven — is the redesign's centrepiece, the empty-slots-tell-a-
+story idea the reference itself is built on. Also fixed: the share PNG now renders from a fixed-3x
+offscreen canvas regardless of display DPR, `document.fonts.ready` is awaited before first paint, and
+the redraw effect depends on individual stat values and a joined title-id string rather than the
+`total` object and `earnedTitleIds` array — both rebuilt fresh by `recompute()` on every unrelated
+projection change, which was redrawing the card for it. A rename control under the card writes
+through a new `renameHunter` store action.
 
 ## M10 — The Status Window, made faithful and readable, landed 2026-09-09
 

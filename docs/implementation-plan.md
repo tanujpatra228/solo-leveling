@@ -553,6 +553,45 @@ tier is derived from the projection every render, never stored.
 The one item this milestone could not settle from a keyboard — real-device scroll framerate with
 `[ANALYSIS]` summoned and the frame at its brightest — still needs a phone.
 
+### M11 — The Hunter License, as the Association issues it
+
+Driven by a supplied frame of the anime's own Hunter's License, held against the app's dark card and
+found to be everything the System is not: near-white, serif, rounded, printed rather than
+holographic. Landed across the six commits of `docs/m11-plan.md` (now `git rm`'d — detail recoverable
+at the commit removing it), with commit 0 (the compulsory `hunterName`) already covered above under
+its own date.
+
+`domain/license.ts` extracted every field decision the card makes — document number, rank letter (or
+`UNRANKED`, stated explicitly rather than falling through to a phantom rank), the Category grid's nine
+slots, the stat band, the certification date — as one pure `licenseFields()` call, plus
+`licenseAriaLabel()` built from its output so the drawn card and its screen-reader text cannot drift
+apart. The Category grid is the redesign's centrepiece: slot 0 is the hunter class (`NO CLASS` before
+a Job Change, never a blank dash — the plan's own §9 example of "all nine slots empty" turned out to
+contradict its own §4 rule, and §4 won), slots 1-8 are titles newest-first, empty ones read `-- --`,
+and past seven titles the eighth slot folds the rest into a `+N MORE` count rather than claiming an
+eighth name. `HunterLicenseCard.tsx` redrew the canvas as a document — 384×240, light body with a 1px
+navy keyline inside a 10px radius (the one deliberate exception to the app's square-corner rule,
+recorded in `system-visuals-plan.md` §2), a serif masthead over a hairline rule, a navy level plate
+standing in for a portrait, a right-edge band carrying a barcode whose bar widths derive from
+`hunterId` and encode nothing further, a gold foil chip, and a light-card rank palette measured
+against the card body (worst case, rank A, ~4.7:1 — above the 4.5 floor). The share blob now renders
+from a fixed-3× offscreen canvas regardless of display DPR, `document.fonts.ready` is awaited before
+first paint, the canvas carries `role="img"` plus that shared `aria-label`, and the redraw effect
+depends on individual stat values and a joined title-id string rather than the `total` object and
+`earnedTitleIds` array themselves — both of which `recompute()` rebuilds fresh on every unrelated
+projection change, which was redrawing the card for it. A rename control under the card writes
+through a new `renameHunter` store action, since the Awakening's name step is the only other place
+one could be entered and a hunter only notices a wrong name looking at the card itself.
+
+*Acceptance:* a hunter with no class and no titles shares a card reading `NO CLASS` in slot 0 and
+eight `-- --` slots, not a broken one; a fourteen-plus-title hunter's card folds the overflow into one
+slot rather than running off the grid; renaming persists through `repo.saveProfile` and the card
+redraws with the new name on the next projection tick; the license key never appears on the card,
+only `hunterId`; the card is still its own lazy chunk (7.83 KB gzipped 3.37 KB, up from roughly a
+third that size for the old dark canvas).
+*Budget impact:* `HunterLicenseCard`'s lazy chunk grew by about 2.5 KB gzipped for the added
+geometry; the initial route is unaffected.
+
 ---
 
 ## 5. How the work gets checked
