@@ -238,7 +238,7 @@ function HomeScreen() {
   ]
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4">
+    <main className="flex flex-1 flex-col gap-6 p-4">
       <header className="px-1">
         <p className="font-system text-[11px] tracking-[0.2em] text-ink-faint uppercase">{formatDayKey(today)}</p>
       </header>

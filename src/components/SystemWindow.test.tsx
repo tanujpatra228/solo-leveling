@@ -39,6 +39,21 @@ describe('SystemWindow index (m10-plan commit 7)', () => {
   })
 })
 
+describe('SystemWindow title box (found on a real device after m10-plan commit 9)', () => {
+  it('never wraps a long title to a second line', () => {
+    // A wrapped two-line badge roughly doubles its own height, which was
+    // half of a real-device overlap onto a neighbouring window's content —
+    // see the mt-3 test below for the other half.
+    const html = renderToStaticMarkup(<SystemWindow title="Pair a second device">hi</SystemWindow>)
+    expect(html).toContain('whitespace-nowrap')
+  })
+
+  it('carries its own top margin, so a stack of windows always clears the title box poking above it', () => {
+    const html = renderToStaticMarkup(<SystemWindow title="Status">hi</SystemWindow>)
+    expect(html).toContain('mt-3')
+  })
+})
+
 describe('SystemWindow frame tier (m10-plan commit 9)', () => {
   it('renders the plain hairline with no provider mounted (tier 1 default)', () => {
     const html = renderToStaticMarkup(<SystemWindow title="Status">hi</SystemWindow>)

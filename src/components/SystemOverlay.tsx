@@ -32,11 +32,16 @@ export function SystemOverlay({ title, icon, iconTone = 'system', onClose, child
   // Focus the close control on open, return focus to whatever had it on
   // close (docs/system-visuals-plan.md §9.5) — a window that traps focus
   // without giving it back strands a keyboard or screen-reader user.
+  // `preventScroll` on both: this overlay is `fixed inset-0` and already
+  // covers the viewport, but focusing an element inside it still made the
+  // page underneath jump to the top on a real Android device — the default
+  // scroll-into-view behaviour finding nothing to gain from the fixed
+  // element and scrolling the document instead.
   useEffect(() => {
     returnFocusRef.current = document.activeElement
-    closeRef.current?.focus()
+    closeRef.current?.focus({ preventScroll: true })
     return () => {
-      if (returnFocusRef.current instanceof HTMLElement) returnFocusRef.current.focus()
+      if (returnFocusRef.current instanceof HTMLElement) returnFocusRef.current.focus({ preventScroll: true })
     }
   }, [])
 

@@ -90,7 +90,7 @@ function LinkScreen() {
   }
 
   return (
-    <div className="flex flex-col gap-3 p-4">
+    <div className="flex flex-col gap-6 p-4">
       <SystemWindow title="System Link" strong index={0}>
         <p className="text-sm text-danger">
           This key is the only way back to your mirrored history. There is no account and no

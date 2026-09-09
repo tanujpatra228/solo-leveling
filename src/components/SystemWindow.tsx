@@ -54,15 +54,20 @@ export function SystemWindow({
 
   return (
     <section
-      className={`animate-system-in relative rounded-none bg-panel/90 px-4 pb-4 pt-5 ${TIER_FRAME_CLASS[tier]} ${
+      className={`animate-system-in relative mt-3 rounded-none bg-panel/90 px-4 pb-4 pt-5 ${TIER_FRAME_CLASS[tier]} ${
         strong ? 'shadow-system-strong' : 'shadow-system-faint'
       }`}
       style={index !== undefined ? { animationDelay: `${Math.min(index, 6) * 40}ms` } : undefined}
     >
       {/* The title box straddles the top border (§1.0 correction 6) rather
           than sitting inside it — the notch the reference draws, without
-          fragile negative-margin arithmetic against the footer/shadow below. */}
-      <h2 className="absolute -top-3 left-1/2 -translate-x-1/2 border border-ink/70 bg-panel px-3 py-1 font-system text-[11px] tracking-[0.2em] text-ink uppercase">
+          fragile negative-margin arithmetic against the footer/shadow below.
+          `mt-3` on the section itself (not a gap a caller has to remember)
+          guarantees the poke-up clearance a stack of windows needs — found
+          overlapping a neighbour's content on a real device otherwise.
+          `whitespace-nowrap` because a wrapped two-line title roughly doubles
+          the box's height, which was the other half of that same overlap. */}
+      <h2 className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap border border-ink/70 bg-panel px-3 py-1 font-system text-[11px] tracking-[0.2em] text-ink uppercase">
         [{title}]
       </h2>
       <div className="text-ink">{children}</div>
