@@ -27,7 +27,14 @@ export function PenaltyQuestPanel({ strong = false, index }: { strong?: boolean;
 
   const quest = useMemo(() => {
     const row = activeQuestFor(quests, today, 'penalty')
-    return (row?.payload as PenaltyQuestPayload | undefined) ?? null
+    if (!row) return null
+    const payload = row.payload as PenaltyQuestPayload
+    // `progress` was added the same day this panel was — a penalty row
+    // issued by the older code before that has no such field, and reading
+    // `undefined[item.kind]` below crashed the whole render (found on a
+    // real device: the hunter's own already-issued penalty did exactly
+    // this the moment the new code first loaded).
+    return { ...payload, progress: payload.progress ?? {} }
   }, [quests, today])
 
   if (!quest) return null

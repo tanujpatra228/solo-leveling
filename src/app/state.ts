@@ -1285,7 +1285,11 @@ export const useApp = create<AppState>((set, get) => ({
     const row = activeQuestFor(state.quests, state.today, 'penalty')
     if (!row || row.status === 'complete') return
 
-    const payload = row.payload as PenaltyQuestPayload
+    // `progress` was added the same day as this action — a penalty row
+    // issued by the code before it has no such field (see the matching
+    // comment in PenaltyQuestPanel.tsx, which hit the same gap first).
+    const payload = { ...(row.payload as PenaltyQuestPayload) }
+    payload.progress ??= {}
     const progress = progressByKind ? mergeDailyQuestProgress(payload.progress, progressByKind) : payload.progress
 
     if (!isDailyQuestComplete(payload, progress)) {

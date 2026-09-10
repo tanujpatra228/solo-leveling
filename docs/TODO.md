@@ -33,6 +33,7 @@ plan named in the row.
 | Indian club training | **Dropped** | Plan removed 2026-09-07; recoverable at `5eb04b3` if it comes back |
 | Game-style click feedback and countdown tension | **Done**, landed 2026-09-09 | `useUiTapSound` (root.tsx) delegates one capture-phase click listener over the whole app — every button and link gets a synthesised tap tone plus a light haptic buzz, no per-component wiring. The rest timer's final ten seconds now tick once a second, pitch and volume escalating (`countdownUrgency`) into the existing expiry chime. Both respect `settings.soundEnabled`/`hapticsEnabled`, now exposed as an on/off pair on the Link screen ("System Feedback") — previously set but with no UI to change them |
 | The Penalty Quest was never actually enforced | **Fixed**, landed 2026-09-10 | Found on a real device: the penalty announcement was a 6-second toast (too short to read), and worse, nothing ever displayed the issued Penalty Quest — it silently marked itself complete the instant the hunter finished an unrelated, unincreased fresh Daily Quest, so the surcharged reps `generatePenaltyQuest` computes were never actually owed by anything. Fixed: the announcement is now a `kind: 'window'` message: `PenaltyQuestPayload` gets its own `progress` field and a new `PenaltyQuestPanel` (reusing `DailyQuestPanel`'s row/stepper components) renders whenever one is outstanding, cleared only through a new `completePenaltyQuest` store action against its own items — never as a side effect of the regular Daily Quest |
+| That fix crashed the whole page for a hunter with an already-issued penalty | **Fixed**, same day | The `progress` field above is new; a penalty row written by the code before it has none. `PenaltyQuestWindow` read `quest.progress[item.kind]` unconditionally, so an existing hunter's own pre-fix penalty threw `Cannot read properties of undefined (reading 'run')` the instant the new code loaded — a render-phase crash with no error boundary, blanking the whole app. Both read sites (`PenaltyQuestPanel`'s selector, `completePenaltyQuest`) now default a missing `progress` to `{}` |
 
 ### Open items that are not features
 
@@ -44,7 +45,7 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 790 passing |
+| Tests | 794 passing |
 | Typecheck, `check:render`, build | Clean |
 | Bundle | 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
 | Deployed | Live on workers.dev, deployed 2026-09-09 by the Actions workflow's first run — the router scroll-to-top fix and the workflow itself |

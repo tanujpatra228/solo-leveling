@@ -875,6 +875,30 @@ describe('Daily Quest per-item progress (F2)', () => {
       expect(useApp.getState().quests.find((q) => q.type === 'penalty')!.status).toBe('complete')
       expect(useApp.getState().messages.at(-1)?.title).toContain('cleared')
     })
+
+    it('does not crash logging against a penalty row issued before `progress` existed (found on a real device)', async () => {
+      const today = useApp.getState().today
+      // The exact shape written before the fix — no `progress` key at all.
+      await putQuest({
+        id: `penalty-${today}`,
+        dayKey: today,
+        type: 'penalty',
+        status: 'issued',
+        issuedAt: Date.now(),
+        expiresAt: null,
+        payload: {
+          dayKey: today,
+          items: [{ kind: 'run', label: 'Run', target: 3000, unit: 'metres' }],
+          announcement: '[A Penalty Quest has been issued.]',
+          reassurance: 'Nothing has been taken away.',
+        },
+      })
+      await useApp.getState().refresh()
+
+      await expect(useApp.getState().completePenaltyQuest({ run: 1000 })).resolves.not.toThrow()
+      const payload = useApp.getState().quests.find((q) => q.type === 'penalty')!.payload as PenaltyQuestPayload
+      expect(payload.progress).toEqual({ run: 1000 })
+    })
   })
 })
 
