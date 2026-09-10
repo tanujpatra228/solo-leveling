@@ -431,10 +431,7 @@ export function HunterLicenseCard(props: HunterLicenseCardProps) {
   }
 
   return (
-    <SystemPanel className="mt-3 flex flex-col items-center gap-2">
-      <p className="self-start font-system text-[11px] tracking-[0.12em] text-system uppercase">
-        Hunter License
-      </p>
+    <SystemPanel className="flex flex-col items-center gap-2">
       {/* `role="img"` plus an `aria-label` built from the same `licenseFields`
           call the canvas draws from (m11-plan §8.3) — a `<canvas>` with
           neither is invisible to a screen reader, and deriving the label

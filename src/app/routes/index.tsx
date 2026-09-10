@@ -18,6 +18,7 @@ import {
   Flame,
   Footprints,
   HeartPulse,
+  IdCard,
   Radar,
   ShoppingBag,
   Users,
@@ -352,22 +353,31 @@ function HomeScreen() {
 
       {/* Not in the summon list (F9) — a share action reached from the Status
           footer's "Hunter License" button, so the canvas chunk is fetched
-          only once tapped, never on a normal visit (m10-plan commit 6). */}
-      {identity && showLicense ? (
-        <Suspense fallback={null}>
-          <HunterLicenseCard
-            hunterId={identity.hunterId}
-            hunterName={profile?.hunterName}
-            rank={player.rank}
-            level={player.level}
-            hunterClass={player.hunterClass}
-            total={player.total}
-            earnedTitleIds={earnedTitleIds}
-            gatesCleared={gatesCleared}
-            awakenedAt={profile?.awakenedAt ?? null}
-            onRename={(name) => void renameHunter(name)}
-          />
-        </Suspense>
+          only once tapped, never on a normal visit (m10-plan commit 6). A
+          `SystemOverlay` like any other window (found on a real device: it
+          used to render inline at the bottom of the page, so opening it
+          meant scrolling down to a card with no close control of its own)
+          rather than a dark-panel wrapper — the card's own rounded, light,
+          printed surface sits inside the dark window the way a photograph
+          sits in a frame (m11-plan §1). Deferred to any pending message,
+          same as a summoned window, so the two overlays never stack. */}
+      {identity && showLicense && !windowMessagePending ? (
+        <SystemOverlay title="Hunter License" icon={IdCard} onClose={() => setShowLicense(false)}>
+          <Suspense fallback={null}>
+            <HunterLicenseCard
+              hunterId={identity.hunterId}
+              hunterName={profile?.hunterName}
+              rank={player.rank}
+              level={player.level}
+              hunterClass={player.hunterClass}
+              total={player.total}
+              earnedTitleIds={earnedTitleIds}
+              gatesCleared={gatesCleared}
+              awakenedAt={profile?.awakenedAt ?? null}
+              onRename={(name) => void renameHunter(name)}
+            />
+          </Suspense>
+        </SystemOverlay>
       ) : null}
 
       {openWindow && !windowMessagePending ? (
