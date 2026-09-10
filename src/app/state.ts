@@ -20,6 +20,7 @@ import {
   resolveJobChange,
   type DailyItemKind,
   type DailyQuestPayload,
+  type PenaltyQuestPayload,
 } from '../domain/quests'
 import { purchase, shopItemById, type ShopItemId } from '../domain/shop'
 import {
@@ -279,6 +280,8 @@ export interface AppState extends LoadedData {
    */
   completeDailyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
   todaysDailyQuest: () => DailyQuestPayload | null
+  /** Same shape as `completeDailyQuest`, against the Penalty Quest's own surcharged items. */
+  completePenaltyQuest: (progressByKind?: Partial<Record<DailyItemKind, number>>) => Promise<void>
   /**
    * Replaces today's Daily Quest with a freshly generated one. The old row
    * stays — marked `supersedes` on the new one, not deleted or reassigned
@@ -837,12 +840,17 @@ export const useApp = create<AppState>((set, get) => ({
             status: 'issued',
             issuedAt: Date.now(),
             expiresAt: null,
-            payload: penalty,
+            payload: { ...penalty, progress: {} } satisfies PenaltyQuestPayload,
           })
+          // A window, not a toast (found on a real device: a 6-second toast
+          // is not enough time to read a penalty explanation) — this is a
+          // consequence the hunter has to actually register, the same
+          // treatment a level-up or Job Change Quest arrival gets.
           get().pushMessage({
             title: penalty.announcement,
             body: penalty.reassurance,
             tone: 'danger',
+            kind: 'window',
           })
         }
       }
@@ -1255,14 +1263,42 @@ export const useApp = create<AppState>((set, get) => ({
       gold: state.progress.gold + 25,
     })
 
-    // Any penalty owed today is discharged by clearing the day's work.
-    const penalty = state.quests.find((q) => q.dayKey === state.today && q.type === 'penalty')
-    if (penalty && penalty.status === 'issued') await repo.setQuestStatus(penalty.id, 'complete')
-
     await get().refresh()
     get().pushMessage({
       title: '[Daily Quest complete.]',
       body: `Streak ${get().streak.current}. 150 experience and 25 gold gained.`,
+      tone: 'good',
+      kind: 'window',
+    })
+  },
+
+  /**
+   * A penalty is its own debt, cleared only by its own surcharged reps —
+   * finishing today's ordinary Daily Quest no longer discharges it for free
+   * (found on a real device: it used to, which meant the surcharge was never
+   * actually owed). No XP or gold either way: the penalty adds work, never
+   * pays out, matching `generatePenaltyQuest`'s "never removes progress"
+   * design — this is relief from a debt, not a reward.
+   */
+  async completePenaltyQuest(progressByKind) {
+    const state = get()
+    const row = activeQuestFor(state.quests, state.today, 'penalty')
+    if (!row || row.status === 'complete') return
+
+    const payload = row.payload as PenaltyQuestPayload
+    const progress = progressByKind ? mergeDailyQuestProgress(payload.progress, progressByKind) : payload.progress
+
+    if (!isDailyQuestComplete(payload, progress)) {
+      await repo.putQuest({ ...row, payload: { ...payload, progress } })
+      await get().refresh()
+      return
+    }
+
+    await repo.putQuest({ ...row, status: 'complete', payload: { ...payload, progress } })
+    await get().refresh()
+    get().pushMessage({
+      title: '[Penalty Quest cleared.]',
+      body: 'Nothing further owed. The debt is paid in full.',
       tone: 'good',
       kind: 'window',
     })

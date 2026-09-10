@@ -14,7 +14,7 @@ import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
 import { addDaysToKey, dayOfWeekForKey } from '../domain/time'
 import { addShadow, putQuest, updateProgress, wipeEverything } from '../db/repo'
-import { generateDailyQuest, type DailyQuestPayload } from '../domain/quests'
+import { generateDailyQuest, type DailyQuestPayload, type PenaltyQuestPayload } from '../domain/quests'
 import { QUEST_REROLL_PRICE_GOLD, REST_TOKEN_PRICE_GOLD } from '../domain/shop'
 import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
 import { useApp } from './state'
@@ -777,6 +777,103 @@ describe('Daily Quest per-item progress (F2)', () => {
 
       await useApp.getState().rerollDailyQuest()
       expect(useApp.getState().quests.filter((q) => q.type === 'daily')).toHaveLength(1)
+    })
+  })
+
+  describe('the Penalty Quest clears on its own progress, never as a side effect (found on a real device)', () => {
+    // `today` is clock-derived (`recompute()` sets it from `Date.now()` on
+    // every refresh, per m10/m6-era design — a `useApp.setState({ today })`
+    // gets silently overwritten the moment anything refreshes), so crossing
+    // a day boundary needs the fake system clock, not a state override.
+    // Monday 5 Jan 2026 / Tuesday 6 Jan 2026 — both training days (dayOfWeek
+    // 1-6 all have a routine), so neither is forgiven as a rest day.
+    const MONDAY_10AM = new Date(2026, 0, 5, 10, 0).getTime()
+    const TUESDAY_10AM = new Date(2026, 0, 6, 10, 0).getTime()
+
+    afterEach(() => vi.useRealTimers())
+
+    /** Mirrors how `load()` actually calls this in production — `ensureQuestsForToday`
+     * writes straight to Dexie and never refreshes its own caller's `state.quests`.
+     * Fakes only `Date`, never the timer functions — fake-indexeddb resolves its
+     * own requests through chained zero-delay timers, and faking those without
+     * ever advancing them hangs every `await` that touches Dexie. */
+    async function seedMissedYesterdayAndAdvance(): Promise<void> {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(MONDAY_10AM)
+      await useApp.getState().refresh()
+      const monday = useApp.getState().today
+
+      await updateProgress({ restTokens: 0 })
+      const quest = generateDailyQuest({ dayKey: monday, level: 1, allocated: useApp.getState().allocated })
+      await putQuest({
+        id: `daily-${monday}`,
+        dayKey: monday,
+        type: 'daily',
+        status: 'issued',
+        issuedAt: Date.now(),
+        expiresAt: null,
+        // Left entirely undone, so every item is outstanding for the penalty.
+        payload: { ...quest, progress: {} },
+      })
+      await useApp.getState().refresh()
+
+      vi.setSystemTime(TUESDAY_10AM)
+      await useApp.getState().refresh() // recomputes `today` from the clock before ensure reads it
+      await useApp.getState().ensureQuestsForToday()
+      await useApp.getState().refresh() // and again after, to pick up the rows just written
+    }
+
+    it('issues a penalty quest with its own empty progress, ready to be logged against', async () => {
+      await seedMissedYesterdayAndAdvance()
+
+      const row = useApp.getState().quests.find((q) => q.type === 'penalty')
+      expect(row?.status).toBe('issued')
+      const payload = row!.payload as PenaltyQuestPayload
+      expect(payload.progress).toEqual({})
+      expect(payload.items.length).toBeGreaterThan(0)
+    })
+
+    it('the announcement is a window, not a toast — a six-second toast is not enough time to read it', async () => {
+      await seedMissedYesterdayAndAdvance()
+      expect(useApp.getState().messages.at(-1)?.kind).toBe('window')
+    })
+
+    it('completing today’s ordinary Daily Quest does not discharge the penalty for free', async () => {
+      await seedMissedYesterdayAndAdvance()
+      const daily = useApp.getState().todaysDailyQuest()!
+      const full: Partial<Record<string, number>> = {}
+      for (const item of daily.items) full[item.kind] = item.target
+      await useApp.getState().completeDailyQuest(full)
+
+      // Yesterday's own daily quest also has type 'daily', now status
+      // 'failed' — filtering on today's dayKey is what a naive `.find`
+      // on type alone would get wrong.
+      const today = useApp.getState().today
+      expect(useApp.getState().quests.find((q) => q.type === 'daily' && q.dayKey === today)!.status).toBe(
+        'complete',
+      )
+      expect(useApp.getState().quests.find((q) => q.type === 'penalty')!.status).toBe('issued')
+    })
+
+    it('clears only once its own surcharged items are logged, partial progress included', async () => {
+      await seedMissedYesterdayAndAdvance()
+      const penaltyRow = useApp.getState().quests.find((q) => q.type === 'penalty')!
+      const payload = penaltyRow.payload as PenaltyQuestPayload
+
+      const firstHalf: Partial<Record<string, number>> = {}
+      const secondHalf: Partial<Record<string, number>> = {}
+      for (const item of payload.items) {
+        const done = Math.floor(item.target * 0.4)
+        firstHalf[item.kind] = done
+        secondHalf[item.kind] = item.target - done
+      }
+
+      await useApp.getState().completePenaltyQuest(firstHalf)
+      expect(useApp.getState().quests.find((q) => q.type === 'penalty')!.status).toBe('issued')
+
+      await useApp.getState().completePenaltyQuest(secondHalf)
+      expect(useApp.getState().quests.find((q) => q.type === 'penalty')!.status).toBe('complete')
+      expect(useApp.getState().messages.at(-1)?.title).toContain('cleared')
     })
   })
 })

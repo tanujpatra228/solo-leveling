@@ -170,6 +170,15 @@ describe('the Penalty Quest adds work and never removes progress', () => {
     const penalty = generatePenaltyQuest({ missed, completed: {} })!
     expect(penalty.reassurance).toContain('Nothing has been taken away')
   })
+
+  it('is completable through the same isDailyQuestComplete check the Daily Quest uses, despite having no xpReward or goldReward', () => {
+    const penalty = generatePenaltyQuest({ missed, completed: {} })!
+    const progress = Object.fromEntries(penalty.items.map((i) => [i.kind, 0]))
+    expect(isDailyQuestComplete(penalty, progress)).toBe(false)
+
+    const full = Object.fromEntries(penalty.items.map((i) => [i.kind, i.target]))
+    expect(isDailyQuestComplete(penalty, full)).toBe(true)
+  })
 })
 
 describe('the Recovery Quest', () => {

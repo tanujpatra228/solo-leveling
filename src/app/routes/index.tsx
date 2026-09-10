@@ -32,6 +32,7 @@ import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
+import { PenaltyQuestPanel } from '../../components/PenaltyQuestPanel'
 import { RankBadge } from '../../components/RankBadge'
 import { ReawakeningTestPanel } from '../../components/ReawakeningTestPanel'
 import { RunesPanel } from '../../components/RunesPanel'
@@ -203,6 +204,8 @@ function HomeScreen() {
     if (projection.deload.due) return 'deload'
     if (projection.reawakeningDue) return 'reawakening'
     if (quests.some((q) => q.type === 'job_change' && q.status === 'issued')) return 'jobchange'
+    const penaltyQuest = activeQuestFor(quests, today, 'penalty')
+    if (penaltyQuest && penaltyQuest.status !== 'complete') return 'penalty'
     const dailyQuest = activeQuestFor(quests, today, 'daily')
     if (dailyQuest && dailyQuest.status !== 'complete') return 'dailyquest'
     if (projection.roster.benched.some((s) => s.active)) return 'shadows'
@@ -338,11 +341,12 @@ function HomeScreen() {
         </div>
       </SystemWindow>
 
-      <DailyQuestPanel strong={speaking === 'dailyquest'} index={1} />
-      <DeloadPanel deload={projection.deload} strong={speaking === 'deload'} index={2} />
-      <ReawakeningTestPanel strong={speaking === 'reawakening'} index={3} />
-      <JobChangeQuestPanel strong={speaking === 'jobchange'} index={4} />
-      <StreakPanel index={5} />
+      <PenaltyQuestPanel strong={speaking === 'penalty'} index={1} />
+      <DailyQuestPanel strong={speaking === 'dailyquest'} index={2} />
+      <DeloadPanel deload={projection.deload} strong={speaking === 'deload'} index={3} />
+      <ReawakeningTestPanel strong={speaking === 'reawakening'} index={4} />
+      <JobChangeQuestPanel strong={speaking === 'jobchange'} index={5} />
+      <StreakPanel index={6} />
 
       <SummonList rows={summonRows} open={openWindow} onToggle={toggleSummon} index={6} />
 

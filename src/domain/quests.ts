@@ -50,8 +50,16 @@ export interface DailyQuestPayload extends DailyQuest {
   progress: Partial<Record<DailyItemKind, number>>
 }
 
-/** Whether every item in the quest has met or passed its target. */
-export function isDailyQuestComplete(quest: DailyQuest, progress: Partial<Record<DailyItemKind, number>>): boolean {
+/**
+ * Whether every item in a quest has met or passed its target. Takes anything
+ * with an `items` list — the Daily Quest and the Penalty Quest both qualify,
+ * and neither has to pretend to be the other's full shape just to share this
+ * check.
+ */
+export function isDailyQuestComplete(
+  quest: { items: DailyQuestItem[] },
+  progress: Partial<Record<DailyItemKind, number>>,
+): boolean {
   return quest.items.every((item) => (progress[item.kind] ?? 0) >= item.target)
 }
 
@@ -192,6 +200,17 @@ export interface PenaltyQuest {
   items: DailyQuestItem[]
   announcement: string
   reassurance: string
+}
+
+/**
+ * The persisted shape of a penalty-quest row's payload — `PenaltyQuest` plus
+ * what the hunter has entered against it, same split as `DailyQuestPayload`
+ * and for the same reason: a penalty item is only done when the hunter says
+ * so, never inferred, and it clears on its own progress alone. Nothing else
+ * — least of all finishing an unrelated fresh Daily Quest — discharges it.
+ */
+export interface PenaltyQuestPayload extends PenaltyQuest {
+  progress: Partial<Record<DailyItemKind, number>>
 }
 
 export function generatePenaltyQuest(input: {

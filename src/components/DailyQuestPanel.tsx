@@ -37,8 +37,9 @@ import { SystemWindow } from './SystemWindow'
 /** §1.5: quoted System voice, not an invented warning. */
 const PENALTY_LINE = 'Failure to comply with the system may result in a penalty.'
 
-/** Gym rule 1: no keyboard between sets. Manual entry survives behind a MANUAL pill for anything off these steps. */
-const STEP_AMOUNTS: Record<'reps' | 'metres', readonly number[]> = {
+/** Gym rule 1: no keyboard between sets. Manual entry survives behind a MANUAL pill for anything off these steps.
+ * Exported — `PenaltyQuestPanel` steps the same surcharged items through the identical control. */
+export const STEP_AMOUNTS: Record<'reps' | 'metres', readonly number[]> = {
   reps: [1, 5, 10],
   metres: [100, 250, 500],
 }
@@ -156,7 +157,7 @@ function BracketedTaskValue({ done, item }: { done: number; item: DailyQuestItem
   )
 }
 
-function DailyQuestRow({
+export function DailyQuestRow({
   item,
   done,
   onAdd,
@@ -237,7 +238,7 @@ function DailyQuestRow({
 // steppers row and the manual-entry row are already the same height as each
 // other (both a single min-h-14 flex row), which is the only place gym rule
 // 4's "keeps its height" actually applies.
-function DailyQuestClearedRow({ item, done }: { item: DailyQuestItem; done: number }) {
+export function DailyQuestClearedRow({ item, done }: { item: DailyQuestItem; done: number }) {
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="font-system text-[11px] text-ink-faint/70 uppercase">{item.label}</span>
