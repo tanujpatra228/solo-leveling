@@ -6,8 +6,10 @@
  * active when requested shadows exceed the cap, rather than picking for
  * them (m7-plan commit 5).
  */
+import { HELP_TOPICS } from '../content/help'
 import type { RosterState } from '../domain/shadows'
 import type { Exercise, Shadow } from '../domain/types'
+import { HelpDisclosure } from './HelpDisclosure'
 import { RankBadge } from './RankBadge'
 import { SystemPanel } from './SystemPanel'
 import { SystemValue } from './SystemValue'
@@ -76,6 +78,7 @@ export function ShadowsPanel({
         <SystemValue value={roster.activeCount} max={roster.cap} size="md" />
       </div>
       <p className="text-xs text-ink-soft">{roster.message}</p>
+      <HelpDisclosure topic={HELP_TOPICS.army} />
 
       {roster.active.length > 0 ? (
         <ul className="flex flex-col gap-3">

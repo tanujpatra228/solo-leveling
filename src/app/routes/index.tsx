@@ -18,6 +18,7 @@ import {
   Flame,
   Footprints,
   HeartPulse,
+  HelpCircle,
   IdCard,
   Radar,
   ShoppingBag,
@@ -31,6 +32,8 @@ import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
+import { HelpDisclosure } from '../../components/HelpDisclosure'
+import { HelpPanel } from '../../components/HelpPanel'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { PenaltyQuestPanel } from '../../components/PenaltyQuestPanel'
@@ -52,6 +55,7 @@ import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
 import { TowerPanel } from '../../components/TowerPanel'
 import { VolumePanel } from '../../components/VolumePanel'
+import { HELP_TOPICS } from '../../content/help'
 import type { FatigueBand } from '../../domain/fatigue'
 import { activeQuestFor, JOB_CHANGE_LEVEL } from '../../domain/quests'
 import { unlockedRunes } from '../../domain/runes'
@@ -112,8 +116,16 @@ function HunterLicenseCardSkeleton() {
   )
 }
 
-export type SummonWindowId = 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles'
-const SUMMON_WINDOW_IDS: readonly SummonWindowId[] = ['analysis', 'army', 'castle', 'shop', 'runes', 'titles']
+export type SummonWindowId = 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles' | 'help'
+const SUMMON_WINDOW_IDS: readonly SummonWindowId[] = [
+  'analysis',
+  'army',
+  'castle',
+  'shop',
+  'runes',
+  'titles',
+  'help',
+]
 
 function isSummonWindowId(value: unknown): value is SummonWindowId {
   return typeof value === 'string' && (SUMMON_WINDOW_IDS as readonly string[]).includes(value)
@@ -188,6 +200,7 @@ const SUMMON_ICON: Record<SummonWindowId, LucideIcon> = {
   shop: ShoppingBag,
   runes: Wand2,
   titles: Award,
+  help: HelpCircle,
 }
 
 const SUMMON_TITLE: Record<SummonWindowId, string> = {
@@ -197,6 +210,7 @@ const SUMMON_TITLE: Record<SummonWindowId, string> = {
   shop: 'System Shop',
   runes: 'Runes',
   titles: 'Titles',
+  help: 'Help',
 }
 
 /** What the class line says before a class exists, so "no class" is explained rather than dead-ended. */
@@ -288,6 +302,7 @@ function HomeScreen() {
     { id: 'shop', label: 'System Shop', figure: `${gold} gold` },
     { id: 'runes', label: 'Runes', figure: `${unlockedRunes(player.level).length}` },
     { id: 'titles', label: 'Titles', figure: `${earnedTitleIds.length}` },
+    { id: 'help', label: 'Help', figure: `${Object.keys(HELP_TOPICS).length} topics` },
   ]
 
   return (
@@ -315,6 +330,7 @@ function HomeScreen() {
               {classLine(player.hunterClass, projection.jobChangeDue)}
             </span>
           </div>
+          <HelpDisclosure topic={HELP_TOPICS.leveling} />
 
           {/*
             The vitals strip (m10-plan section 1.0): level, streak and
@@ -448,6 +464,7 @@ function HomeScreen() {
             />
           ) : null}
           {openWindow === 'shop' ? <ShopPanel /> : null}
+          {openWindow === 'help' ? <HelpPanel /> : null}
         </SystemOverlay>
       ) : null}
     </main>

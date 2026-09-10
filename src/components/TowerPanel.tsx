@@ -4,7 +4,9 @@
  * Monarchs by canon name — floor 100's is the same fight the Shadow Monarch
  * title (TitlesPanel, m7-plan commit 3) is named after (m7-plan commit 4).
  */
+import { HELP_TOPICS } from '../content/help'
 import { describeRequirement, TOWER_FLOORS, type TowerFloor } from '../domain/tower'
+import { HelpDisclosure } from './HelpDisclosure'
 import { SystemPanel } from './SystemPanel'
 import { SystemValue } from './SystemValue'
 
@@ -36,6 +38,7 @@ export function TowerPanel({
       ) : (
         <p className="text-xs text-ink-soft">Every floor cleared. The castle has nothing left to ask.</p>
       )}
+      <HelpDisclosure topic={HELP_TOPICS.castle} />
     </SystemPanel>
   )
 }
