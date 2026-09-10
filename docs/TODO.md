@@ -589,7 +589,8 @@ the only billing exposure in the stack, so they were cut and R2 was cut with the
 dead code is correction C10.
 
 ## Phase 6 — Flavour
-- [ ] Build-time generated System flavour text
+- [x] Build-time generated System flavour text (M9, landed 2026-09-08 — see above; this checkbox
+      was just never flipped)
 - [ ] Optional Workers AI endpoint for free-text set parsing
 
 ## Infrastructure and ops
