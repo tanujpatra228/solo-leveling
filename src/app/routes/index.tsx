@@ -77,6 +77,41 @@ const HunterLicenseCard = lazy(() =>
   import('../../components/HunterLicenseCard').then((m) => ({ default: m.HunterLicenseCard })),
 )
 
+/**
+ * `HunterLicenseCard`'s `Suspense` fallback (found on a real device: the
+ * `fallback={null}` gap for this chunk showed the same layout shift the
+ * summon-list ones did, but this one is worth keeping lazy — a meaningfully
+ * bigger chunk, fetched for a footer button most visits never press). Rather
+ * than guessing a height, this reuses the real component's own markup and
+ * classes for every element that has a footprint — the canvas placeholder is
+ * sized to `HunterLicenseCard`'s CARD_WIDTH x CARD_HEIGHT (384 x 240) and the
+ * rename row and share button are the same elements, disabled, so the
+ * skeleton's height is the real layout's height by construction. If either
+ * file's markup changes, keep the other in step.
+ */
+function HunterLicenseCardSkeleton() {
+  return (
+    <SystemPanel className="flex flex-col items-center gap-2">
+      <div className="h-[240px] w-[384px] max-w-full animate-pulse rounded-[10px] bg-void-soft" />
+      <div className="flex w-full flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <span className="font-system text-[10px] tracking-[0.1em] text-ink-faint uppercase">Rename</span>
+          <input
+            disabled
+            className="min-w-0 flex-1 animate-pulse rounded border border-panel-edge bg-void-soft px-2 py-1 text-sm text-ink"
+          />
+          <button type="button" disabled className="font-system text-[10px] text-system-glow uppercase opacity-30">
+            Save
+          </button>
+        </div>
+      </div>
+      <button type="button" disabled className="font-system text-xs text-system-glow underline opacity-30">
+        Issue License
+      </button>
+    </SystemPanel>
+  )
+}
+
 export type SummonWindowId = 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles'
 const SUMMON_WINDOW_IDS: readonly SummonWindowId[] = ['analysis', 'army', 'castle', 'shop', 'runes', 'titles']
 
@@ -370,7 +405,7 @@ function HomeScreen() {
           same as a summoned window, so the two overlays never stack. */}
       {identity && showLicense && !windowMessagePending ? (
         <SystemOverlay title="Hunter License" icon={IdCard} onClose={() => setShowLicense(false)}>
-          <Suspense fallback={null}>
+          <Suspense fallback={<HunterLicenseCardSkeleton />}>
             <HunterLicenseCard
               hunterId={identity.hunterId}
               hunterName={profile?.hunterName}
