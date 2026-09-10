@@ -448,5 +448,9 @@ export const SettingsSchema = z.object({
   dismissedAdvisories: z.array(z.string()).default([]),
   /** Whether the one-time "how the summon windows work" notification has fired (m10-plan commit 3). */
   systemIntroSeen: z.boolean().default(false),
+  /** When the hunter last declined an install offer — a cooldown, not a permanent no. */
+  installPromptDismissedAt: TimestampSchema.nullable().default(null),
+  /** Whether the one-time "you've actually started" install nudge has fired, ever. */
+  installNudgeSeen: z.boolean().default(false),
 })
 export type Settings = z.infer<typeof SettingsSchema>

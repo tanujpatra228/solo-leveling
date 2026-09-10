@@ -31,6 +31,7 @@ import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
+import { InstallPrompt } from '../../components/InstallPrompt'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
 import { PenaltyQuestPanel } from '../../components/PenaltyQuestPanel'
@@ -390,6 +391,7 @@ function HomeScreen() {
       <ReawakeningTestPanel strong={speaking === 'reawakening'} index={4} />
       <JobChangeQuestPanel strong={speaking === 'jobchange'} index={5} />
       <StreakPanel index={6} />
+      <InstallPrompt index={7} />
 
       <SummonList rows={summonRows} open={openWindow} onToggle={toggleSummon} index={6} />
 

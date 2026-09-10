@@ -537,6 +537,8 @@ export const useApp = create<AppState>((set, get) => ({
     syncEnabled: false,
     dismissedAdvisories: [],
     systemIntroSeen: false,
+    installPromptDismissedAt: null,
+    installNudgeSeen: false,
   },
   exercises: [],
   routines: [],

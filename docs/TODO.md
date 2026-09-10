@@ -37,6 +37,7 @@ plan named in the row.
 | Summon-list pop-in on Shadow Army / Demon Castle / System Shop | **Fixed**, 2026-09-10 | Found on a real device: `Suspense fallback={null}` rendered inside the already-animating `SystemOverlay`, so content popped in a beat after the window opened — a visible layout shift, and it made the tap sound (which already fires on the click itself) read as tied to the content arriving rather than the tap. A prefetch-on-mount pass was tried first and didn't fully fix it — `React.lazy` always suspends for at least one commit the first time a lazy component renders, even against an already-cached chunk, since a dynamic `import()` never resolves synchronously. Fixed for real: `ShadowsPanel`, `TowerPanel` and `ShopPanel` are bundled normally now (each was under 1 KB gzipped — the split was never worth the timing risk), main chunk +0.55 KB gzipped. `HunterLicenseCard` stays lazy, on purpose (F9) — meaningfully larger, and not on the summon list |
 | The same pop-in, on the Hunter License | **Fixed**, 2026-09-10 | Unlike the summon list, this chunk (7.7 KB gzipped) is worth keeping lazy (F9). Fix here is a skeleton, not un-lazying it: `HunterLicenseCardSkeleton` in `index.tsx` is the `Suspense` fallback, built from the real component's own classes for every element with a footprint — a placeholder sized to `CARD_WIDTH`/`CARD_HEIGHT` (384x240) standing in for the canvas, the same rename row and share button, disabled — so the window opens at its final height immediately instead of resizing when the real card swaps in. Measured in a real browser under artificial network latency: ~1-2 px difference between the skeleton's box and the loaded one, which is animation sub-pixel rounding, not a layout shift |
 | Daily Quest run target capped at 2.5 km | **Changed**, 2026-09-10 | The canon 10 km at level 50 assumed a training arc, not a workday — user feedback: the time cost, not the effort, made it unworkable on a job schedule. `RUN_TARGET_CAP_METRES` (2,500) is enforced inside `tidyMetres()` in `domain/quests.ts`, so both the Daily Quest's run item and any Penalty Quest surcharge on it share the one cap; push-ups, sit-ups and squats are untouched and still scale to full canon by level 50 |
+| Android install prompt, from a real user gesture | **Done**, landed 2026-09-10 | `domain/install.ts` decides *when* to ask (pure, tested), `platform/capabilities.ts`'s existing `promptInstall`/`canPromptInstall`/`onInstallAvailabilityChange` (present since M4 but never wired to anything) do the asking. Three surfaces: an always-on "Install App" row on the System Link screen; a one-time celebratory `InstallPrompt` window on Status once a hunter clears a first gate or reaches level 2, never re-shown; and a dismissible recurring banner on any later day after that, gated by a 7-day cooldown (`Settings.installPromptDismissedAt`) once declined. iOS never fires `beforeinstallprompt` at all — `isIOS()` swaps the Link-screen row for static "tap Share, then Add to Home Screen" instructions there, since there is no programmatic hook to offer. Verified in a real browser via a synthetic `beforeinstallprompt` dispatch: withheld on day one, appears day two, dismiss persists across reload, reappears after the cooldown |
 
 ### Open items that are not features
 
@@ -48,9 +49,9 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 794 passing |
+| Tests | 807 passing |
 | Typecheck, `check:render`, build | Clean |
-| Bundle | 202.85 KB JS + 6.55 KB CSS + 2.20 KB `workbox-window` ≈ 211.6 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Tower, shadow roster, license card and Shop panels ship in their own lazy chunks |
+| Bundle | 205.79 KB JS + 6.45 KB CSS + 2.20 KB `workbox-window` ≈ 214.4 KB gzipped initial route, under half the ~480 KB Slow-4G budget. Only the Hunter License card and the QR scanner still ship as their own lazy chunks — Tower, Shadow Army and Shop were folded back into the main bundle 2026-09-10 (each under 1 KB, not worth Suspense's timing cost) |
 | Deployed | Live on workers.dev, deployed 2026-09-09 by the Actions workflow's first run — the router scroll-to-top fix and the workflow itself |
 
 Every milestone through M11 is now **Done** or deliberately **Parked** — M4 closed 2026-09-09 once
@@ -580,7 +581,8 @@ milestone's plan is kept on disk; see `docs/m4-plan.md`.
 - [x] Push subscription endpoint and D1 storage
 - [x] Cron Trigger daily quest push
 - [x] Service worker push and notificationclick handling
-- [ ] Android install prompt and permission request from a user gesture
+- [x] Android install prompt from a user gesture (landed 2026-09-10, see below)
+- [ ] Push notification permission request from a user gesture
 
 ## Photos — dropped (decided 2026-09-03)
 

@@ -262,6 +262,16 @@ export async function promptInstall(): Promise<'accepted' | 'dismissed' | 'unava
   }
 }
 
+/**
+ * Safari never fires `beforeinstallprompt` — there is no programmatic install
+ * trigger on iOS at all, only the manual Share -> Add to Home Screen path.
+ * `maxTouchPoints > 1` catches iPadOS 13+, which reports as `MacIntel`.
+ */
+export function isIOS(): boolean {
+  const nav = navigator as Navigator & { standalone?: boolean }
+  return /iphone|ipad|ipod/i.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)
+}
+
 /** True when running as an installed app rather than in a browser tab. */
 export function isInstalled(): boolean {
   return (

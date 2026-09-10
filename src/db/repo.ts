@@ -76,6 +76,8 @@ const DEFAULT_SETTINGS: Settings = {
   syncEnabled: false,
   dismissedAdvisories: [],
   systemIntroSeen: false,
+  installPromptDismissedAt: null,
+  installNudgeSeen: false,
 }
 
 const DEFAULT_PROGRESS: Progress = {
