@@ -103,6 +103,14 @@ export function activeQuestFor(
 /** The canon Daily Quest, reached at the level the XP curve targets for a year. */
 export const CANON_TARGETS = { pushups: 100, situps: 100, squats: 100, runMetres: 10_000 } as const
 
+/**
+ * The canon 10 km run at level 50 is a training-arc number, not a Tuesday
+ * before work. Capped so the run item never asks for more than this,
+ * regardless of level or penalty surcharge — the other three items still
+ * scale to full canon because reps cost seconds, not commute time.
+ */
+export const RUN_TARGET_CAP_METRES = 2_500
+
 /** The level at which the Daily Quest reaches full canon scale. */
 export const CANON_LEVEL = 50
 
@@ -128,7 +136,7 @@ function tidyReps(value: number): number {
 }
 
 function tidyMetres(value: number): number {
-  return Math.max(500, Math.round(value / 500) * 500)
+  return Math.min(RUN_TARGET_CAP_METRES, Math.max(500, Math.round(value / 500) * 500))
 }
 
 /**

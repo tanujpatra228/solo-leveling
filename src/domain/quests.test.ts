@@ -5,6 +5,7 @@ import {
   JOB_CHANGE_LEVEL,
   PENALTY_SURCHARGE,
   REST_TOKENS_PER_MONTH,
+  RUN_TARGET_CAP_METRES,
   activeQuestFor,
   classFromStats,
   dailyScale,
@@ -38,7 +39,11 @@ describe('the Daily Quest scales toward canon', () => {
     expect(dailyScale(CANON_LEVEL)).toBe(1)
     const quest = generateDailyQuest({ dayKey: '2026-03-01', level: CANON_LEVEL, allocated: ZERO_STATS })
     expect(quest.items.find((i) => i.kind === 'pushups')!.target).toBe(100)
-    expect(quest.items.find((i) => i.kind === 'run')!.target).toBe(10_000)
+  })
+
+  it('caps the run at a commute-friendly distance rather than the canon 10 km', () => {
+    const quest = generateDailyQuest({ dayKey: '2026-03-01', level: CANON_LEVEL, allocated: ZERO_STATS })
+    expect(quest.items.find((i) => i.kind === 'run')!.target).toBe(RUN_TARGET_CAP_METRES)
   })
 
   it('does not keep growing past canon', () => {
