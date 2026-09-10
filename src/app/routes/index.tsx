@@ -38,6 +38,8 @@ import { RankBadge } from '../../components/RankBadge'
 import { ReawakeningTestPanel } from '../../components/ReawakeningTestPanel'
 import { RunesPanel } from '../../components/RunesPanel'
 import { SegmentedRing } from '../../components/SegmentedRing'
+import { ShadowsPanel } from '../../components/ShadowsPanel'
+import { ShopPanel } from '../../components/ShopPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SummonList, type SummonRow } from '../../components/SummonList'
@@ -48,6 +50,7 @@ import { SystemPanel } from '../../components/SystemPanel'
 import { SystemValue } from '../../components/SystemValue'
 import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
+import { TowerPanel } from '../../components/TowerPanel'
 import { VolumePanel } from '../../components/VolumePanel'
 import type { FatigueBand } from '../../domain/fatigue'
 import { activeQuestFor, JOB_CHANGE_LEVEL } from '../../domain/quests'
@@ -58,34 +61,21 @@ import type { DayKey, HunterClass, StatKey } from '../../domain/types'
 import { useApp } from '../state'
 import { rootRoute } from './root'
 
-// None of these three sit on the path to logging a set (m7-plan F5), so they
-// ship in their own chunks rather than growing the bundle every hunter pays
-// for on first paint.
-const ShadowsPanel = lazy(() =>
-  import('../../components/ShadowsPanel').then((m) => ({ default: m.ShadowsPanel })),
-)
-const TowerPanel = lazy(() => import('../../components/TowerPanel').then((m) => ({ default: m.TowerPanel })))
+// ShadowsPanel, TowerPanel and ShopPanel used to be `lazy()`-split out of the
+// main chunk (m7-plan F5), each well under 1 KB gzipped. Found on a real
+// device: `Suspense fallback={null}` rendering inside the already-animating
+// `SystemOverlay` meant the window opened a beat before its content did, a
+// visible pop-in no amount of prefetching removes — `React.lazy` always
+// suspends for at least one commit the first time a lazy component renders,
+// even when its chunk is already cached, because a dynamic `import()` never
+// resolves synchronously. Bundled normally now (imported above); three
+// sub-kilobyte panels are not worth fighting Suspense's timing for.
+// `HunterLicenseCard` stays lazy — its chunk is meaningfully larger (F9),
+// and it is the one panel here deliberately not on the summon list, reached
+// from its own footer button rather than something opened on every visit.
 const HunterLicenseCard = lazy(() =>
   import('../../components/HunterLicenseCard').then((m) => ({ default: m.HunterLicenseCard })),
 )
-const ShopPanel = lazy(() => import('../../components/ShopPanel').then((m) => ({ default: m.ShopPanel })))
-
-/**
- * Warms the three summon-list chunks above shortly after Status mounts —
- * found on a real device: `Suspense fallback={null}` showed an empty window
- * for the length of the chunk fetch, so opening Shadow Army, Demon Castle or
- * System Shop popped its content in a beat after the window itself, a
- * visible layout shift, and made the tap sound (which fires on the click
- * itself, correctly) read as tied to the content instead. The data behind
- * each panel is already on-device and instant; only the code to render it
- * was ever lazy. This does not touch the Hunter License chunk (F9) — that
- * one stays deferred until actually tapped, on purpose.
- */
-function prefetchSummonChunks(): void {
-  void import('../../components/ShadowsPanel')
-  void import('../../components/TowerPanel')
-  void import('../../components/ShopPanel')
-}
 
 export type SummonWindowId = 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles'
 const SUMMON_WINDOW_IDS: readonly SummonWindowId[] = ['analysis', 'army', 'castle', 'shop', 'runes', 'titles']
@@ -213,15 +203,6 @@ function HomeScreen() {
   useEffect(() => {
     void announceSystemIntroIfNeeded()
   }, [announceSystemIntroIfNeeded])
-
-  // A tick after mount, not on it — `setTimeout(0)` still yields to the
-  // page's own first paint, so warming these chunks never competes with it,
-  // while starting the fetch as early as possible rather than on an
-  // arbitrary delay.
-  useEffect(() => {
-    const id = window.setTimeout(prefetchSummonChunks, 0)
-    return () => window.clearTimeout(id)
-  }, [])
 
   // Reserves the glow for the one window that is speaking
   // (docs/system-visuals-plan.md section 8) — derived here, not in
@@ -418,28 +399,20 @@ function HomeScreen() {
           {openWindow === 'runes' ? <RunesPanel level={player.level} /> : null}
           {openWindow === 'titles' ? <TitlesPanel titleIds={earnedTitleIds} /> : null}
           {openWindow === 'army' ? (
-            <Suspense fallback={null}>
-              <ShadowsPanel
-                roster={projection.roster}
-                exercises={exercises}
-                onToggle={(id, active) => void setShadowActive(id, active)}
-              />
-            </Suspense>
+            <ShadowsPanel
+              roster={projection.roster}
+              exercises={exercises}
+              onToggle={(id, active) => void setShadowActive(id, active)}
+            />
           ) : null}
           {openWindow === 'castle' ? (
-            <Suspense fallback={null}>
-              <TowerPanel
-                floorCleared={projection.towerFloorCleared}
-                nextFloor={projection.nextTowerFloor}
-                bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
-              />
-            </Suspense>
+            <TowerPanel
+              floorCleared={projection.towerFloorCleared}
+              nextFloor={projection.nextTowerFloor}
+              bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
+            />
           ) : null}
-          {openWindow === 'shop' ? (
-            <Suspense fallback={null}>
-              <ShopPanel />
-            </Suspense>
-          ) : null}
+          {openWindow === 'shop' ? <ShopPanel /> : null}
         </SystemOverlay>
       ) : null}
     </main>
