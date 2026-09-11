@@ -16,6 +16,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { RankBadge } from '../../components/RankBadge'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
@@ -577,6 +578,7 @@ function ActiveRedGateScreen({
   const sets = useApp((s) => s.sets)
   const [resolving, setResolving] = useState(false)
   const [abandoning, setAbandoning] = useState(false)
+  const [confirmingAbandon, setConfirmingAbandon] = useState(false)
 
   const logged = useMemo(
     () => liveSessionSets(sets, session.id, exercise.id),
@@ -600,9 +602,7 @@ function ActiveRedGateScreen({
 
   async function abandon() {
     if (abandoning) return
-    if (!window.confirm('Abandon this Red Gate? Anything logged in it is deleted, not just left unfinished.')) {
-      return
-    }
+    setConfirmingAbandon(false)
     setAbandoning(true)
     await abandonGate()
     setAbandoning(false)
@@ -624,7 +624,7 @@ function ActiveRedGateScreen({
           </button>
           <button
             type="button"
-            onClick={() => void abandon()}
+            onClick={() => setConfirmingAbandon(true)}
             disabled={resolving || abandoning}
             className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
           >
@@ -647,6 +647,16 @@ function ActiveRedGateScreen({
           <SetEntryRow exercise={exercise} setIndex={0} target={placeholderTarget} onLogged={() => {}} />
         </div>
       )}
+
+      {confirmingAbandon ? (
+        <ConfirmDialog
+          title="Abandon Red Gate"
+          message="Anything logged in this gate is deleted, not just left unfinished. This cannot be undone."
+          confirmLabel="Abandon"
+          onConfirm={() => void abandon()}
+          onCancel={() => setConfirmingAbandon(false)}
+        />
+      ) : null}
     </SystemWindow>
   )
 }
@@ -756,6 +766,7 @@ function ActiveGateScreen({
   const abandonGate = useApp((s) => s.abandonGate)
   const [finishing, setFinishing] = useState(false)
   const [abandoning, setAbandoning] = useState(false)
+  const [confirmingAbandon, setConfirmingAbandon] = useState(false)
 
   async function finish() {
     if (finishing) return
@@ -767,9 +778,7 @@ function ActiveGateScreen({
 
   async function abandon() {
     if (abandoning) return
-    if (!window.confirm('Discard this gate? Anything logged in it is deleted, not just left unfinished.')) {
-      return
-    }
+    setConfirmingAbandon(false)
     clearRestTimer()
     setAbandoning(true)
     await abandonGate()
@@ -792,7 +801,7 @@ function ActiveGateScreen({
           </button>
           <button
             type="button"
-            onClick={() => void abandon()}
+            onClick={() => setConfirmingAbandon(true)}
             disabled={finishing || abandoning}
             className="w-full font-system text-[11px] text-ink-faint uppercase underline disabled:opacity-30"
           >
@@ -834,6 +843,16 @@ function ActiveGateScreen({
           </SystemPanel>
         ))}
       </div>
+
+      {confirmingAbandon ? (
+        <ConfirmDialog
+          title="Abandon Gate"
+          message="Anything logged in this gate is deleted, not just left unfinished. This cannot be undone."
+          confirmLabel="Abandon"
+          onConfirm={() => void abandon()}
+          onCancel={() => setConfirmingAbandon(false)}
+        />
+      ) : null}
     </SystemWindow>
   )
 }

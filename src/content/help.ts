@@ -28,7 +28,7 @@ export const HELP_TOPICS: Record<'leveling' | 'army' | 'castle', HelpTopic> = {
       'Shadows are not built or upgraded. One is extracted automatically the moment a lift crosses into a strength tier you have not reached before — a PR earns you a shadow, not a purchase or a grind.',
       'Each shadow carries a small passive buff tied to its rank: E and D rank add a slice of bonus XP on that one lift, C shortens its rest timer, B adds a spare set of recovery on that muscle group, A adds a bigger XP bonus, and S rank shields your streak from one missed day. The buffs are deliberately modest — the army is not meant to out-earn honest training.',
       'Your active roster is capped by total INT, not by anything you build. Raise INT, mostly by sticking to your written plan, to raise the cap.',
-      'When you have more requested shadows than your cap allows, the extras go dormant, not lost. Return an active shadow to bring a dormant one back in — the System never chooses for you.',
+      '"Return" next to an active shadow never deletes it — it only stands the shadow down, the same as when the cap bumps one out on its own. "Summon" brings any returned or dormant shadow straight back, no confirmation needed, because nothing about it is destructive.',
     ],
   },
   castle: {

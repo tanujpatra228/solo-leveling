@@ -29,6 +29,7 @@ import {
 } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
@@ -487,6 +488,8 @@ export function StatusFooter({
   onRevoke: () => void
   onShowLicense: () => void
 }) {
+  const [confirmingRevoke, setConfirmingRevoke] = useState(false)
+
   return (
     <div className="flex flex-col gap-2">
       {unspent > 0 ? (
@@ -494,13 +497,7 @@ export function StatusFooter({
           <div className={PRIMARY_BUTTON}>
             Allocate {unspent} point{unspent === 1 ? '' : 's'}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm('Revoke all allocated stat points? This cannot be undone.')) onRevoke()
-            }}
-            className={SECONDARY_BUTTON}
-          >
+          <button type="button" onClick={() => setConfirmingRevoke(true)} className={SECONDARY_BUTTON}>
             Revoke allocation
           </button>
         </>
@@ -508,6 +505,18 @@ export function StatusFooter({
       <button type="button" onClick={onShowLicense} className={`min-h-11 border-panel-edge text-ink-faint ${PILL_BUTTON}`}>
         Hunter License
       </button>
+      {confirmingRevoke ? (
+        <ConfirmDialog
+          title="Revoke Allocation"
+          message="Every allocated ability point resets to zero. This cannot be undone."
+          confirmLabel="Revoke"
+          onConfirm={() => {
+            setConfirmingRevoke(false)
+            onRevoke()
+          }}
+          onCancel={() => setConfirmingRevoke(false)}
+        />
+      ) : null}
     </div>
   )
 }
