@@ -6,10 +6,9 @@
  * active when requested shadows exceed the cap, rather than picking for
  * them (m7-plan commit 5).
  */
-import { HELP_TOPICS } from '../content/help'
 import type { RosterState } from '../domain/shadows'
 import type { Exercise, Shadow } from '../domain/types'
-import { HelpDisclosure } from './HelpDisclosure'
+import { HelpButton } from './HelpButton'
 import { RankBadge } from './RankBadge'
 import { SystemPanel } from './SystemPanel'
 import { SystemValue } from './SystemValue'
@@ -59,10 +58,12 @@ export function ShadowsPanel({
   roster,
   exercises,
   onToggle,
+  onHelp,
 }: {
   roster: RosterState
   exercises: readonly Exercise[]
   onToggle: (id: string, active: boolean) => void
+  onHelp: () => void
 }) {
   if (roster.active.length === 0 && roster.benched.length === 0) return null
 
@@ -73,12 +74,14 @@ export function ShadowsPanel({
 
   return (
     <SystemPanel className="mt-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <p className="font-system text-[11px] tracking-[0.12em] text-system uppercase">Shadow Army</p>
-        <SystemValue value={roster.activeCount} max={roster.cap} size="md" />
+        <div className="flex items-center gap-1">
+          <SystemValue value={roster.activeCount} max={roster.cap} size="md" />
+          <HelpButton topicTitle="Shadow Army" onClick={onHelp} />
+        </div>
       </div>
       <p className="text-xs text-ink-soft">{roster.message}</p>
-      <HelpDisclosure topic={HELP_TOPICS.army} />
 
       {roster.active.length > 0 ? (
         <ul className="flex flex-col gap-3">

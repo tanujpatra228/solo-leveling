@@ -29,11 +29,14 @@ import {
 } from 'lucide-react'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { AdvisoriesPanel } from '../../components/AdvisoriesPanel'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
-import { HelpDisclosure } from '../../components/HelpDisclosure'
+import { HelpButton } from '../../components/HelpButton'
+import { HelpModal } from '../../components/HelpModal'
 import { HelpPanel } from '../../components/HelpPanel'
+import { HelpTopicBody } from '../../components/HelpTopicBody'
 import { InstallPrompt } from '../../components/InstallPrompt'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
@@ -56,7 +59,7 @@ import { SystemWindow } from '../../components/SystemWindow'
 import { TitlesPanel } from '../../components/TitlesPanel'
 import { TowerPanel } from '../../components/TowerPanel'
 import { VolumePanel } from '../../components/VolumePanel'
-import { HELP_TOPICS } from '../../content/help'
+import { HELP_TOPICS, type HelpTopic } from '../../content/help'
 import type { FatigueBand } from '../../domain/fatigue'
 import { activeQuestFor, JOB_CHANGE_LEVEL } from '../../domain/quests'
 import { unlockedRunes } from '../../domain/runes'
@@ -247,6 +250,17 @@ function HomeScreen() {
   // footer button, not on mount.
   const [showLicense, setShowLicense] = useState(false)
 
+  // The Status Window's own help — a standalone `HelpModal`, since nothing
+  // else can be open behind it (a summoned window's scrim already hides the
+  // Status Window's own controls whenever one is up).
+  const [statusHelpOpen, setStatusHelpOpen] = useState(false)
+
+  // Help reached from *inside* a summoned window (Shadow Army, Demon
+  // Castle) swaps into that same `SystemOverlay` instead of stacking a
+  // second one on top of it — see `HelpModal.tsx`'s note on why two
+  // overlays don't mix.
+  const [helpTopic, setHelpTopic] = useState<HelpTopic | null>(null)
+
   const { window: openWindow } = indexRoute.useSearch()
   const navigate = indexRoute.useNavigate()
 
@@ -290,9 +304,11 @@ function HomeScreen() {
   // focus() fix (92a6382): that one covered the close button stealing scroll
   // on its own, this one is the router itself.
   function toggleSummon(id: SummonWindowId) {
+    setHelpTopic(null)
     void navigate({ search: openWindow === id ? {} : { window: id }, resetScroll: false })
   }
   function closeSummon() {
+    setHelpTopic(null)
     void navigate({ search: {}, resetScroll: false })
   }
 
@@ -330,8 +346,8 @@ function HomeScreen() {
             <span className="font-system text-[11px] text-ink-faint uppercase">
               {classLine(player.hunterClass, projection.jobChangeDue)}
             </span>
+            <HelpButton topicTitle={HELP_TOPICS.leveling.title} onClick={() => setStatusHelpOpen(true)} />
           </div>
-          <HelpDisclosure topic={HELP_TOPICS.leveling} />
 
           {/*
             The vitals strip (m10-plan section 1.0): level, streak and
@@ -440,33 +456,49 @@ function HomeScreen() {
         </SystemOverlay>
       ) : null}
 
+      {statusHelpOpen && !windowMessagePending ? (
+        <HelpModal topic={HELP_TOPICS.leveling} onClose={() => setStatusHelpOpen(false)} />
+      ) : null}
+
       {openWindow && !windowMessagePending ? (
-        <SystemOverlay title={SUMMON_TITLE[openWindow]} icon={SUMMON_ICON[openWindow]} onClose={closeSummon}>
-          {openWindow === 'analysis' ? (
-            <div className="flex flex-col gap-3">
-              <FatiguePanel fatigue={projection.fatigue} />
-              <VolumePanel volume={projection.volume} />
-              <AdvisoriesPanel advisories={advisories} />
-            </div>
-          ) : null}
-          {openWindow === 'runes' ? <RunesPanel level={player.level} /> : null}
-          {openWindow === 'titles' ? <TitlesPanel titleIds={earnedTitleIds} /> : null}
-          {openWindow === 'army' ? (
-            <ShadowsPanel
-              roster={projection.roster}
-              exercises={exercises}
-              onToggle={(id, active) => void setShadowActive(id, active)}
-            />
-          ) : null}
-          {openWindow === 'castle' ? (
-            <TowerPanel
-              floorCleared={projection.towerFloorCleared}
-              nextFloor={projection.nextTowerFloor}
-              bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
-            />
-          ) : null}
-          {openWindow === 'shop' ? <ShopPanel /> : null}
-          {openWindow === 'help' ? <HelpPanel /> : null}
+        <SystemOverlay
+          title={helpTopic ? helpTopic.title : SUMMON_TITLE[openWindow]}
+          icon={helpTopic ? HelpCircle : SUMMON_ICON[openWindow]}
+          onClose={helpTopic ? () => setHelpTopic(null) : closeSummon}
+        >
+          {helpTopic ? (
+            <HelpTopicBody topic={helpTopic} />
+          ) : (
+            <>
+              {openWindow === 'analysis' ? (
+                <div className="flex flex-col gap-3">
+                  <FatiguePanel fatigue={projection.fatigue} />
+                  <VolumePanel volume={projection.volume} />
+                  <AdvisoriesPanel advisories={advisories} />
+                </div>
+              ) : null}
+              {openWindow === 'runes' ? <RunesPanel level={player.level} /> : null}
+              {openWindow === 'titles' ? <TitlesPanel titleIds={earnedTitleIds} /> : null}
+              {openWindow === 'army' ? (
+                <ShadowsPanel
+                  roster={projection.roster}
+                  exercises={exercises}
+                  onToggle={(id, active) => void setShadowActive(id, active)}
+                  onHelp={() => setHelpTopic(HELP_TOPICS.army)}
+                />
+              ) : null}
+              {openWindow === 'castle' ? (
+                <TowerPanel
+                  floorCleared={projection.towerFloorCleared}
+                  nextFloor={projection.nextTowerFloor}
+                  bodyweightKg={projection.latestBodyMetric?.weightKg ?? 0}
+                  onHelp={() => setHelpTopic(HELP_TOPICS.castle)}
+                />
+              ) : null}
+              {openWindow === 'shop' ? <ShopPanel /> : null}
+              {openWindow === 'help' ? <HelpPanel /> : null}
+            </>
+          )}
         </SystemOverlay>
       ) : null}
     </main>
@@ -487,6 +519,8 @@ export function StatusFooter({
   onRevoke: () => void
   onShowLicense: () => void
 }) {
+  const [confirmingRevoke, setConfirmingRevoke] = useState(false)
+
   return (
     <div className="flex flex-col gap-2">
       {unspent > 0 ? (
@@ -494,13 +528,7 @@ export function StatusFooter({
           <div className={PRIMARY_BUTTON}>
             Allocate {unspent} point{unspent === 1 ? '' : 's'}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (window.confirm('Revoke all allocated stat points? This cannot be undone.')) onRevoke()
-            }}
-            className={SECONDARY_BUTTON}
-          >
+          <button type="button" onClick={() => setConfirmingRevoke(true)} className={SECONDARY_BUTTON}>
             Revoke allocation
           </button>
         </>
@@ -508,6 +536,18 @@ export function StatusFooter({
       <button type="button" onClick={onShowLicense} className={`min-h-11 border-panel-edge text-ink-faint ${PILL_BUTTON}`}>
         Hunter License
       </button>
+      {confirmingRevoke ? (
+        <ConfirmDialog
+          title="Revoke Allocation"
+          message="Every allocated ability point resets to zero. This cannot be undone."
+          confirmLabel="Revoke"
+          onConfirm={() => {
+            setConfirmingRevoke(false)
+            onRevoke()
+          }}
+          onCancel={() => setConfirmingRevoke(false)}
+        />
+      ) : null}
     </div>
   )
 }
