@@ -11,9 +11,11 @@ import { LicenseKeyQr } from '../../components/LicenseKeyQr'
 import { QrScanner } from '../../components/QrScanner'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemWindow } from '../../components/SystemWindow'
+import { isInstalled, isIOS } from '../../platform/capabilities'
 import { formatLicenseKey, pairingPayload } from '../../sync/identity'
 import type { SyncStatus } from '../state'
 import { useApp } from '../state'
+import { useInstallPrompt } from '../useInstallPrompt'
 import { rootRoute } from './root'
 
 export const linkRoute = createRoute({
@@ -54,6 +56,7 @@ function LinkScreen() {
   const [forgotten, setForgotten] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [pairMessage, setPairMessage] = useState<string | null>(null)
+  const { available: installAvailable, install } = useInstallPrompt()
 
   // Always set by the time this route is reachable — `load()` mints it
   // before `ready` flips true. The guard is for the type, not the runtime.
@@ -171,7 +174,33 @@ function LinkScreen() {
         </SystemPanel>
       </SystemWindow>
 
-      <SystemWindow title="Pair a second device" index={4}>
+      <SystemWindow title="Install App" index={4}>
+        <SystemPanel className="flex flex-col gap-2">
+          {installAvailable ? (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm text-ink">Install to Home Screen</span>
+              <button
+                type="button"
+                onClick={() => void install()}
+                className="rounded-full border border-system px-3 py-1 font-system text-[10px] text-system uppercase"
+              >
+                Install
+              </button>
+            </div>
+          ) : isIOS() && !isInstalled() ? (
+            <p className="text-xs text-ink-soft">
+              iOS has no automatic install prompt. In Safari, tap the Share icon, then "Add to Home
+              Screen".
+            </p>
+          ) : (
+            <p className="text-xs text-ink-faint">
+              {isInstalled() ? 'Already installed.' : 'Not offered by this browser yet.'}
+            </p>
+          )}
+        </SystemPanel>
+      </SystemWindow>
+
+      <SystemWindow title="Pair a second device" index={5}>
         <SystemPanel className="flex flex-col gap-2">
           <p className="text-xs text-ink-soft">
             Scan another device's Hunter License Key to sync this one to the same hunter.
@@ -194,7 +223,7 @@ function LinkScreen() {
         </SystemPanel>
       </SystemWindow>
 
-      <SystemWindow title="Forget the mirror" index={5}>
+      <SystemWindow title="Forget the mirror" index={6}>
         <SystemPanel className="flex flex-col gap-2">
           <p className="text-xs text-ink-soft">
             Deletes every row this key has mirrored on the server. Nothing on this device changes —
