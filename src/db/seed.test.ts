@@ -71,9 +71,9 @@ describe('the fallback library (commit 5d33216)', () => {
   })
 
   // The (pattern, primary muscle) groups the equipment-desert audit (commit
-  // 5d33216) found. A fallback whose primary muscle names none of these
-  // fills no gap the audit found, which is exactly the case this test exists
-  // to catch.
+  // 5d33216, extended by the round-2 audit above) found. A fallback whose
+  // primary muscle names none of these fills no gap either audit found,
+  // which is exactly the case this test exists to catch.
   const GROUPS_FROM_AUDIT = new Set([
     'chest',
     'triceps',
@@ -89,6 +89,12 @@ describe('the fallback library (commit 5d33216)', () => {
     'hamstrings',
     'calves',
     'cardio',
+    // Round 2: no fallback (or exercise of any role) named these as a
+    // primary mover at all before this audit.
+    'glutes',
+    'grip',
+    'forearms',
+    'rotator_cuff',
   ])
 
   const fallbacks = SEED_EXERCISES.filter((e) => e.role === 'fallback')
