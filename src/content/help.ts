@@ -13,7 +13,7 @@ export interface HelpTopic {
 
 export const HELP_TOPICS: Record<'leveling' | 'army' | 'castle', HelpTopic> = {
   leveling: {
-    title: 'Leveling & Ability Points',
+    title: 'Ability Points',
     body: [
       'Every level-up pays 3 ability points. They keep until you spend them — there is no rush and no penalty for sitting on a pile.',
       "Spending a point does not inflate the stat's own number. STR, VIT, AGI, INT and PER are earned mostly by what you actually log over the last 28 days; allocation only leans the System's quest-writing toward that stat's kind of work.",
