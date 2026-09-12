@@ -89,6 +89,14 @@ describe('the fallback library (commit 5d33216)', () => {
     'hamstrings',
     'calves',
     'cardio',
+    // Added when the hinge/cuff/grip/anti-rotation gaps were closed: each of
+    // rotator-cuff, grip, obliques and glutes went from zero primary-muscle
+    // coverage to exactly one prescribed exercise, so each needs its own
+    // equipment-free fallback for the same reason the original audit groups do.
+    'rotator_cuff',
+    'grip',
+    'obliques',
+    'glutes',
   ])
 
   const fallbacks = SEED_EXERCISES.filter((e) => e.role === 'fallback')

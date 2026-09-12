@@ -44,37 +44,42 @@ const input = {
 const found = detectAdvisories(input)
 const ids = found.map((a) => a.id)
 
-describe('the gaps the brief names are actually detected in the seed week', () => {
-  it('finds no hip hinge anywhere', () => {
-    expect(ids).toContain('no-hip-hinge')
+describe('the gaps the brief originally named are now closed in the seed week', () => {
+  // These five were the structural gaps this test file used to pin down
+  // (see git history around this describe block). The Romanian Deadlift,
+  // Barbell Hip Thrust, Cable External Rotation, Farmer's Carry and Dumbbell
+  // Bulgarian Split Squat additions close them, so the corresponding
+  // advisory must no longer fire against the real seed week.
+  it('no longer finds a missing hip hinge — the Romanian Deadlift and Hip Thrust are hinges', () => {
+    expect(ids).not.toContain('no-hip-hinge')
   })
 
-  it('finds no direct grip work', () => {
-    expect(ids).toContain('no-grip-work')
+  it('no longer finds missing grip work — the Farmer\'s Carry trains it directly', () => {
+    expect(ids).not.toContain('no-grip-work')
   })
 
-  it('finds no rotator cuff work, despite the reverse fly being in the week', () => {
-    expect(ids).toContain('no-cuff-prehab')
+  it('no longer finds missing rotator cuff work — Cable External Rotation trains it directly', () => {
+    expect(ids).not.toContain('no-cuff-prehab')
   })
 
-  it('finds no unilateral leg work', () => {
-    expect(ids).toContain('no-unilateral-lower')
+  it('no longer finds missing unilateral leg work — the Bulgarian Split Squat is single-leg', () => {
+    expect(ids).not.toContain('no-unilateral-lower')
   })
 
-  it('finds direct biceps on back-to-back days', () => {
+  it('no longer finds a push-day-to-leg-day imbalance — Wednesday now trains a lunge pattern too', () => {
+    expect(ids).not.toContain('push-leg-day-imbalance')
+  })
+
+  it('still finds direct biceps on back-to-back days — unrelated to the fixes above', () => {
     expect(ids).toContain('biceps-consecutive-days')
   })
 
-  it('finds three curl variants in the Wednesday session', () => {
+  it('still finds three curl variants in the Wednesday session — unrelated to the fixes above', () => {
     expect(ids).toContain('many-variants-biceps:3')
   })
 
-  it('finds the heavy front-delt volume', () => {
+  it('still finds the heavy front-delt volume — unrelated to the fixes above', () => {
     expect(ids).toContain('front-delt-overload')
-  })
-
-  it('finds twice as many push days as leg days', () => {
-    expect(ids).toContain('push-leg-day-imbalance')
   })
 
   it('explains every finding with a reason and a concrete suggestion', () => {
@@ -146,8 +151,8 @@ describe('advisories stop firing once the gap is closed', () => {
 
 describe('dismissal', () => {
   it('filters out what the hunter has dismissed', () => {
-    const remaining = activeAdvisories(found, ['no-hip-hinge'])
-    expect(remaining.map((a) => a.id)).not.toContain('no-hip-hinge')
+    const remaining = activeAdvisories(found, ['front-delt-overload'])
+    expect(remaining.map((a) => a.id)).not.toContain('front-delt-overload')
     expect(remaining.length).toBe(found.length - 1)
   })
 
@@ -159,13 +164,13 @@ describe('dismissal', () => {
 describe('the seed week measured against volume landmarks', () => {
   const report = weeklyVolumeReport(weekSets, seedExercise)
 
-  it('shows the hamstrings as under-served, which is what the missing hinge causes', () => {
+  it('shows the hamstrings now cleared past the growth floor, with the hinge added', () => {
     const hamstrings = report.find((r) => r.muscle === 'hamstrings')!
-    expect(['none', 'below_mv', 'maintaining', 'below_mev']).toContain(hamstrings.verdict)
+    expect(['below_mev', 'optimal', 'above_mav']).toContain(hamstrings.verdict)
   })
 
-  it('shows the rotator cuff getting no work at all', () => {
-    expect(report.find((r) => r.muscle === 'rotator_cuff')!.verdict).toBe('none')
+  it('shows the rotator cuff getting real work now, from the external rotation sets', () => {
+    expect(report.find((r) => r.muscle === 'rotator_cuff')!.verdict).not.toBe('none')
   })
 
   it('shows the front delts at or above the top of their productive range', () => {
