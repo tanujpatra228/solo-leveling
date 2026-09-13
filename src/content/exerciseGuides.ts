@@ -197,6 +197,30 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
       'Walking too fast or jerky — a smooth, controlled pace keeps tension on the target muscles instead of turning it into a sprint.',
     ],
   },
+  'wrist-curl': {
+    setup: 'Seated, forearms resting on the thighs or a bench, wrists just past the edge, palms up, a dumbbell in each hand.',
+    steps: [
+      'Let the dumbbells roll down to the fingertips, opening the hand and fully extending the wrists.',
+      'Curl the wrists up, closing the hand back around the bar as you go.',
+      'Squeeze at the top, then lower under control back to the full stretch.',
+    ],
+    commonMistakes: [
+      'Stopping short of the full extension at the bottom — that stretch is the entire point of this exercise, not an optional extra.',
+      'Swinging the forearms off the thighs to help, turning a wrist isolation into a sloppy curl.',
+    ],
+  },
+  'reverse-wrist-curl': {
+    setup: 'Same setup as the wrist curl, forearms supported, but palms down.',
+    steps: [
+      'Let the wrists drop into full flexion, hands hanging toward the floor.',
+      'Extend the wrists to lift the dumbbells, leading with the back of the hand.',
+      'Lower back under control to the full stretch before the next rep.',
+    ],
+    commonMistakes: [
+      'Loading it like the wrist curl — the extensors are much weaker; ego-loading this one just means it turns into forearm-swinging.',
+      'Cutting the range short at the bottom, the same mistake as the wrist curl, mirrored.',
+    ],
+  },
   'machine-preacher-curl': {
     setup: 'Chest and upper arms resting fully on the preacher pad, elbows just off the bottom edge.',
     steps: ['Curl through the full range the machine allows.', 'Squeeze at the top.', 'Lower under control — the pad prevents cheating with the elbows, so let it do that job.'],

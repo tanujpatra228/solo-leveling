@@ -97,6 +97,11 @@ describe('the fallback library (commit 5d33216)', () => {
     'grip',
     'obliques',
     'glutes',
+    // Added when Farmer's Carry turned out not to train the muscles that
+    // actually produce grip force: forearms went from zero primary-muscle
+    // coverage to two prescribed exercises (both needing a dumbbell), same
+    // reasoning as the four above.
+    'forearms',
   ])
 
   const fallbacks = SEED_EXERCISES.filter((e) => e.role === 'fallback')

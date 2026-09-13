@@ -138,6 +138,11 @@ describe('substitutesFor', () => {
       // a bar, so there is no answer under bodyweight-only access either.
       'cable-external-rotation', // isolation / rotator_cuff
       'farmers-carry', // carry / grip
+      // Added with the forearms fix: no bodyweight movement meaningfully
+      // loads wrist flexion/extension — the fallback (Cable Wrist Curl)
+      // needs a cable, same as the two prescribed exercises need a dumbbell.
+      'wrist-curl', // isolation / forearms
+      'reverse-wrist-curl', // isolation / forearms
     ])
 
     it('under bodyweight-only access, every prescribed exercise either answers or is in the named exception list', () => {
