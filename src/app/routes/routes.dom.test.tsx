@@ -409,6 +409,12 @@ describe('the rest-timer dock lives in the shell (m10-plan commit 0, F19)', () =
 
 describe('a gate already cleared today does not re-offer Start Gate', () => {
   it('shows Cleared on revisit instead of Start Gate again', async () => {
+    // Pinned to a Monday, not whatever day the suite happens to run on —
+    // Sunday is deliberately absent from SEED_ROUTINES (rest day) and this
+    // test needs a real training day, unrelated to rest-day behaviour.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 0, 5, 10, 0).getTime()) // Monday 5 Jan 2026
+
     await awaken()
 
     const today = useApp.getState().today
@@ -427,5 +433,6 @@ describe('a gate already cleared today does not re-offer Start Gate', () => {
     expect(container.textContent).not.toContain('Start Gate')
 
     await unmount()
+    vi.useRealTimers()
   })
 })

@@ -17,6 +17,8 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ExerciseHelpModal } from '../../components/ExerciseHelpModal'
+import { HelpButton } from '../../components/HelpButton'
 import { RankBadge } from '../../components/RankBadge'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
@@ -871,6 +873,7 @@ function ActiveBlockItem({
   onSetLogged: (loggedExercise: Exercise) => void
 }) {
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
 
   // Select the maps, never a call through targetFor or a fresh substitutesFor
   // call. Whether a store method returns a stable reference is knowledge held
@@ -911,6 +914,7 @@ function ActiveBlockItem({
           <span className="flex items-baseline gap-1 font-system text-xs text-ink-faint uppercase">
             <SystemValue value={logged.length} max={item.sets} size="md" /> sets
           </span>
+          <HelpButton topicTitle={effectiveExercise.name} onClick={() => setHelpOpen(true)} />
           <button
             type="button"
             onClick={() => setSheetOpen((open) => !open)}
@@ -920,6 +924,8 @@ function ActiveBlockItem({
           </button>
         </span>
       </div>
+
+      {helpOpen ? <ExerciseHelpModal exercise={effectiveExercise} onClose={() => setHelpOpen(false)} /> : null}
 
       {sheetOpen ? (
         <SwapSheet
