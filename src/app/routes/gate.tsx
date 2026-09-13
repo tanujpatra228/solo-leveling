@@ -15,10 +15,12 @@
  */
 import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
+import { Dumbbell } from 'lucide-react'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { HelpButton } from '../../components/HelpButton'
 import { RankBadge } from '../../components/RankBadge'
+import { SystemOverlay } from '../../components/SystemOverlay'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemValue } from '../../components/SystemValue'
@@ -67,13 +69,40 @@ export const gateRoute = createRoute({
 
 // Lazy, same as `HunterLicenseCard` (index.tsx) and for the same reason:
 // ExerciseHelpModal pulls in the two anatomy SVGs (~90 KB gzipped combined,
-// measured 2026-09-14), and most sessions never open it. A tap on "?" is a
-// deliberate action, not an automatic reveal, so unlike the summon-list
-// pop-in bug this fixed (docs/TODO.md), a brief fallback delay here is the
-// acceptable cost rather than one to engineer around.
+// measured 2026-09-14), and most sessions never open it.
 const ExerciseHelpModal = lazy(() =>
   import('../../components/ExerciseHelpModal').then((m) => ({ default: m.ExerciseHelpModal })),
 )
+
+/**
+ * `ExerciseHelpModal`'s `Suspense` fallback. `SystemOverlay` itself is not
+ * lazy (`HelpModal` already pulls it into the main bundle), so this renders
+ * the real overlay chrome — backdrop, close control, and the exercise's own
+ * name as the title — immediately on tap, the same instant the final
+ * component will. Only the body is a placeholder, shaped like
+ * `ExerciseHelpModal`'s real panels (muscle map, cue, setup/steps/mistakes)
+ * so the swap-in doesn't resize the window. If that file's structure
+ * changes, keep this one in step, same as `HunterLicenseCardSkeleton`.
+ */
+function ExerciseHelpModalSkeleton({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
+  return (
+    <SystemOverlay title={exercise.name} icon={Dumbbell} onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        <SystemPanel boxed className="p-3">
+          <div className="h-52 w-full animate-pulse rounded bg-void-soft" />
+        </SystemPanel>
+        <div className="h-4 w-2/3 animate-pulse rounded bg-void-soft" />
+        {[1, 2, 3].map((i) => (
+          <SystemPanel key={i} className="flex flex-col gap-2">
+            <div className="h-2.5 w-20 animate-pulse rounded bg-void-soft" />
+            <div className="h-3 w-full animate-pulse rounded bg-void-soft" />
+            <div className="h-3 w-4/5 animate-pulse rounded bg-void-soft" />
+          </SystemPanel>
+        ))}
+      </div>
+    </SystemOverlay>
+  )
+}
 
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -935,7 +964,7 @@ function ActiveBlockItem({
       </div>
 
       {helpOpen ? (
-        <Suspense fallback={null}>
+        <Suspense fallback={<ExerciseHelpModalSkeleton exercise={effectiveExercise} onClose={() => setHelpOpen(false)} />}>
           <ExerciseHelpModal exercise={effectiveExercise} onClose={() => setHelpOpen(false)} />
         </Suspense>
       ) : null}

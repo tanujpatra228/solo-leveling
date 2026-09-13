@@ -44,9 +44,15 @@ describe('MuscleMap', () => {
     }
   })
 
-  it('renders no colour rules and no badges for an exercise touching no muscles', () => {
+  it('still themes the base body (fill + outline) but highlights nothing for an exercise touching no muscles', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={[]} secondaryMuscles={[]} />)
-    expect(html).not.toContain('<style')
+    // The base rule (every `path`, unconditional) is always present — that's
+    // what keeps the diagram out of the source SVG's native grey/white and
+    // gives the anterior view an outline it doesn't otherwise have.
+    expect(html).toMatch(/path \{[^}]*var\(--color-panel-edge\)/)
+    // But no muscle earns its own per-id override, and no badge shows.
+    expect(html).not.toContain('#pectoralis-major')
+    expect(html).not.toContain('rounded-full border')
   })
 
   describe('every id this app references actually exists in the SVG it targets', () => {
