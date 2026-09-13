@@ -31,10 +31,32 @@ function escapeId(id: string): string {
 export function BodyMap({
   view,
   fills,
+  baseFill,
+  baseStroke,
   className,
 }: {
   view: BodyMapView
   fills: MuscleFillMap
+  /**
+   * Fill for every region with no entry in `fills`. Without this the SVG's
+   * own native grey/white shows through untouched — fine for a clinical
+   * chart, wrong for a themed System window.
+   */
+  baseFill?: string
+  /**
+   * Stroke for every region, regardless of fill. The posterior source SVG
+   * gets its crisp muscle boundaries from dedicated `*-outline` paths
+   * (`trapezius-outline`, `anatomy-full-body-outline`, ...); the anterior
+   * one has no equivalent — its only "outer-outline" id is an unrelated
+   * foot-area shape, confirmed by rendering it alone. A uniform stroke here
+   * is what actually separates adjacent muscles on that view, and keeps
+   * both views drawn the same way rather than depending on which one the
+   * source asset happened to finish. `vector-effect: non-scaling-stroke`
+   * keeps the line a constant width in screen pixels — the source viewBox
+   * is ~600x1100, so a width specified in that space would round to
+   * sub-pixel and vanish at the size this renders in.
+   */
+  baseStroke?: string
   className?: string
 }) {
   // `useId()`, not a fixed `body-map-${view}` string: the fixed form reads
@@ -51,15 +73,30 @@ export function BodyMap({
 
   // Scoped to this instance's wrapper class so a second mounted instance,
   // of the same or a different view, can't cross-color this one's muscles.
+  //
+  // The base rule targets every `path` unconditionally; the per-id rules
+  // below it target `#id path`, one ID selector more specific, so they win
+  // on the `fill` property regardless of source order. `stroke` is only
+  // ever set by the base rule — every region, highlighted or not, keeps
+  // the same outline treatment.
   const styleRules = useMemo(() => {
-    return Object.entries(fills)
-      .filter((entry): entry is [string, string] => entry[1] != null)
-      .map(([id, color]) => {
-        const escaped = escapeId(id)
-        return `.${scopeClass} #${escaped}, .${scopeClass} #${escaped} path { fill: ${color}; }`
-      })
-      .join('\n')
-  }, [fills, scopeClass])
+    const rules: string[] = []
+    if (baseFill || baseStroke) {
+      const decls = [
+        baseFill ? `fill: ${baseFill};` : '',
+        baseStroke ? `stroke: ${baseStroke}; stroke-width: 0.75px; vector-effect: non-scaling-stroke;` : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+      rules.push(`.${scopeClass} path { ${decls} }`)
+    }
+    for (const [id, color] of Object.entries(fills)) {
+      if (color == null) continue
+      const escaped = escapeId(id)
+      rules.push(`.${scopeClass} #${escaped}, .${scopeClass} #${escaped} path { fill: ${color}; }`)
+    }
+    return rules.join('\n')
+  }, [fills, baseFill, baseStroke, scopeClass])
 
   return (
     <div className={[scopeClass, className].filter(Boolean).join(' ')}>

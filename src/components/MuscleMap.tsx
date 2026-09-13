@@ -11,13 +11,19 @@ import { MUSCLE_MAPPINGS, idsFor, type MuscleMapping } from './muscleMapRegions'
 
 type Tone = 'primary' | 'secondary'
 
-// Indirected through the app's own `--color-system`/`--color-system-dim`
-// tokens (index.css) rather than hardcoded hex, so a palette change stays
-// in sync automatically.
+// Indirected through the app's own tokens (index.css) rather than hardcoded
+// hex, so a palette change stays in sync automatically.
 const FILL: Record<Tone, string> = {
   primary: 'color-mix(in srgb, var(--color-system) 92%, transparent)',
   secondary: 'color-mix(in srgb, var(--color-system-dim) 65%, transparent)',
 }
+
+// Every untouched region and every outline, in both views — the source
+// SVGs' own fill (light grey/white, a clinical-chart palette) and the
+// anterior file's missing outline paths (see BodyMap.tsx) both need
+// overriding, or the diagram reads as borrowed rather than System hardware.
+const BASE_FILL = 'var(--color-panel-edge)'
+const BASE_STROKE = 'color-mix(in srgb, var(--color-ink-faint) 45%, transparent)'
 
 function toneFor(muscle: Muscle, primary: ReadonlySet<Muscle>, secondary: ReadonlySet<Muscle>): Tone | null {
   if (primary.has(muscle)) return 'primary'
@@ -54,11 +60,23 @@ export function MuscleMap({ primaryMuscles, secondaryMuscles }: MuscleMapProps) 
     <div className="flex flex-col items-center gap-3">
       <div className="flex items-start justify-center gap-6">
         <div className="flex flex-col items-center gap-1">
-          <BodyMap view="front" fills={fillsFor('front', primary, secondary)} className="[&_svg]:h-52 [&_svg]:w-auto" />
+          <BodyMap
+            view="front"
+            fills={fillsFor('front', primary, secondary)}
+            baseFill={BASE_FILL}
+            baseStroke={BASE_STROKE}
+            className="[&_svg]:h-52 [&_svg]:w-auto"
+          />
           <span className="font-system text-[9px] tracking-[0.1em] text-ink-faint uppercase">Front</span>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <BodyMap view="back" fills={fillsFor('back', primary, secondary)} className="[&_svg]:h-52 [&_svg]:w-auto" />
+          <BodyMap
+            view="back"
+            fills={fillsFor('back', primary, secondary)}
+            baseFill={BASE_FILL}
+            baseStroke={BASE_STROKE}
+            className="[&_svg]:h-52 [&_svg]:w-auto"
+          />
           <span className="font-system text-[9px] tracking-[0.1em] text-ink-faint uppercase">Back</span>
         </div>
       </div>
