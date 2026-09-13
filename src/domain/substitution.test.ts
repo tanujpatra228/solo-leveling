@@ -132,6 +132,12 @@ describe('substitutesFor', () => {
       'pushups', // horizontal_push / chest
       'diamond-pushups', // horizontal_push / triceps
       'pike-pushups', // vertical_push / front_delts
+      // Added with the hinge/cuff/grip fixes: cuff work and loaded carries
+      // both genuinely need an implement — the bodyweight-only fallbacks for
+      // each (Dumbbell External Rotation, Dead Hang) still need a dumbbell or
+      // a bar, so there is no answer under bodyweight-only access either.
+      'cable-external-rotation', // isolation / rotator_cuff
+      'farmers-carry', // carry / grip
     ])
 
     it('under bodyweight-only access, every prescribed exercise either answers or is in the named exception list', () => {

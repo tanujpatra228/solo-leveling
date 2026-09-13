@@ -358,13 +358,18 @@ describe('a full Friday Legs session, then next week\'s targets (M3-D5)', () => 
   it('logs all 17 working sets and every exercise progresses to increase_load', async () => {
     const routine = useApp.getState().routines.find((r) => r.id === 'friday-legs')!
     const items = routine.blocks.flatMap((b) => b.items)
-    expect(items.reduce((total, item) => total + item.sets, 0)).toBe(17)
+    expect(items.reduce((total, item) => total + item.sets, 0)).toBe(25)
 
     // A baseline weight per exercise, arbitrary but distinct, so the
     // post-session assertions can check each exercise moved by its own
     // increment rather than all landing on the same number by coincidence.
+    // nordic-curl is bodyweight/reps and logs weight 0, same convention used
+    // for every other bodyweight exercise in this file, so it is deliberately
+    // left out of this map rather than given a fake kg baseline.
     const baseline: Record<string, number> = {
       'barbell-squat': 100,
+      'romanian-deadlift': 60,
+      'barbell-hip-thrust': 40,
       'leg-press': 120,
       'hamstring-curl': 40,
       'leg-extension': 35,
@@ -377,7 +382,7 @@ describe('a full Friday Legs session, then next week\'s targets (M3-D5)', () => 
       for (let i = 0; i < item.sets; i += 1) {
         await useApp.getState().logSet({
           exerciseId: item.exerciseId,
-          weight: baseline[item.exerciseId]!,
+          weight: baseline[item.exerciseId] ?? 0,
           reps: item.repRange[1], // the top of the range, every set
           rpe: 8, // PROGRESSION_RPE_CEILING — clean enough to progress
         })
@@ -387,15 +392,17 @@ describe('a full Friday Legs session, then next week\'s targets (M3-D5)', () => 
     const loggedCount = useApp
       .getState()
       .sets.filter((s) => s.sessionId === useApp.getState().activeSessionId).length
-    expect(loggedCount).toBe(17)
+    expect(loggedCount).toBe(25)
 
     await useApp.getState().finishGate()
 
     // Every loaded lift returns increase_load at +increment, rounded — the
     // exact rule stated in M3-D5. hamstring-curl and leg-extension step by
-    // the 2.5 kg pin increment; squat, leg press and calf raise by 5 kg.
+    // the 2.5 kg pin increment; every barbell lift here by 5 kg.
     const increments: Record<string, number> = {
       'barbell-squat': 5,
+      'romanian-deadlift': 5,
+      'barbell-hip-thrust': 5,
       'leg-press': 5,
       'hamstring-curl': 2.5,
       'leg-extension': 2.5,
