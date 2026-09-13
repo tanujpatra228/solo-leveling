@@ -2,41 +2,34 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { MuscleMap } from './MuscleMap'
-import { MUSCLE_MAPPINGS } from './muscleMapRegions'
+import { MUSCLE_MAPPINGS, idsFor } from './muscleMapRegions'
+import anteriorSvg from './anatomy/anterior-outer-muscles.svg?raw'
+import posteriorSvg from './anatomy/posterior-outer-muscles.svg?raw'
 import { MuscleSchema } from '../domain/types'
 import type { Muscle } from '../domain/types'
-
-function parse(html: string) {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  return doc
-}
 
 describe('MuscleMap', () => {
   it('marks a primary muscle region distinctly from a secondary one', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['chest']} secondaryMuscles={['triceps']} />)
-    const doc = parse(html)
-
-    const chestRegion = doc.querySelector('[data-muscle="chest"]')
-    const tricepsRegion = doc.querySelector('[data-muscle="triceps"]')
-    expect(chestRegion?.getAttribute('data-tone')).toBe('primary')
-    expect(tricepsRegion?.getAttribute('data-tone')).toBe('secondary')
+    // pectoralis-major (chest, primary) gets the bright fill, triceps-brachii (secondary) the dim one.
+    expect(html).toMatch(/#pectoralis-major[^{]*\{[^}]*var\(--color-system\)/)
+    expect(html).toMatch(/#triceps-brachii[^{]*\{[^}]*var\(--color-system-dim\)/)
   })
 
-  it('leaves an untouched muscle unrendered rather than drawing an empty highlight', () => {
+  it('leaves an untouched muscle uncoloured rather than injecting an empty rule', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['chest']} secondaryMuscles={[]} />)
-    const doc = parse(html)
-    expect(doc.querySelector('[data-muscle="quads"]')).toBeNull()
+    expect(html).not.toContain('#vastus-lateralis') // part of quads, untouched here
   })
 
-  it('renders side_delts on both the front and back view, since it is visible from both', () => {
-    const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['side_delts']} secondaryMuscles={[]} />)
-    const doc = parse(html)
-    expect(doc.querySelectorAll('[data-muscle="side_delts"]').length).toBe(4) // 2 rects x 2 views
+  it('renders a non-silhouette muscle (cardio) as a labelled badge, not a missing region', () => {
+    const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['cardio']} secondaryMuscles={[]} />)
+    expect(html).toContain('Cardiovascular')
   })
 
-  it('renders a non-silhouette muscle (rotator_cuff) as a labelled badge, not a missing region', () => {
+  it('renders rotator_cuff as a real region now, not a badge — this atlas has the region the earlier one lacked', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['rotator_cuff']} secondaryMuscles={[]} />)
-    expect(html).toContain('Rotator cuff')
+    expect(html).toContain('#rotator-cuff-infraspinatus-teres-region')
+    expect(html).not.toContain('Rotator cuff')
   })
 
   it('every Muscle enum value is covered by a silhouette region or a badge', () => {
@@ -51,9 +44,27 @@ describe('MuscleMap', () => {
     }
   })
 
-  it('renders nothing highlighted, and no badges, for an exercise touching no muscles', () => {
+  it('renders no colour rules and no badges for an exercise touching no muscles', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={[]} secondaryMuscles={[]} />)
-    const doc = parse(html)
-    expect(doc.querySelectorAll('[data-muscle]').length).toBe(0)
+    expect(html).not.toContain('<style')
+  })
+
+  describe('every id this app references actually exists in the SVG it targets', () => {
+    // The strongest guard against a typo in muscleMapRegions.ts: BodyMap's CSS
+    // rule silently no-ops for an id that doesn't exist, so a mistyped id here
+    // would fail closed (nothing highlighted) rather than crash — exactly the
+    // kind of bug a coverage test is for.
+    const SVG_SOURCE = { front: anteriorSvg, back: posteriorSvg } as const
+
+    for (const muscle of MuscleSchema.options as Muscle[]) {
+      for (const view of ['front', 'back'] as const) {
+        const ids = idsFor(muscle, view)
+        for (const id of ids) {
+          it(`'${id}' (${muscle}, ${view}) exists in the ${view} SVG`, () => {
+            expect(SVG_SOURCE[view], `'${id}' referenced for ${muscle}/${view} is not in that view's SVG`).toContain(`id="${id}"`)
+          })
+        }
+      }
+    }
   })
 })
