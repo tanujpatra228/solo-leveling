@@ -222,6 +222,18 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
       'Cutting the range short at the bottom, the same mistake as the wrist curl, mirrored.',
     ],
   },
+  'dumbbell-hub-pinch': {
+    setup: 'A hex dumbbell standing on its end, or lying with a flat side accessible — grip it by the flat hex faces with your fingers on one side and thumb on the other.',
+    steps: [
+      'Pinch hard enough to lift the dumbbell clear of the floor or bench.',
+      'Let it hang at your side, arm straight, without resting it against your leg.',
+      'Hold for the target time, then set it down under control rather than dropping it the moment it slips.',
+    ],
+    commonMistakes: [
+      'Bracing the dumbbell against the leg or body — that turns a pinch-strength exercise into a support-strength one and defeats the point.',
+      'Choosing a dumbbell so heavy the hold lasts a few seconds — this is a strength-endurance exercise; if you cannot hold it anywhere near the target time, the load is wrong, not the effort.',
+    ],
+  },
   'machine-preacher-curl': {
     setup: 'Chest and upper arms resting fully on the preacher pad, elbows just off the bottom edge.',
     steps: ['Curl through the full range the machine allows.', 'Squeeze at the top.', 'Lower under control — the pad prevents cheating with the elbows, so let it do that job.'],
