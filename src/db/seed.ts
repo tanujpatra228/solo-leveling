@@ -318,6 +318,32 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     bodyweightFactor: 1,
     role: 'prescribed',
   },
+  {
+    id: 'dumbbell-hub-pinch',
+    name: 'Dumbbell Hub Pinch',
+    aliases: ['Hex Dumbbell Pinch', 'Thumb Pinch Hold', 'Plate Pinch'],
+    // Wrist Curl and Reverse Wrist Curl train the forearm flexors and
+    // extensors that cross the wrist; neither touches the thenar group
+    // (the thumb's own muscles — adductor pollicis, flexor pollicis
+    // brevis, opponens pollicis), which is what a pinch grip specifically
+    // loads. This is a plate pinch in substance — flat-sided load, gripped
+    // between fingers and thumb, no wrist joint action at all — done with
+    // a hex dumbbell instead of a plate because `EquipmentSchema` has no
+    // "plate" tag and mistagging this as `barbell` would misrepresent what
+    // it actually needs, the same call already made for a couple of other
+    // exercises this library deliberately left out.
+    pattern: 'isolation',
+    primaryMuscles: ['grip'],
+    secondaryMuscles: ['forearms'],
+    equipment: ['dumbbell'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Pinch a hex dumbbell between your fingers and thumb, flat side in, and let it hang — no resting it against your leg. Progress by picking a heavier dumbbell, not by holding longer once you can already hold to time.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
 
   /* ---------------- Wednesday: abs and biceps ---------------- */
   {
@@ -1185,6 +1211,9 @@ export const SEED_ROUTINES: readonly Routine[] = [
       // growth.
       { type: 'single', items: [{ exerciseId: 'wrist-curl', sets: 3, repRange: [12, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'reverse-wrist-curl', sets: 2, repRange: [15, 20], restSec: 45 }] },
+      // Pinch is its own grip quality, distinct from the crush strength the
+      // carry trains — the thumb group gets nothing from either curl above.
+      { type: 'single', items: [{ exerciseId: 'dumbbell-hub-pinch', sets: 3, repRange: [1, 1], restSec: 60 }] },
     ],
   },
   {

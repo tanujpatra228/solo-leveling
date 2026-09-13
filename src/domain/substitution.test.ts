@@ -143,6 +143,10 @@ describe('substitutesFor', () => {
       // needs a cable, same as the two prescribed exercises need a dumbbell.
       'wrist-curl', // isolation / forearms
       'reverse-wrist-curl', // isolation / forearms
+      // Added with the pinch-grip fix: pinch strength needs a flat-sided
+      // load to pinch, which bodyweight-only access has no answer for —
+      // same reasoning as the carry above, one grip quality down.
+      'dumbbell-hub-pinch', // isolation / grip
     ])
 
     it('under bodyweight-only access, every prescribed exercise either answers or is in the named exception list', () => {
