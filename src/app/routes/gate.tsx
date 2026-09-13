@@ -13,11 +13,10 @@
  * `restSec: 0` on the non-final item — so the only superset-specific
  * behaviour here is the visual grouping, not the rest logic.
  */
-import { useMemo, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react'
 import { createRoute } from '@tanstack/react-router'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { ExerciseHelpModal } from '../../components/ExerciseHelpModal'
 import { HelpButton } from '../../components/HelpButton'
 import { RankBadge } from '../../components/RankBadge'
 import { SystemWindow } from '../../components/SystemWindow'
@@ -65,6 +64,16 @@ export const gateRoute = createRoute({
   path: '/gate',
   component: TodaysGateScreen,
 })
+
+// Lazy, same as `HunterLicenseCard` (index.tsx) and for the same reason:
+// ExerciseHelpModal pulls in the two anatomy SVGs (~90 KB gzipped combined,
+// measured 2026-09-14), and most sessions never open it. A tap on "?" is a
+// deliberate action, not an automatic reveal, so unlike the summon-list
+// pop-in bug this fixed (docs/TODO.md), a brief fallback delay here is the
+// acceptable cost rather than one to engineer around.
+const ExerciseHelpModal = lazy(() =>
+  import('../../components/ExerciseHelpModal').then((m) => ({ default: m.ExerciseHelpModal })),
+)
 
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -925,7 +934,11 @@ function ActiveBlockItem({
         </span>
       </div>
 
-      {helpOpen ? <ExerciseHelpModal exercise={effectiveExercise} onClose={() => setHelpOpen(false)} /> : null}
+      {helpOpen ? (
+        <Suspense fallback={null}>
+          <ExerciseHelpModal exercise={effectiveExercise} onClose={() => setHelpOpen(false)} />
+        </Suspense>
+      ) : null}
 
       {sheetOpen ? (
         <SwapSheet

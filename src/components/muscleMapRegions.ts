@@ -1,36 +1,39 @@
 /**
- * Which rectangle(s) of the shared body silhouette light up for each
- * `Muscle`. Presentation data, not domain logic — it never leaves this
- * component's world, so it lives beside `MuscleMap.tsx` rather than in
- * `src/domain/`.
+ * Which SVG element id(s) inside `anterior-outer-muscles.svg` /
+ * `posterior-outer-muscles.svg` light up for each `Muscle`. Presentation
+ * data, not domain logic — it never leaves this component's world, so it
+ * lives beside `MuscleMap.tsx` rather than in `src/domain/`.
  *
- * The body is drawn as flat, blocky regions rather than traced anatomy —
- * consistent with docs/system-visuals-plan.md's "thick strokes, solid
- * fills" correction, and far more robust to get right without a visual
- * design tool than hand-authored curves would be.
+ * The SVGs are a two-view anatomical illustration with ~90 individually
+ * id'd regions (`BodyMap.tsx` recolors any of them via scoped CSS). Most of
+ * this app's 20 `Muscle` values map straight onto one region's *wrapping*
+ * group id — e.g. `#rectus-abdominis` covers every one of the six-pack's
+ * sub-segments, since the CSS rule targets `#id path` (every descendant),
+ * not just direct children. A few map onto several sibling ids at once
+ * (`hamstrings` has no single wrapping group across its three heads in this
+ * atlas, so all three are listed).
  *
- * Three muscles have no honest surface region on a flat silhouette —
- * `rotator_cuff` is a deep stabiliser, `grip` is really the hand/forearm
- * grip itself, `cardio` is not a muscle at all — so they render as a
- * labelled badge instead of a fake highlight. `MuscleMap.test.tsx` asserts
- * every `Muscle` value is covered by one path or the other.
+ * Two approximations, both because the illustration doesn't distinguish
+ * further:
+ * - `front_delts` and `side_delts` share the front view's one `deltoid`
+ *   region — this atlas doesn't split the anterior deltoid by head.
+ * - `upper_back` reuses `trapezius` — there is no separate rhomboid/mid-back
+ *   region in an "outer muscles" illustration; the rhomboids sit underneath
+ *   the trapezius and are not a surface shape.
+ *
+ * Only `cardio` still renders as a labelled badge rather than a region — it
+ * isn't a muscle. Every other 19 values now have a real, named region,
+ * including `rotator_cuff` (`rotator-cuff-infraspinatus-teres-region`) and
+ * `grip` (the hand regions), neither of which had one in this app's first,
+ * hand-drawn-rectangle version of this component.
  */
 import type { Muscle } from '../domain/types'
-
-/** Shared by both the front and back `<svg viewBox>` — same body, different side. */
-export const BODY_VIEWBOX = '0 0 120 260'
-
-export interface RegionRect {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+import type { BodyMapView } from './anatomy/BodyMap'
 
 export interface SilhouetteMapping {
   kind: 'silhouette'
-  front?: readonly RegionRect[]
-  back?: readonly RegionRect[]
+  front?: readonly string[]
+  back?: readonly string[]
 }
 
 export interface BadgeMapping {
@@ -40,63 +43,39 @@ export interface BadgeMapping {
 
 export type MuscleMapping = SilhouetteMapping | BadgeMapping
 
-// Shoulder-cap rectangles are shared across all three delt heads: a flat
-// silhouette has no room to draw anterior/lateral/posterior as separate
-// sub-regions without them overlapping into noise, so front_delts lights
-// only the front cap, rear_delts only the back cap, and side_delts —
-// genuinely visible from both angles — lights both.
-const LEFT_SHOULDER = { x: 15, y: 33, width: 18, height: 14 }
-const RIGHT_SHOULDER = { x: 87, y: 33, width: 18, height: 14 }
-const LEFT_UPPER_ARM = { x: 15, y: 47, width: 18, height: 35 }
-const RIGHT_UPPER_ARM = { x: 87, y: 47, width: 18, height: 35 }
-const LEFT_FOREARM = { x: 15, y: 82, width: 18, height: 50 }
-const RIGHT_FOREARM = { x: 87, y: 82, width: 18, height: 50 }
-const LEFT_LEG_UPPER = { x: 38, y: 160, width: 20, height: 60 }
-const RIGHT_LEG_UPPER = { x: 62, y: 160, width: 20, height: 60 }
-
 export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
-  chest: { kind: 'silhouette', front: [{ x: 40, y: 36, width: 40, height: 22 }] },
-  front_delts: { kind: 'silhouette', front: [LEFT_SHOULDER, RIGHT_SHOULDER] },
-  side_delts: { kind: 'silhouette', front: [LEFT_SHOULDER, RIGHT_SHOULDER], back: [LEFT_SHOULDER, RIGHT_SHOULDER] },
-  rear_delts: { kind: 'silhouette', back: [LEFT_SHOULDER, RIGHT_SHOULDER] },
-  biceps: { kind: 'silhouette', front: [LEFT_UPPER_ARM, RIGHT_UPPER_ARM] },
-  triceps: { kind: 'silhouette', back: [LEFT_UPPER_ARM, RIGHT_UPPER_ARM] },
-  forearms: { kind: 'silhouette', front: [LEFT_FOREARM, RIGHT_FOREARM], back: [LEFT_FOREARM, RIGHT_FOREARM] },
-  abs: { kind: 'silhouette', front: [{ x: 44, y: 60, width: 32, height: 45 }] },
-  obliques: {
+  chest: { kind: 'silhouette', front: ['pectoralis-major'] },
+  front_delts: { kind: 'silhouette', front: ['deltoid'] },
+  side_delts: { kind: 'silhouette', front: ['deltoid'] },
+  rear_delts: { kind: 'silhouette', back: ['posterior-deltoid'] },
+  rotator_cuff: { kind: 'silhouette', back: ['rotator-cuff-infraspinatus-teres-region'] },
+  biceps: { kind: 'silhouette', front: ['biceps-brachii'] },
+  triceps: { kind: 'silhouette', front: ['triceps-brachii-lateral-head'], back: ['triceps-brachii'] },
+  forearms: {
     kind: 'silhouette',
-    front: [
-      { x: 40, y: 60, width: 8, height: 45 },
-      { x: 72, y: 60, width: 8, height: 45 },
-    ],
+    front: ['forearm-distal-muscles', 'forearm-superficial-flexors', 'brachioradialis', 'flexor-carpi-radialis', 'pronator-teres'],
+    back: ['forearm-distal-extensors', 'extensor-digitorum', 'extensor-carpi-ulnaris', 'anconeus', 'brachioradialis-posterior'],
   },
-  traps: { kind: 'silhouette', back: [{ x: 48, y: 32, width: 24, height: 20 }] },
-  upper_back: { kind: 'silhouette', back: [{ x: 42, y: 52, width: 36, height: 35 }] },
-  lats: {
-    kind: 'silhouette',
-    back: [
-      { x: 35, y: 52, width: 9, height: 45 },
-      { x: 76, y: 52, width: 9, height: 45 },
-    ],
-  },
-  lower_back: { kind: 'silhouette', back: [{ x: 44, y: 110, width: 32, height: 20 }] },
-  glutes: { kind: 'silhouette', back: [{ x: 40, y: 130, width: 40, height: 28 }] },
-  quads: { kind: 'silhouette', front: [LEFT_LEG_UPPER, RIGHT_LEG_UPPER] },
+  abs: { kind: 'silhouette', front: ['rectus-abdominis'] },
+  obliques: { kind: 'silhouette', front: ['external-oblique'] },
+  traps: { kind: 'silhouette', front: ['upper-trapezius-and-clavicular-region'], back: ['trapezius'] },
+  upper_back: { kind: 'silhouette', back: ['trapezius'] },
+  lats: { kind: 'silhouette', back: ['latissimus-dorsi'] },
+  lower_back: { kind: 'silhouette', back: ['thoracolumbar-fascia'] },
+  glutes: { kind: 'silhouette', back: ['gluteus-maximus', 'gluteus-medius', 'gluteus-medius-upper'] },
+  quads: { kind: 'silhouette', front: ['vastus-lateralis', 'rectus-femoris', 'vastus-medialis'] },
   hamstrings: {
     kind: 'silhouette',
-    back: [
-      { x: 38, y: 160, width: 20, height: 55 },
-      { x: 62, y: 160, width: 20, height: 55 },
-    ],
+    back: ['semitendinosus', 'biceps-femoris-left', 'biceps-femoris-right', 'semimembranosus-left', 'semimembranosus-right'],
   },
-  calves: {
-    kind: 'silhouette',
-    back: [
-      { x: 38, y: 218, width: 20, height: 37 },
-      { x: 62, y: 218, width: 20, height: 37 },
-    ],
-  },
-  rotator_cuff: { kind: 'badge', label: 'Rotator cuff (deep stabiliser)' },
-  grip: { kind: 'badge', label: 'Grip' },
+  calves: { kind: 'silhouette', back: ['gastrocnemius'] },
+  grip: { kind: 'silhouette', front: ['hand-muscles'], back: ['hand-muscles-posterior'] },
   cardio: { kind: 'badge', label: 'Cardiovascular' },
+}
+
+/** This app's tracked regions for one muscle, on one view — used to build a `MuscleFillMap`. */
+export function idsFor(muscle: Muscle, view: BodyMapView): readonly string[] {
+  const mapping = MUSCLE_MAPPINGS[muscle]
+  if (mapping.kind !== 'silhouette') return []
+  return mapping[view] ?? []
 }
