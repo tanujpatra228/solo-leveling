@@ -268,6 +268,49 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     bodyweightFactor: 1,
     role: 'prescribed',
   },
+  {
+    id: 'wrist-curl',
+    name: 'Wrist Curl',
+    aliases: ['Dumbbell Wrist Curl', 'Forearm Curl'],
+    // Grip strength is produced by the forearm flexors crossing the wrist,
+    // not by the hand holding a static position — a carry loads them
+    // isometrically at a fixed, already-shortened length. This trains the
+    // same muscles through the stretched position that actually drives
+    // hypertrophy: wrist starts extended (flexors long) under load, curls
+    // into flexion (flexors short).
+    pattern: 'isolation',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: ['grip'],
+    equipment: ['dumbbell', 'bench'],
+    unit: 'kg',
+    increment: 1.25,
+    repRange: [12, 15],
+    cue: 'Forearms on the thighs or a bench, wrists off the edge. Let the bar or dumbbells roll to the fingertips at the bottom before curling back up.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
+    id: 'reverse-wrist-curl',
+    name: 'Reverse Wrist Curl',
+    aliases: ['Wrist Extension', 'Dumbbell Wrist Extension'],
+    // The extensors are what stabilise the wrist in slight extension so the
+    // flexors above can actually transmit force to a crushing grip — a weak
+    // extensor lets the wrist collapse into flexion under load, which is
+    // exactly where grip strength drops off. Same stretch-bottom logic as
+    // the curl, mirrored: wrist starts flexed (extensors long), extends up.
+    pattern: 'isolation',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: [],
+    equipment: ['dumbbell', 'bench'],
+    unit: 'kg',
+    increment: 1.25,
+    repRange: [15, 20],
+    cue: 'Same setup as the wrist curl, palms down. This side is far weaker — expect a fraction of the wrist-curl load.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
 
   /* ---------------- Wednesday: abs and biceps ---------------- */
   {
@@ -998,9 +1041,10 @@ export const SEED_EXERCISES: readonly Exercise[] = [
   },
 
   /* ---------------- Fallbacks added alongside the hinge/cuff/grip/anti-rotation
-   * fixes: each of those newly prescribed exercises is the only one in the
-   * library naming its primary muscle, so without an equipment-free stand-in
-   * here `substitutesFor` would have no answer once its own station is taken.
+   * fixes, and later the forearms one: each of those newly prescribed
+   * exercises is the only one (or only dumbbell one) in the library naming
+   * its primary muscle, so without an equipment-free stand-in here
+   * `substitutesFor` would have no answer once its own station is taken.
    */
   {
     id: 'dumbbell-external-rotation',
@@ -1068,6 +1112,25 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     bodyweightFactor: 0.55,
     role: 'fallback',
   },
+  {
+    id: 'cable-wrist-curl',
+    name: 'Cable Wrist Curl',
+    aliases: ['Cable Forearm Curl'],
+    // Added alongside wrist-curl/reverse-wrist-curl: both need a dumbbell,
+    // so this is their equipment-free-of-*that*-station answer when it is
+    // occupied — a low cable and a straight bar covers either direction.
+    pattern: 'isolation',
+    primaryMuscles: ['forearms'],
+    secondaryMuscles: ['grip'],
+    equipment: ['cable'],
+    unit: 'kg',
+    increment: PIN_STEP,
+    repRange: [12, 15],
+    cue: 'Forearm braced on the thigh, wrist curling against the low pulley. Full stretch at the bottom, every rep.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'fallback',
+  },
 ]
 
 /**
@@ -1107,6 +1170,14 @@ export const SEED_ROUTINES: readonly Routine[] = [
       { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 3, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'farmers-carry', sets: 3, repRange: [1, 1], restSec: 90 }] },
+      // Last, not first: the compound pulls above already tax grip
+      // isometrically, and fresh forearms would only mean less weight on
+      // the row and pull-up. This is direct hypertrophy work for the
+      // muscles that actually produce grip force — the carry above trains
+      // holding endurance, not the stretched-to-shortened range that drives
+      // growth.
+      { type: 'single', items: [{ exerciseId: 'wrist-curl', sets: 3, repRange: [12, 15], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'reverse-wrist-curl', sets: 2, repRange: [15, 20], restSec: 45 }] },
     ],
   },
   {
