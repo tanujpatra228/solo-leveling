@@ -213,11 +213,12 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
     setup: 'Same setup as the wrist curl, forearms supported, but palms down.',
     steps: [
       'Let the wrists drop into full flexion, hands hanging toward the floor.',
-      'Extend the wrists to lift the dumbbells, leading with the back of the hand.',
+      'Extend the wrists to lift the dumbbells, angling the lift slightly toward the thumb side rather than straight up.',
       'Lower back under control to the full stretch before the next rep.',
     ],
     commonMistakes: [
       'Loading it like the wrist curl — the extensors are much weaker; ego-loading this one just means it turns into forearm-swinging.',
+      'Extending straight up instead of toward the thumb side — the radial angle is what targets the extensors that actually resist a grip collapsing, not a stylistic variation.',
       'Cutting the range short at the bottom, the same mistake as the wrist curl, mirrored.',
     ],
   },

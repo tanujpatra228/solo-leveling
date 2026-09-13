@@ -293,12 +293,19 @@ export const SEED_EXERCISES: readonly Exercise[] = [
   {
     id: 'reverse-wrist-curl',
     name: 'Reverse Wrist Curl',
-    aliases: ['Wrist Extension', 'Dumbbell Wrist Extension'],
+    aliases: ['Wrist Extension', 'Dumbbell Wrist Extension', 'Radial Wrist Extension'],
     // The extensors are what stabilise the wrist in slight extension so the
     // flexors above can actually transmit force to a crushing grip — a weak
     // extensor lets the wrist collapse into flexion under load, which is
     // exactly where grip strength drops off. Same stretch-bottom logic as
     // the curl, mirrored: wrist starts flexed (extensors long), extends up.
+    // Angled toward the thumb (radial deviation) on the way up, not pure
+    // sagittal extension: a failing grip collapses toward flexion *and*
+    // ulnar deviation (think a heavy suitcase pulling the wrist down and
+    // pinky-side), so extension biased toward the thumb side trains ECRL
+    // and ECRB — the radial extensors — specifically against that failure
+    // direction, rather than spreading the work evenly across all three
+    // wrist extensors including the one (ECU) least relevant to it.
     pattern: 'isolation',
     primaryMuscles: ['forearms'],
     secondaryMuscles: [],
@@ -306,7 +313,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'kg',
     increment: 1.25,
     repRange: [15, 20],
-    cue: 'Same setup as the wrist curl, palms down. This side is far weaker — expect a fraction of the wrist-curl load.',
+    cue: 'Same setup as the wrist curl, palms down. Angle the lift slightly toward the thumb side, not straight up — that bias is the point, not a style choice. This side is far weaker than the curl — expect a fraction of the load.',
     usesBodyweight: false,
     bodyweightFactor: 1,
     role: 'prescribed',
