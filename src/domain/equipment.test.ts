@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyEquipmentSelection, effectiveEquipment } from './equipment'
+import { applyEquipmentSelection, effectiveEquipment, isBodyweightProgramme } from './equipment'
 import { SEED_EXERCISES } from '../db/seed'
 import type { Equipment } from './types'
 
@@ -97,5 +97,41 @@ describe('applyEquipmentSelection', () => {
   it('returns an empty array for an empty starting point with the toggled tag removed (no-op case is unreachable via UI, but must not throw)', () => {
     expect(() => applyEquipmentSelection([], 'bodyweight')).not.toThrow()
     expect(applyEquipmentSelection([], 'bodyweight')).toEqual(['bodyweight'])
+  })
+})
+
+describe('isBodyweightProgramme', () => {
+  it('is true for no access at all, and for bodyweight alone', () => {
+    expect(isBodyweightProgramme(undefined)).toBe(true)
+    expect(isBodyweightProgramme([])).toBe(true)
+    expect(isBodyweightProgramme(['bodyweight'])).toBe(true)
+  })
+
+  it('a pull-up bar alone still selects the bodyweight programme — the contradiction the absence-keyed rule used to produce', () => {
+    expect(isBodyweightProgramme(['pullup_bar'])).toBe(true)
+  })
+
+  it('a bench alone, or a bar and a bench together, still select the bodyweight programme', () => {
+    expect(isBodyweightProgramme(['bench'])).toBe(true)
+    expect(isBodyweightProgramme(['pullup_bar', 'bench'])).toBe(true)
+  })
+
+  it('a treadmill alone selects the bodyweight programme — it is neither loadable nor a leverage tool', () => {
+    expect(isBodyweightProgramme(['treadmill'])).toBe(true)
+  })
+
+  it('is false the moment any load-bearing equipment is present, bar and bench or not', () => {
+    for (const eq of ['barbell', 'dumbbell', 'machine', 'cable', 'ez_bar', 'kettlebell', 'bands'] as Equipment[]) {
+      expect(isBodyweightProgramme([eq]), `${eq} should select the barbell programme`).toBe(false)
+      expect(isBodyweightProgramme([eq, 'pullup_bar', 'bench']), `${eq} plus bar/bench should still select the barbell programme`).toBe(false)
+    }
+  })
+
+  it('agrees with applyEquipmentSelection: whatever the chips leave selected after the exclusivity rule fires', () => {
+    // Ticking Bodyweight, per the Awakening's own exclusivity rule, clears
+    // every load-bearing tag — so the two functions must never disagree
+    // about the result of that state.
+    const afterTickingBodyweight = applyEquipmentSelection(['barbell', 'dumbbell', 'pullup_bar'], 'bodyweight')
+    expect(isBodyweightProgramme(afterTickingBodyweight)).toBe(true)
   })
 })

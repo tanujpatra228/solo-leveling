@@ -48,3 +48,16 @@ export function applyEquipmentSelection(current: readonly Equipment[], toggled: 
 
   return [...set]
 }
+
+/**
+ * Which routine set a hunter's equipment access implies. The baseline tier
+ * (docs/bodyweight-gates-plan.md §2) is bodyweight plus a pull-up bar and a
+ * bench, so the question is what was added beyond it, not what is absent —
+ * `['pullup_bar']` alone must select the bodyweight programme, since that is
+ * the only one it can actually perform. Reuses `LOAD_BEARING` rather than
+ * naming `{bodyweight, pullup_bar, bench, treadmill}` as a second list that
+ * could drift from the first.
+ */
+export function isBodyweightProgramme(access: readonly Equipment[] | undefined): boolean {
+  return !effectiveEquipment(access).some((eq) => LOAD_BEARING.includes(eq))
+}
