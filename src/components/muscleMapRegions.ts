@@ -112,44 +112,44 @@ export function idsFor(muscle: Muscle, view: BodyMapView): readonly string[] {
 }
 
 /**
- * Which half of the abdominal wall an exercise actually emphasises, keyed by
- * exercise id rather than `Muscle` — the domain model tracks `abs` as one
+ * Which third of the abdominal wall an exercise actually emphasises, keyed
+ * by exercise id rather than `Muscle` — the domain model tracks `abs` as one
  * muscle (rectus abdominis is anatomically one sheet), so this split is
  * presentation-only and never feeds volume, gates, or substitution.
  *
- * The two id lists below bisect `abs`'s ten ids top-to-bottom (each
- * six-pack segment paired with the linea-alba strip beside it). An exercise
- * with no entry here renders `abs` uniformly, as before.
+ * The three id lists below cut `abs`'s ten ids top-to-bottom into thirds
+ * (each pair of six-pack segments with the linea-alba strip(s) beside it).
+ * An exercise with no entry here renders `abs` uniformly, as before.
  */
-export type AbsEmphasis = 'lower' | 'upper'
+export type AbsEmphasis = 'lower' | 'mid' | 'upper'
 
 export const ABS_EMPHASIS_BY_EXERCISE: Readonly<Record<string, AbsEmphasis>> = {
   // Hip-flexion-driven: the pelvis curls up toward the ribs, loading the
   // lower rectus abdominis hardest.
   'leg-raises': 'lower',
   'hanging-leg-raises': 'lower',
-  // Spinal-flexion-driven: the ribs curl down toward the pelvis, loading the
-  // upper/mid rectus abdominis hardest.
-  'cable-crunch': 'upper',
-  'machine-abs-crunch': 'upper',
+  // Spinal-flexion-driven from a fixed pelvis: the ribs curl down toward the
+  // hips, loading the mid rectus abdominis hardest — not the very top, which
+  // sits close enough to the fixed attachment (the sternum/ribs) to do less
+  // work than the segments below it.
+  'cable-crunch': 'mid',
+  'machine-abs-crunch': 'mid',
 }
 
-const ABS_UPPER_IDS: readonly string[] = [
-  'rectus-abdominis-top-segment',
-  'rectus-abdominis-upper-segment',
+const ABS_UPPER_IDS: readonly string[] = ['rectus-abdominis-top-segment', 'rectus-abdominis-upper-segment', 'thoracic-aponeurosis']
+const ABS_MID_IDS: readonly string[] = [
   'rectus-abdominis-upper-middle-segment',
-  'thoracic-aponeurosis',
-  'upper-abdominal-aponeurosis',
-]
-const ABS_LOWER_IDS: readonly string[] = [
   'rectus-abdominis-middle-segment',
-  'rectus-abdominis-lower-middle-segment',
-  'rectus-abdominis-lower-segment',
+  'upper-abdominal-aponeurosis',
   'middle-abdominal-aponeurosis',
-  'lower-abdominal-aponeurosis',
 ]
+const ABS_LOWER_IDS: readonly string[] = ['rectus-abdominis-lower-middle-segment', 'rectus-abdominis-lower-segment', 'lower-abdominal-aponeurosis']
 
-/** The emphasised half's ids and the other half's, for one `AbsEmphasis`. */
+const ABS_THIRDS: Readonly<Record<AbsEmphasis, readonly string[]>> = { upper: ABS_UPPER_IDS, mid: ABS_MID_IDS, lower: ABS_LOWER_IDS }
+
+/** The emphasised third's ids and the other two thirds', for one `AbsEmphasis`. */
 export function absSegmentSplit(emphasis: AbsEmphasis): { emphasised: readonly string[]; rest: readonly string[] } {
-  return emphasis === 'lower' ? { emphasised: ABS_LOWER_IDS, rest: ABS_UPPER_IDS } : { emphasised: ABS_UPPER_IDS, rest: ABS_LOWER_IDS }
+  const emphasised = ABS_THIRDS[emphasis]
+  const rest = (Object.keys(ABS_THIRDS) as AbsEmphasis[]).filter((third) => third !== emphasis).flatMap((third) => ABS_THIRDS[third])
+  return { emphasised, rest }
 }

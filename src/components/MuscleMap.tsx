@@ -47,8 +47,8 @@ function fillsFor(
     if (emphasis) {
       const { emphasised, rest } = absSegmentSplit(emphasis)
       for (const id of emphasised) fills[id] = FILL[tone]
-      // The half an exercise doesn't emphasise still trains, just less —
-      // shown one tone down from whatever the emphasised half got.
+      // The two thirds an exercise doesn't emphasise still train, just less —
+      // shown one tone down from whatever the emphasised third got.
       for (const id of rest) fills[id] = FILL.secondary
       continue
     }
@@ -60,7 +60,7 @@ function fillsFor(
 export interface MuscleMapProps {
   primaryMuscles: readonly Muscle[]
   secondaryMuscles: readonly Muscle[]
-  /** When set and one of the muscles above is `abs`, narrows the highlight to that exercise's half of the six-pack. See `ABS_EMPHASIS_BY_EXERCISE`. */
+  /** When set and one of the muscles above is `abs`, narrows the highlight to that exercise's third of the six-pack. See `ABS_EMPHASIS_BY_EXERCISE`. */
   exerciseId?: string
 }
 

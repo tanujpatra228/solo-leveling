@@ -51,16 +51,27 @@ describe('MuscleMap', () => {
     expect(html).toMatch(/#lower-abdominal-aponeurosis[^{]*\{[^}]*var\(--color-system\)/)
   })
 
-  it('narrows an abs exercise with a known emphasis to its half of the six-pack, dimming the rest rather than dropping it', () => {
+  it('narrows an abs exercise with a known emphasis to its third of the six-pack, dimming the rest rather than dropping it', () => {
     const html = renderToStaticMarkup(
       <MuscleMap primaryMuscles={['abs']} secondaryMuscles={['obliques']} exerciseId="leg-raises" />,
     )
-    // leg-raises emphasises the lower half: primary tone there.
+    // leg-raises emphasises the lower third: primary tone there.
     expect(html).toMatch(/#rectus-abdominis-lower-segment[^{]*\{[^}]*var\(--color-system\)/)
     expect(html).toMatch(/#lower-abdominal-aponeurosis[^{]*\{[^}]*var\(--color-system\)/)
-    // the upper half still trains, just dimmer than the emphasised half.
+    // the other two thirds still train, just dimmer than the emphasised one.
     expect(html).toMatch(/#rectus-abdominis-top-segment[^{]*\{[^}]*var\(--color-system-dim\)/)
     expect(html).toMatch(/#thoracic-aponeurosis[^{]*\{[^}]*var\(--color-system-dim\)/)
+    expect(html).toMatch(/#rectus-abdominis-middle-segment[^{]*\{[^}]*var\(--color-system-dim\)/)
+  })
+
+  it('gives cable-crunch its own mid-abs emphasis, distinct from leg-raises and from a pure upper-abs one', () => {
+    const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['abs']} secondaryMuscles={['obliques']} exerciseId="cable-crunch" />)
+    // mid third gets the primary tone...
+    expect(html).toMatch(/#rectus-abdominis-middle-segment[^{]*\{[^}]*var\(--color-system\)/)
+    expect(html).toMatch(/#upper-abdominal-aponeurosis[^{]*\{[^}]*var\(--color-system\)/)
+    // ...while both the top and the bottom are dimmed, not just one of them.
+    expect(html).toMatch(/#rectus-abdominis-top-segment[^{]*\{[^}]*var\(--color-system-dim\)/)
+    expect(html).toMatch(/#rectus-abdominis-lower-segment[^{]*\{[^}]*var\(--color-system-dim\)/)
   })
 
   it('renders abs uniformly for an exercise id with no emphasis entry', () => {
