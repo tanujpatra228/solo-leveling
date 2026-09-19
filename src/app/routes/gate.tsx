@@ -24,6 +24,7 @@ import { SystemOverlay } from '../../components/SystemOverlay'
 import { SystemWindow } from '../../components/SystemWindow'
 import { SystemPanel } from '../../components/SystemPanel'
 import { SystemValue } from '../../components/SystemValue'
+import { youtubeSearchUrlFor } from '../../components/youtubeSearch'
 import {
   RED_GATE_MIN_RANK,
   buildInstantDungeon,
@@ -94,7 +95,7 @@ const ExerciseHelpModal = lazy(() =>
  */
 function ExerciseHelpModalSkeleton({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   return (
-    <SystemOverlay title={exercise.name} icon={Dumbbell} onClose={onClose}>
+    <SystemOverlay title={exercise.name} titleHref={youtubeSearchUrlFor(exercise)} icon={Dumbbell} onClose={onClose}>
       <div className="flex flex-col gap-3">
         <SystemPanel boxed className="p-3">
           <div className="h-52 w-full animate-pulse rounded bg-void-soft" />
@@ -659,6 +660,7 @@ function ActiveRedGateScreen({
   return (
     <SystemWindow
       title={`Red Gate — ${exercise.name}`}
+      titleHref={youtubeSearchUrlFor(exercise)}
       strong
       footer={
         <div className="flex flex-col gap-2">
@@ -951,7 +953,14 @@ function ActiveBlockItem({
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
         <span className="min-w-0 text-sm font-medium text-ink">
-          {effectiveExercise.name}
+          <a
+            href={youtubeSearchUrlFor(effectiveExercise)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-4"
+          >
+            {effectiveExercise.name}
+          </a>
           {activeSub ? (
             <span className="ml-1 font-system text-[10px] text-system-dim uppercase"> · swapped</span>
           ) : null}
@@ -1069,7 +1078,15 @@ function SwapSheet({
     <div className="flex flex-col gap-3 rounded border border-panel-edge/70 bg-void-soft/60 p-3">
       <div className="flex items-baseline justify-between gap-2">
         <p className="min-w-0 font-system text-[11px] tracking-[0.12em] text-ink-faint uppercase">
-          Swap {plannedExercise.name}
+          Swap{' '}
+          <a
+            href={youtubeSearchUrlFor(plannedExercise)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-dotted underline-offset-4"
+          >
+            {plannedExercise.name}
+          </a>
         </p>
         <button
           type="button"

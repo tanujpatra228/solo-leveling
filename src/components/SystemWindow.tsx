@@ -14,6 +14,8 @@ import { useFrameTier } from '../app/frameTierContext'
 
 export interface SystemWindowProps {
   title: string
+  /** When set, the title renders as a link (new tab) instead of plain text — e.g. an exercise's YouTube search. */
+  titleHref?: string
   /**
    * Reserve the strong glow for the one window that is speaking. Spending
    * `--shadow-system-strong` on every panel flattens the hierarchy into noise
@@ -45,6 +47,7 @@ const TIER_FRAME_CLASS: Record<number, string> = {
  */
 export function SystemWindow({
   title,
+  titleHref,
   strong = false,
   footer,
   index,
@@ -68,7 +71,17 @@ export function SystemWindow({
           `whitespace-nowrap` because a wrapped two-line title roughly doubles
           the box's height, which was the other half of that same overlap. */}
       <h2 className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap border border-ink/70 bg-panel px-3 py-1 font-system text-[11px] tracking-[0.2em] text-ink uppercase">
-        [{title}]
+        {titleHref ? (
+          <>
+            [
+            <a href={titleHref} target="_blank" rel="noopener noreferrer" className="text-system underline decoration-dotted underline-offset-4">
+              {title}
+            </a>
+            ]
+          </>
+        ) : (
+          `[${title}]`
+        )}
       </h2>
       <div className="text-ink">{children}</div>
       {footer ? <div className="mt-3 border-t border-panel-edge pt-3">{footer}</div> : null}
