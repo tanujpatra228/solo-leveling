@@ -15,12 +15,13 @@ import type { Exercise } from '../domain/types'
 import { MuscleMap } from './MuscleMap'
 import { SystemOverlay } from './SystemOverlay'
 import { SystemPanel } from './SystemPanel'
+import { youtubeSearchUrlFor } from './youtubeSearch'
 
 export function ExerciseHelpModal({ exercise, onClose }: { exercise: Exercise; onClose: () => void }) {
   const guide = EXERCISE_GUIDES[exercise.id]
 
   return (
-    <SystemOverlay title={exercise.name} icon={Dumbbell} onClose={onClose}>
+    <SystemOverlay title={exercise.name} titleHref={youtubeSearchUrlFor(exercise)} icon={Dumbbell} onClose={onClose}>
       <div className="flex flex-col gap-3">
         <SystemPanel boxed className="p-3">
           <MuscleMap primaryMuscles={exercise.primaryMuscles} secondaryMuscles={exercise.secondaryMuscles} exerciseId={exercise.id} />

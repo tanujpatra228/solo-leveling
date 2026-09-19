@@ -8,7 +8,7 @@ import type { Equipment } from './types'
 /** Equipment tags that add resistance. Excludes `pullup_bar` and `bench`,
  *  which change leverage and range of motion but add no load — the same
  *  line `canAddExternalLoad` (progression.ts) already draws. */
-const LOAD_BEARING: readonly Equipment[] = ['barbell', 'dumbbell', 'machine', 'cable', 'ez_bar', 'kettlebell', 'bands']
+export const LOAD_BEARING: readonly Equipment[] = ['barbell', 'dumbbell', 'machine', 'cable', 'ez_bar', 'kettlebell', 'bands']
 
 /**
  * The access array as every consumer should read it: `bodyweight` is always

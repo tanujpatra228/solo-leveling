@@ -18,13 +18,15 @@ import { SystemIcon, type SystemIconProps } from './SystemIcon'
 export interface SystemOverlayProps {
   /** A short chrome label — "Notification", "Runes" — not the content's own heading. */
   title: string
+  /** When set, the title renders as a link (new tab) instead of plain text — e.g. an exercise's YouTube search. */
+  titleHref?: string
   icon: LucideIcon
   iconTone?: SystemIconProps['tone']
   onClose: () => void
   children: ReactNode
 }
 
-export function SystemOverlay({ title, icon, iconTone = 'system', onClose, children }: SystemOverlayProps) {
+export function SystemOverlay({ title, titleHref, icon, iconTone = 'system', onClose, children }: SystemOverlayProps) {
   const titleId = useRef(`system-overlay-title-${Math.random().toString(36).slice(2)}`).current
   const closeRef = useRef<HTMLButtonElement>(null)
   const returnFocusRef = useRef<Element | null>(null)
@@ -73,12 +75,24 @@ export function SystemOverlay({ title, icon, iconTone = 'system', onClose, child
             <span className="grid size-11 shrink-0 place-items-center border border-ink/70 bg-panel">
               <SystemIcon icon={icon} tone={iconTone} size={18} glow="strong" />
             </span>
-            <span
-              id={titleId}
-              className="truncate border border-ink/70 bg-panel px-4 py-2 font-system text-xs tracking-[0.3em] text-ink uppercase"
-            >
-              {title}
-            </span>
+            {titleHref ? (
+              <a
+                id={titleId}
+                href={titleHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="truncate border border-ink/70 bg-panel px-4 py-2 font-system text-xs tracking-[0.3em] text-system uppercase underline decoration-dotted underline-offset-4"
+              >
+                {title}
+              </a>
+            ) : (
+              <span
+                id={titleId}
+                className="truncate border border-ink/70 bg-panel px-4 py-2 font-system text-xs tracking-[0.3em] text-ink uppercase"
+              >
+                {title}
+              </span>
+            )}
           </div>
           <button
             ref={closeRef}
