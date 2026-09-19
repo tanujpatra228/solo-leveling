@@ -89,6 +89,15 @@ export function BodyMap({
         .filter(Boolean)
         .join(' ')
       rules.push(`.${scopeClass} path { ${decls} }`)
+      // Ids containing "outline" (anatomy-full-body-outline, trapezius-outline,
+      // latissimus-dorsi-outline, ...) are boundary tracers, not muscle
+      // regions: the source SVG's root sets fill="none" and expects them to
+      // inherit it, contributing only their stroke. The base rule above
+      // overrides that inherited none with a solid fill; left uncorrected,
+      // wherever such a tracer's curve segments happen to enclose an area
+      // (e.g. the posterior view's shoulder-to-shoulder outline), that area
+      // renders as an ugly solid shape instead of staying invisible.
+      if (baseFill) rules.push(`.${scopeClass} [id*="outline"], .${scopeClass} [id*="outline"] path { fill: none; }`)
     }
     for (const [id, color] of Object.entries(fills)) {
       if (color == null) continue
