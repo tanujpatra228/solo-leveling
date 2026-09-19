@@ -23,7 +23,7 @@ export function ExerciseHelpModal({ exercise, onClose }: { exercise: Exercise; o
     <SystemOverlay title={exercise.name} icon={Dumbbell} onClose={onClose}>
       <div className="flex flex-col gap-3">
         <SystemPanel boxed className="p-3">
-          <MuscleMap primaryMuscles={exercise.primaryMuscles} secondaryMuscles={exercise.secondaryMuscles} />
+          <MuscleMap primaryMuscles={exercise.primaryMuscles} secondaryMuscles={exercise.secondaryMuscles} exerciseId={exercise.id} />
         </SystemPanel>
 
         {exercise.cue ? (
