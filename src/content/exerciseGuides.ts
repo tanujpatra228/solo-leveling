@@ -534,4 +534,340 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
       'Using momentum by throwing the arms forward instead of a controlled curl.',
     ],
   },
+  'split-squat': {
+    setup: 'Standing in a staggered stance, rear foot elevated behind on a bench or step if one is available, front foot flat.',
+    steps: [
+      'Lower straight down until the front thigh is roughly parallel to the floor.',
+      'Keep the front shin close to vertical, tracking over the foot rather than drifting forward.',
+      'Drive back up through the front heel to the starting position.',
+    ],
+    commonMistakes: [
+      'Letting the front knee cave inward under the single-leg load.',
+      'Leaning the torso far forward instead of staying upright, which shifts work off the front leg.',
+    ],
+  },
+  'glute-bridge': {
+    setup: 'Lying on the back, knees bent, both feet flat on the floor close to the hips.',
+    steps: [
+      'Drive through both heels to lift the hips off the floor.',
+      'Squeeze the glutes at the top, keeping the ribs down rather than arching the lower back.',
+      'Lower under control before the next rep.',
+    ],
+    commonMistakes: [
+      'Arching the lower back to reach extra height instead of stopping at a straight line from knees to shoulders.',
+      'Pushing through the toes instead of the heels, which shifts the work toward the calves.',
+    ],
+  },
+  'single-leg-glute-bridge': {
+    setup: 'Lying on the back, one foot flat on the floor close to the hips, the other leg extended straight out.',
+    steps: [
+      'Drive through the planted heel to lift the hips off the floor.',
+      'Squeeze at the top, keeping the hips square rather than letting one side rotate up.',
+      'Lower under control, feeling the stretch through the working hip and hamstring before the next rep.',
+    ],
+    commonMistakes: [
+      'Letting the hips tilt or rotate instead of staying level throughout the rep.',
+      'Using the extended leg to help push instead of keeping it purely for balance.',
+    ],
+  },
+  'deficit-pushups': {
+    setup: 'Hands on two sturdy blocks or weight plates, shoulder-width apart, body in one straight line from head to heels.',
+    steps: [
+      'Lower the chest below hand level, into the gap the blocks create.',
+      'Pause briefly at the bottom to feel the extra stretch across the chest.',
+      'Press back up to full lockout without letting the hips sag or pike.',
+    ],
+    commonMistakes: [
+      'Using blocks that are too high before the range is controlled — the shoulder needs to earn the extra depth gradually.',
+      'Letting the hips drop at the bottom, which shifts the stretch off the chest and onto the lower back.',
+    ],
+  },
+  'archer-pushups': {
+    setup: 'Hands well outside shoulder width, body in a straight line, ready to shift weight toward one side.',
+    steps: [
+      'Lower toward one hand while the opposite arm stays nearly straight and slides along the floor.',
+      'Touch the chest close to the bent-arm side, then press back up through that same arm.',
+      'Alternate the working side each rep, or each set if the movement is still new.',
+    ],
+    commonMistakes: [
+      'Letting the hips rotate toward the working arm instead of staying square to the floor.',
+      'Barely shifting the weight over, which turns this back into a regular pushup with wide hands.',
+    ],
+  },
+  'deficit-pike-pushups': {
+    setup: 'Hands on a bench or blocks, hips piked high, feet on the floor closer in than a normal pushup.',
+    steps: [
+      'Bend the elbows and lower the head below the level of the hands, into the space the elevation creates.',
+      'Keep the torso close to vertical throughout — this is a press, not a diagonal pushup.',
+      'Press back up to the starting pike position.',
+    ],
+    commonMistakes: [
+      'Letting the hips drop toward the floor, which turns this into an incline pushup and removes the shoulder-press emphasis.',
+      'Stopping the descent early instead of using the full extra range the elevation provides.',
+    ],
+  },
+  'wall-handstand-pushups': {
+    setup: 'Facing away from a wall, hands on the floor about a foot out from it, ready to kick up into a handstand with the heels resting on the wall.',
+    steps: [
+      'Kick up one leg at a time until both heels rest on the wall, body as vertical as balance allows.',
+      'Bend the elbows and lower the head toward the floor under control.',
+      'Press back up to full lockout without walking the feet down the wall to help.',
+    ],
+    commonMistakes: [
+      'Flaring the elbows out wide, which turns the load away from the shoulders and onto the joint itself.',
+      'Rushing the kick-up before the wall-supported hold itself is comfortable — spend sessions just balancing first.',
+    ],
+  },
+  'negative-pull-ups': {
+    setup: 'A box, bench, or jump to get the chin above the bar, since the exercise starts at the top of the range, not the bottom.',
+    steps: [
+      'Get the chin over the bar by jumping or stepping up, arms bent.',
+      'Lower yourself as slowly as control allows, aiming for five seconds or more to a full hang.',
+      'Reset from the floor and repeat — every rep starts from the top.',
+    ],
+    commonMistakes: [
+      'Dropping fast for the last third of the range once the strength runs out — the whole descent should stay slow.',
+      'Skipping the reset and trying to climb back up mid-rep, which turns it into a half pull-up instead of a full negative.',
+    ],
+  },
+  'archer-pull-ups': {
+    setup: 'A wide overhand grip on the bar, wider than a standard pull-up, hanging with arms extended.',
+    steps: [
+      'Pull toward one hand, letting the other arm stay nearly straight and travel along the bar.',
+      'Get that side’s chin near the bar, then lower back to a full hang.',
+      'Alternate the working side each rep, or each set while the movement is still new.',
+    ],
+    commonMistakes: [
+      'Letting the "straight" arm do real work by bending it — it should stay passive, along for the ride.',
+      'Turning the body to cheat the working side closer to the bar instead of actually shifting the pulling load.',
+    ],
+  },
+  'incline-inverted-row': {
+    setup: 'A bar set above waist height — a squat rack bar works — body straight, heels on the floor, hands just outside shoulder width.',
+    steps: [
+      'Hang with arms extended and the body in one straight line from shoulders to heels.',
+      'Pull the chest to the bar by driving the elbows down and back.',
+      'Lower under control to a full arm extension before the next rep.',
+    ],
+    commonMistakes: [
+      'Letting the hips sag, which turns tension onto the lower back instead of the upper back.',
+      'Shrugging the shoulders up toward the ears instead of driving through the elbows.',
+    ],
+  },
+  'inverted-row': {
+    setup: 'A bar at roughly hip height, body straight underneath it, hands just outside shoulder width.',
+    steps: [
+      'Hang with arms extended, heels on the floor, body in one straight line.',
+      'Pull the chest to the bar, driving the elbows down and back rather than shrugging up.',
+      'Lower under control to a full arm extension before the next rep.',
+    ],
+    commonMistakes: [
+      'Letting the hips sag or the body bend at the waist instead of staying rigid.',
+      'Stopping short of the bar instead of completing the full pull.',
+    ],
+  },
+  'feet-elevated-inverted-row': {
+    setup: 'A bar at roughly hip height, feet up on a bench so the body is close to horizontal, hands just outside shoulder width.',
+    steps: [
+      'Hang with arms extended, body in one straight line from shoulders to the elevated feet.',
+      'Pull the chest to the bar, driving the elbows down and back.',
+      'Lower under control to a full arm extension before the next rep.',
+    ],
+    commonMistakes: [
+      'Letting the hips drop below the line of the shoulders and feet, which removes tension from the pull.',
+      'Using a jerky, momentum-driven pull instead of a controlled one — the flatter angle makes cheating easier, not harder.',
+    ],
+  },
+  'sissy-squat': {
+    setup: 'Standing on the balls of the feet, holding a wall or door frame lightly for balance at first.',
+    steps: [
+      'Rise up onto the toes, then lean the torso back as the knees drive forward, keeping hips, knees, and shoulders in one line.',
+      'Lower until a full stretch is felt across the front of the thighs, going only as deep as control allows.',
+      'Drive back up to standing, straightening the knees before the hips.',
+    ],
+    commonMistakes: [
+      'Folding at the hips like a normal squat instead of keeping the knee-driven, straight-line lean.',
+      'Using the hands to pull the body back up instead of the quads — the support is for balance, not assistance.',
+    ],
+  },
+  'pistol-squat': {
+    setup: 'Standing on one leg, the other leg extended straight out in front, arms free to help with balance.',
+    steps: [
+      'Sit back and down on the standing leg, keeping the extended leg off the floor throughout.',
+      'Descend until the hip drops below the knee, staying balanced over the standing foot.',
+      'Drive back up to standing without the extended leg or the other foot touching down.',
+    ],
+    commonMistakes: [
+      'Letting the standing knee cave inward under the extra single-leg load.',
+      'Rushing into full depth before ankle mobility and balance can control it — a box under the hips is a legitimate regression.',
+    ],
+  },
+  'deficit-split-squat': {
+    setup: 'Front foot on a small step or plate, rear foot back and, if there is something to put it on, elevated behind.',
+    steps: [
+      'Lower straight down until the front thigh drops below the level of the step.',
+      'Keep the front shin close to vertical throughout the descent.',
+      'Drive back up through the front heel to the starting position.',
+    ],
+    commonMistakes: [
+      'Letting the front knee travel far past the toes instead of tracking over the foot.',
+      'Using a step high enough that control breaks down at the bottom — build the depth up gradually.',
+    ],
+  },
+  'feet-elevated-single-leg-glute-bridge': {
+    setup: 'Lying on the back, one heel up on a bench or chair, the other leg extended straight out.',
+    steps: [
+      'Drive through the elevated heel to lift the hips off the floor.',
+      'Squeeze at the top, keeping the hips square rather than letting one side rotate up.',
+      'Lower under control, feeling the stretch at the hip and hamstring of the working leg before the next rep.',
+    ],
+    commonMistakes: [
+      'Arching the lower back to reach the top instead of driving through the hip.',
+      'Letting the extended leg drop and swing for momentum instead of staying controlled.',
+    ],
+  },
+  'sliding-leg-curl': {
+    setup: 'Lying on the back, heels on a towel or furniture sliders on a smooth floor, hips lifted into a bridge.',
+    steps: [
+      'Holding the hips up, curl the heels in toward the glutes by bending the knees.',
+      'Pause briefly at full flexion.',
+      'Slide the heels back out to full leg extension under control, without letting the hips drop.',
+    ],
+    commonMistakes: [
+      'Letting the hips sag toward the floor partway through, which hands the work to the lower back instead of the hamstrings.',
+      'Sliding out fast and uncontrolled instead of resisting the slide on the way out.',
+    ],
+  },
+  'standing-calf-raise': {
+    setup: 'Standing on both feet, balls of the feet on a slightly raised edge if one is available, hand lightly on a wall for balance.',
+    steps: [
+      'Rise up onto the toes as high as the ankle allows.',
+      'Pause briefly at the top.',
+      'Lower under control to a full stretch at the bottom before the next rep.',
+    ],
+    commonMistakes: [
+      'Bouncing out of the bottom instead of pausing to feel the stretch.',
+      'Only moving through a small range near the top instead of the full stretch-to-contraction path.',
+    ],
+  },
+  'single-leg-calf-raise': {
+    setup: 'Standing on one foot, the other lifted slightly behind, hand lightly on a wall for balance.',
+    steps: [
+      'Rise up onto the toes of the standing foot as high as the ankle allows.',
+      'Pause briefly at the top.',
+      'Lower under control to a full stretch at the bottom before the next rep.',
+    ],
+    commonMistakes: [
+      'Letting the standing ankle roll outward under the single-leg load instead of tracking straight.',
+      'Using the wall for real push instead of light balance support.',
+    ],
+  },
+  'deficit-single-leg-calf-raise': {
+    setup: 'Standing on one foot with the ball of that foot on the edge of a step, heel hanging free below the edge, hand lightly on a wall or rail.',
+    steps: [
+      'Drop the heel below the edge of the step into a full stretch.',
+      'Drive up onto the toes as high as the ankle allows.',
+      'Lower back through the full stretch under control before the next rep.',
+    ],
+    commonMistakes: [
+      'Dropping into the stretch fast instead of under control, which loads the tendon rather than the muscle.',
+      'Cutting the bottom range short by not letting the heel travel below the step edge.',
+    ],
+  },
+  'toes-to-bar': {
+    setup: 'Full overhand grip on the bar, hanging with arms extended, legs together and straight.',
+    steps: [
+      'Keeping the legs straight where possible, drive the toes up toward the bar by flexing at the hip.',
+      'Touch or reach toward the bar without using a big swing to get there.',
+      'Lower back to a full hang under control before the next rep.',
+    ],
+    commonMistakes: [
+      'Swinging the whole body to build momentum instead of driving the movement from the hips and abs.',
+      'Letting the shoulders lose tension at the top of the hang between reps.',
+    ],
+  },
+  'plank-shoulder-tap': {
+    setup: 'A high plank on the hands, feet set a little wider than normal for a stable base.',
+    steps: [
+      'Keeping the hips level and still, lift one hand and tap the opposite shoulder.',
+      'Return that hand to the floor without letting the hips rock or rotate.',
+      'Repeat with the other hand, alternating sides.',
+    ],
+    commonMistakes: [
+      'Letting the hips twist toward the lifted hand — the whole point of the exercise is resisting that rotation.',
+      'Rushing the taps, which turns a stability exercise into a momentum one.',
+    ],
+  },
+  'chin-ups': {
+    setup: 'Underhand grip, roughly shoulder width, hanging with arms fully extended.',
+    steps: [
+      'Start from a genuine dead hang, shoulders relaxed.',
+      'Pull up by driving the elbows down, leading with the chest rather than the chin.',
+      'Get the chin clearly over the bar, then lower back to a full hang.',
+    ],
+    commonMistakes: [
+      'Using a half range at the bottom instead of a full hang, which cuts out the longest-length stretch on the biceps.',
+      'Kipping with a leg swing to help the pull.',
+    ],
+  },
+  'side-plank': {
+    setup: 'Lying on one side, propped up on the forearm with the elbow under the shoulder, feet stacked.',
+    steps: [
+      'Lift the hips off the floor until the body forms a straight line from ankles to shoulders.',
+      'Hold the position, keeping the hips up and square rather than rotating forward or back.',
+      'Lower under control at the end of the hold, then repeat on the other side.',
+    ],
+    commonMistakes: [
+      'Letting the hips sag toward the floor as fatigue sets in instead of holding the line.',
+      'Rotating the top shoulder forward, which turns the hold into a twisted plank rather than a side one.',
+    ],
+  },
+  'dead-hang': {
+    setup: 'Full overhand grip on the bar, feet off the floor, hanging freely.',
+    steps: [
+      'Let the shoulders relax down away from the ears rather than staying shrugged.',
+      'Hold the hang, breathing normally rather than holding the breath.',
+      'Lower to the floor once the grip, not the shoulders, gives out.',
+    ],
+    commonMistakes: [
+      'Keeping the shoulders shrugged up the whole time, which turns this into a shoulder hold instead of a grip one.',
+      'Stopping the set at a fixed time instead of letting grip fatigue be the actual endpoint.',
+    ],
+  },
+  'prone-ytw-raise': {
+    setup: 'Face down on a bench or the floor, arms hanging free below the shoulders.',
+    steps: [
+      'Raise the arms into a Y shape overhead, thumbs up, squeezing the shoulder blades together.',
+      'Lower, then raise into a T shape out to the sides.',
+      'Lower, then raise into a W shape with elbows bent close to the ribs, before starting the next cycle.',
+    ],
+    commonMistakes: [
+      'Using the lower back to arch and swing the arms up instead of isolating the shoulder blades and rear delts.',
+      'Going heavier or faster than the tiny muscles involved can control — this is stability work, kept light.',
+    ],
+  },
+  'burpees': {
+    setup: 'Standing with feet roughly shoulder-width apart.',
+    steps: [
+      'Drop into a squat, place the hands on the floor, and kick the feet back into a plank.',
+      'Perform a pushup, chest to the floor, then jump the feet back up to the hands.',
+      'Stand and jump, reaching overhead, before dropping into the next rep.',
+    ],
+    commonMistakes: [
+      'Letting the hips sag during the plank and pushup phase instead of keeping a straight line.',
+      'Skipping the full squat or the full jump to save effort — the pace should come from moving faster, not from cutting range.',
+    ],
+  },
+  'outdoor-run': {
+    setup: 'Outside, on a route with room to alternate pace — a park loop, a street block, or a track.',
+    steps: [
+      'Walk at an easy, conversational pace for five minutes to start.',
+      'Run at a hard, sustained pace for five minutes.',
+      'Repeat the five-and-five cycle for the length of the session.',
+    ],
+    commonMistakes: [
+      'Running the "hard" interval at an easy pace, which turns the session into a long walk with no cardio stimulus.',
+      'Sprinting the hard interval instead of holding a sustained hard pace — this is an endurance stimulus, not a sprint one.',
+    ],
+  },
 }

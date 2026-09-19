@@ -125,17 +125,17 @@ describe('substitutesFor', () => {
       'machine-lateral-raise', // isolation / side_delts
       'cable-shrug', // isolation / traps
       // A different reason, found by running this test rather than named in
-      // §4: these three are themselves the bodyweight answer for their
-      // muscle (chest, triceps, front_delts respectively) — under
-      // bodyweight-only access there is nothing left to swap onto that is
-      // not either itself or a different muscle entirely.
-      'pushups', // horizontal_push / chest
+      // §4: this is itself the bodyweight answer for its muscle (triceps) —
+      // under bodyweight-only access there is nothing left to swap onto that
+      // is not either itself or a different muscle entirely. Pushups and
+      // Pike Pushups used to be here too; the bodyweight-gates plan's
+      // deficit/archer/handstand ladder rungs gave chest and front_delts a
+      // second bodyweight-only exercise each, closing both gaps.
       'diamond-pushups', // horizontal_push / triceps
-      'pike-pushups', // vertical_push / front_delts
       // Added with the hinge/cuff/grip fixes: cuff work and loaded carries
-      // both genuinely need an implement — the bodyweight-only fallbacks for
-      // each (Dumbbell External Rotation, Dead Hang) still need a dumbbell or
-      // a bar, so there is no answer under bodyweight-only access either.
+      // both genuinely need an implement — the bodyweight-only fallback
+      // (Dumbbell External Rotation) still needs a dumbbell, so there is no
+      // answer under bodyweight-only access either.
       'cable-external-rotation', // isolation / rotator_cuff
       'farmers-carry', // carry / grip
       // Added with the forearms fix: no bodyweight movement meaningfully
@@ -147,6 +147,29 @@ describe('substitutesFor', () => {
       // load to pinch, which bodyweight-only access has no answer for —
       // same reasoning as the carry above, one grip quality down.
       'dumbbell-hub-pinch', // isolation / grip
+      // Added with the bodyweight-gates plan (docs/bodyweight-gates-plan.md):
+      // both are Pull-ups' own ladder-mates, so they need the same bar Pull-
+      // ups needs, for the same reason it is above.
+      'negative-pull-ups', // vertical_pull / lats
+      'archer-pull-ups', // vertical_pull / lats
+      // Same plan, the horizontal_pull ladder: all three need a bar for the
+      // same reason Dumbbell Row needs a dumbbell — pulling needs something
+      // to pull against, and bodyweight-only has nothing that qualifies.
+      'incline-inverted-row', // horizontal_pull / upper_back
+      'inverted-row', // horizontal_pull / upper_back
+      'feet-elevated-inverted-row', // horizontal_pull / upper_back
+      // Same plan: hanging grip work needs a bar, and no bodyweight-only
+      // grip-primary movement exists in the library — same reasoning as the
+      // carry and the pinch above, one grip quality down again.
+      'dead-hang', // isolation / grip
+      // Same plan, the itself-is-the-bodyweight-answer category above:
+      // Glute Bridge is the only glutes-primary bodyweight movement in the
+      // library (Barbell Hip Thrust is the loaded one), and Prone Y-T-W
+      // Raise is the only rear_delts-primary one (Machine Reverse Fly needs
+      // a machine) — under bodyweight-only access, neither has anything
+      // left to swap onto that is not itself.
+      'glute-bridge', // hinge / glutes
+      'prone-ytw-raise', // isolation / rear_delts
     ])
 
     it('under bodyweight-only access, every prescribed exercise either answers or is in the named exception list', () => {
