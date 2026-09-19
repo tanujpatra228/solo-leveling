@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { SEED_EXERCISES, SEED_EXERCISE_BY_ID, SEED_ROUTINES } from './seed'
+import { SEED_EXERCISES, SEED_EXERCISE_BY_ID, SEED_ROUTINES, SEED_ROUTINES_BODYWEIGHT } from './seed'
+import type { Equipment } from '../domain/types'
 
 describe('progression ladders', () => {
   // Regression for the pushup-ladder bug (fixed in commit 66d39f5): three
@@ -32,6 +33,18 @@ describe('progression ladders', () => {
         ).toEqual(ladder)
       }
     })
+
+    // docs/bodyweight-gates-plan.md §7: progression.ts silently falls through
+    // to hold_add_rep when a ladder's next rung is a fallback (it refuses to
+    // promote onto one) — a broken ladder would look identical to "keep
+    // adding reps forever" rather than raising an error anywhere.
+    it(`${exercise.id}'s ladder never advances onto a fallback`, () => {
+      for (const rungId of ladder) {
+        const rung = SEED_EXERCISE_BY_ID.get(rungId)
+        if (!rung) continue
+        expect(rung.role, `'${rungId}' on '${exercise.id}'s ladder is role '${rung.role}'`).toBe('prescribed')
+      }
+    })
   }
 })
 
@@ -42,7 +55,7 @@ describe('the library', () => {
   })
 
   it('every routine block references an exercise that exists', () => {
-    for (const routine of SEED_ROUTINES) {
+    for (const routine of [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT]) {
       for (const block of routine.blocks) {
         for (const item of block.items) {
           expect(SEED_EXERCISE_BY_ID.get(item.exerciseId), `${routine.id} references unknown exercise '${item.exerciseId}'`).toBeDefined()
@@ -57,7 +70,7 @@ describe('the fallback library (commit 5d33216)', () => {
     // A fallback in a routine is a seed bug (commit 5d33216) — it would be a
     // default the hunter never chose, not a stand-in for the evening a
     // station is taken.
-    for (const routine of SEED_ROUTINES) {
+    for (const routine of [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT]) {
       for (const block of routine.blocks) {
         for (const item of block.items) {
           const exercise = SEED_EXERCISE_BY_ID.get(item.exerciseId)
@@ -124,4 +137,42 @@ describe('the fallback library (commit 5d33216)', () => {
       expect(exercise.progressionLadder ?? [], `${exercise.id} has a progressionLadder but is a fallback`).toHaveLength(0)
     }
   })
+})
+
+describe('the bodyweight routines (docs/bodyweight-gates-plan.md)', () => {
+  // The plan's baseline tier — everyone has their own body, and the plan
+  // treats a pull-up bar as the one piece of equipment a bodyweight hunter
+  // is assumed to have. A mistagged exercise slipping past this is the exact
+  // bug the whole plan exists to prevent, and it should fail a test rather
+  // than a workout.
+  const BASELINE_TIER: readonly Equipment[] = ['bodyweight', 'pullup_bar']
+
+  it('seeded six gates, one per training day, no Sunday', () => {
+    const days = SEED_ROUTINES_BODYWEIGHT.map((r) => r.dayOfWeek).sort()
+    expect(days).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  it('has a bw- id for every gate, disjoint from the barbell routine ids', () => {
+    const barbellIds = new Set(SEED_ROUTINES.map((r) => r.id))
+    for (const routine of SEED_ROUTINES_BODYWEIGHT) {
+      expect(routine.id.startsWith('bw-'), `${routine.id} is not bw- prefixed`).toBe(true)
+      expect(barbellIds.has(routine.id), `${routine.id} collides with a barbell routine id`).toBe(false)
+    }
+  })
+
+  for (const routine of SEED_ROUTINES_BODYWEIGHT) {
+    for (const block of routine.blocks) {
+      for (const item of block.items) {
+        it(`${routine.id}'s ${item.exerciseId} is performable with the baseline tier`, () => {
+          const exercise = SEED_EXERCISE_BY_ID.get(item.exerciseId)
+          expect(exercise, `${item.exerciseId} does not exist`).toBeDefined()
+          const unreachable = exercise!.equipment.filter((eq) => !BASELINE_TIER.includes(eq))
+          expect(
+            unreachable,
+            `${item.exerciseId} needs ${unreachable.join(', ')}, which ['bodyweight', 'pullup_bar'] does not provide`,
+          ).toHaveLength(0)
+        })
+      }
+    }
+  }
 })

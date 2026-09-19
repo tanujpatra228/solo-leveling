@@ -31,6 +31,7 @@ import {
 } from '../domain/projection'
 import { computeNextTarget, type NextTarget } from '../domain/progression'
 import { substitutesFor, type SubstituteCandidate } from '../domain/substitution'
+import { effectiveEquipment } from '../domain/equipment'
 import { extractShadow, shouldExtract } from '../domain/shadows'
 import {
   buildInstantDungeon,
@@ -605,7 +606,15 @@ export const useApp = create<AppState>((set, get) => ({
       await repo.updateProgress({ restTokens: 2, restTokensMonth: month })
     }
 
-    if (state.profile) await get().ensureQuestsForToday()
+    if (state.profile) {
+      // Equipment access is only known once a profile exists, which is why
+      // routine seeding lives here rather than in ensureSeeded — see
+      // docs/bodyweight-gates-plan.md §5b. Runs every load, not just once,
+      // so a hunter who edits their equipment access later still gets the
+      // routine set that matches it.
+      await repo.reconcileRoutines(state.profile.equipmentAccess)
+      await get().ensureQuestsForToday()
+    }
     await get().refresh()
     await get().announceBodyweightFactorRegradeIfNeeded()
     set({ ready: true })
@@ -673,6 +682,7 @@ export const useApp = create<AppState>((set, get) => ({
       routines: state.routines,
       resolveExercise,
       weeklySetsByMuscle: hardSetsPerMuscle(weekSets, resolveExercise),
+      equipmentAccess: effectiveEquipment(state.profile?.equipmentAccess),
     })
 
     // A gate stays open for the canon seven days. Sessions logged against a
@@ -716,7 +726,7 @@ export const useApp = create<AppState>((set, get) => ({
       targetsByExerciseId[exercise.id] = computeNextTarget(exercise, blockItem?.sets ?? 3, {
         lastSets: lastSetsForExercise(exercise.id, state.sessions, state.sets),
         age: projection.age ?? undefined,
-        equipmentAccess: state.profile?.equipmentAccess,
+        equipmentAccess: effectiveEquipment(state.profile?.equipmentAccess),
         resolveExercise,
         repRangeOverride: blockItem?.repRange,
       })
@@ -730,7 +740,7 @@ export const useApp = create<AppState>((set, get) => ({
     for (const exercise of state.exercises) {
       substitutesByExerciseId[exercise.id] = substitutesFor(exercise, {
         exercises: state.exercises,
-        equipmentAccess: state.profile?.equipmentAccess ?? [],
+        equipmentAccess: effectiveEquipment(state.profile?.equipmentAccess),
         routine: targetRoutine ?? null,
       })
     }
@@ -958,6 +968,11 @@ export const useApp = create<AppState>((set, get) => ({
     const now = Date.now()
     await repo.saveProfile({ ...profile, id: 'profile', createdAt: now, awakenedAt: now })
     await repo.addBodyMetric({ weightKg: bodyweightKg, ...optional })
+    // Equipment access exists for the first time this call, which is what
+    // load()'s own reconcileRoutines call was waiting on — done here too so
+    // the hunter's first visit to '/' shows their gates immediately rather
+    // than waiting for the next full app start. See docs/bodyweight-gates-plan.md §5b.
+    await repo.reconcileRoutines(profile.equipmentAccess)
     await get().refresh()
     await get().ensureQuestsForToday()
     await get().refresh()

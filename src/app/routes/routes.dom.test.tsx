@@ -345,13 +345,15 @@ describe('the swap sheet (commit 6b2b0eb, rule 14)', () => {
         heightCm: 178,
         unitPref: 'metric',
         trainingYears: 2,
-        // Bodyweight-only: Pull-ups' block has no answer at all — see the
-        // exception list in substitution.test.ts's coverage guarantee.
+        // Bodyweight, no bar: this seeds the bodyweight routine set
+        // (domain/equipment.ts's isBodyweightProgramme), and Pull-ups' block
+        // has no answer at all under it — see the exception list in
+        // substitution.test.ts's coverage guarantee.
         equipmentAccess: ['bodyweight'],
       },
       bodyweightKg: 72,
     })
-    await useApp.getState().startGate('tuesday-back-biceps')
+    await useApp.getState().startGate('bw-tuesday-pull')
 
     const { container, unmount } = await mountInteractive('/gate')
     const swapButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Swap')

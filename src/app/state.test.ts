@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
 import { addDaysToKey, dayOfWeekForKey } from '../domain/time'
-import { addShadow, putQuest, updateProgress, wipeEverything } from '../db/repo'
+import { addShadow, putQuest, reconcileRoutines, updateProgress, wipeEverything } from '../db/repo'
 import { generateDailyQuest, type DailyQuestPayload, type PenaltyQuestPayload } from '../domain/quests'
 import { QUEST_REROLL_PRICE_GOLD, REST_TOKEN_PRICE_GOLD } from '../domain/shop'
 import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
@@ -21,6 +21,11 @@ import { useApp } from './state'
 
 beforeEach(async () => {
   await wipeEverything({ forgetIdentity: true })
+  // These tests exercise session/target resolution against the barbell
+  // routines directly, with no Awakening Test in the loop — reconcileRoutines
+  // now needs a profile to be called from, which load() has none of here, so
+  // the barbell set is seeded explicitly instead.
+  await reconcileRoutines(['barbell', 'dumbbell', 'machine', 'cable', 'bench', 'ez_bar'])
   await useApp.getState().load()
 })
 

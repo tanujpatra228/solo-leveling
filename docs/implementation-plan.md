@@ -592,6 +592,79 @@ third that size for the old dark canvas).
 *Budget impact:* `HunterLicenseCard`'s lazy chunk grew by about 2.5 KB gzipped for the added
 geometry; the initial route is unaffected.
 
+### Bodyweight gates — a second routine set, chosen by equipment access
+
+A hunter who picked Bodyweight in the Awakening got the barbell six regardless — `ensureSeeded()`
+seeded `SEED_ROUTINES` unconditionally on every load, before a profile (and therefore equipment
+access) existed, and nothing anywhere read `profile.equipmentAccess` to choose a routine. Landed
+across five phases of `docs/bodyweight-gates-plan.md` (now `git rm`'d — detail recoverable at the
+commit removing it).
+
+**Phase 0** fixed a live bug the plan found on the way in: `bodyweight` was treated as a plain
+selectable, so a hunter with a full gym ticked but `bodyweight` left unticked reached only 41 of 64
+exercises — Push-ups and Pull-ups among the missing, despite both already being prescribed in the
+barbell week. `domain/equipment.ts`'s `effectiveEquipment()` now always unions in `bodyweight` and
+drops the redundant `none` tag; every consumer (`state.ts`'s two recompute loops, the Instant Dungeon
+panel, `progression.ts`, `substitution.ts`, `advisories.ts`) reads through it rather than the raw
+array. `applyEquipmentSelection()` makes the Awakening's Bodyweight chip exclusive with load-bearing
+equipment (barbell/dumbbell/machine/cable/ez_bar/kettlebell/bands) but deliberately keeps pull-up bar
+and bench compatible with it, since bodyweight-plus-bar is the plan's own baseline tier.
+
+**Phase 1** built the library: 17 new exercises and 11 promotions from fallback to prescribed, across
+ten progression ladders (horizontal/vertical push and pull, squat, lunge, hinge, hamstring and calf
+isolation, core). Three exercises that never had a `progressionLadder` (Pull-ups, Bodyweight Squats,
+Nordic Curl) gained one; three ladders that already shipped were extended rather than replaced, so a
+hunter mid-ladder on any of them keeps their progress. The hinge ladder deliberately keeps a
+glutes → hamstrings → hamstrings primary-muscle crossing, mirroring the barbell library's own Barbell
+Hip Thrust (glutes) / Romanian Deadlift (hamstrings) split, not an accident inherited from the shipped
+push ladder's chest → triceps crossing. `substitution.test.ts`'s exception list changed both ways —
+Pushups and Pike Pushups no longer need one (their ladders gave chest and front_delts a second
+bodyweight-only exercise each), while eight new/promoted exercises do (pulling and hanging grip still
+need a bar; Glute Bridge and Prone Y-T-W Raise are each now the sole bodyweight movement for their
+muscle).
+
+**Phase 2** built `SEED_ROUTINES_BODYWEIGHT`: six `bw-`-prefixed gates on the same `dayOfWeek` values
+as the barbell six, so streaks, gate ranks and the week strip all keep working untouched. Every
+exercise in every gate is performable with `['bodyweight', 'pullup_bar']` alone, the plan's baseline
+tier — which ruled out Incline Pushups (needs a bench) from Thursday's superset in favour of plain
+Pushups, one rung up the same ladder. Set counts were sized against `volume.ts`'s `LANDMARKS` and
+verified with a scratch harness: every muscle this equipment can reach clears MEV, and the gaps
+(forearms below floor; side delts, rotator cuff and traps at zero) are exactly the ones the plan
+named as unreachable with this equipment, left honest rather than papered over.
+
+**Phase 3** moved routine seeding out of `ensureSeeded()` (which now only ever touches exercises,
+settings and progress) into `reconcileRoutines(equipmentAccess)`, wired from both `completeAwakening`
+(so the first visit to `/` already shows the right gates) and `load()` (so switching equipment access
+later still reaches the matching set). It replaces the seeded routines wholesale, but only when every
+existing row is still byte-identical to its seed-set counterpart — provable today since there is no
+routine-edit path yet — and never while a session is open. On a real replace it remaps every ended
+session's `routineId` to the new set's routine for the same `dayOfWeek` first, so gate-clear history
+survives the swap and a hunter switching equipment is not charged a Dungeon Break for it. `/gate`
+gained the same no-profile `beforeLoad` redirect `/` already had, since seeding is no longer
+unconditional.
+
+**Phase 4** threaded `equipmentAccess` into `AdvisoryInput` and added two advisories keyed on
+equipment itself rather than routine content — `no-pullup-bar` (bodyweight programme, no bar: lats,
+upper back and biceps get nothing) and `no-external-load` (bodyweight programme, bar or not: side
+delts, rotator cuff, traps and forearms have no bodyweight movement in the library at all).
+
+**Phase 5** verified the whole path in a real browser (Playwright against the dev server, zero
+console errors throughout): completed the Awakening as a bodyweight hunter, confirmed all six
+bodyweight gates render with the exact content and ranks the seed data specifies and no barbell gate
+leaks in, started and fully cleared a gate (with a level-up), and confirmed the Analysis panel shows
+exactly the advisories each equipment scenario predicts (`no-cuff-prehab` + `no-pullup-bar` +
+`no-external-load` with no bar; the first and last only, once a bar is added). The equipment-switch
+Dungeon-Break-prevention scenario has no UI path yet — there is no post-onboarding equipment editor —
+so it stays verified at the `repo.test.ts` layer, against real IndexedDB via `fake-indexeddb`.
+
+*Acceptance:* a bodyweight-only hunter's Awakening ends on their own six gates, not the barbell six;
+every exercise in every bodyweight gate is doable with nothing but a body and, where tagged, a
+pull-up bar; a barbell hunter who switches to bodyweight keeps their cleared-gate history and is
+never charged a Dungeon Break for the switch; the two new advisories fire exactly when the equipment
+constraint they describe is real, never for a hunter who could act on the routine instead.
+*Budget impact:* seed-data growth only (28 new/changed exercise objects, six new routines, guide
+entries); no new runtime dependency, no new lazy chunk.
+
 ---
 
 ## 5. How the work gets checked

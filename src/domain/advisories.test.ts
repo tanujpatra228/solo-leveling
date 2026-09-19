@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { activeAdvisories, detectAdvisories } from './advisories'
 import { weeklyVolumeReport, hardSetsPerMuscle } from './volume'
 import { SEED_ROUTINES, seedExercise } from '../db/seed'
-import type { Muscle, SetLog } from './types'
+import type { Equipment, Muscle, SetLog } from './types'
 
 /**
  * Builds a week of sets straight from the seed routines, as though every
@@ -36,10 +36,15 @@ function weekOfSetsFromRoutines(): SetLog[] {
 
 const weekSets = weekOfSetsFromRoutines()
 const weeklySetsByMuscle = hardSetsPerMuscle(weekSets, seedExercise)
+// SEED_ROUTINES is the barbell week, so the fixture's own equipment access
+// matches it — full gym, no bodyweight-programme advisory should fire
+// against data that was never bodyweight in the first place.
+const FULL_GYM: Equipment[] = ['barbell', 'dumbbell', 'machine', 'cable', 'bench', 'ez_bar']
 const input = {
   routines: SEED_ROUTINES,
   resolveExercise: seedExercise,
   weeklySetsByMuscle,
+  equipmentAccess: FULL_GYM,
 }
 const found = detectAdvisories(input)
 const ids = found.map((a) => a.id)
@@ -140,12 +145,61 @@ describe('advisories stop firing once the gap is closed', () => {
       routines: [],
       resolveExercise: () => undefined,
       weeklySetsByMuscle: new Map(),
+      equipmentAccess: FULL_GYM,
     })
     // With no programme there is no hinge, no grip work and no cuff work, but
     // there is also no imbalance to report, so only the absence advisories fire.
     expect(empty.map((a) => a.id)).toContain('no-hip-hinge')
     expect(empty.map((a) => a.id)).not.toContain('front-delt-overload')
     expect(empty.map((a) => a.id)).not.toContain('push-leg-day-imbalance')
+  })
+})
+
+describe('the bodyweight-specific advisories (docs/bodyweight-gates-plan.md §6)', () => {
+  // Both are keyed on equipment access alone, unlike every advisory above —
+  // they describe a hard equipment constraint the library has no bodyweight
+  // answer for, not something rearranging the week could fix. An empty
+  // routine/resolveExercise/weeklySetsByMuscle isolates that: whatever fires
+  // here fires purely off the equipment argument.
+  const bare = { routines: [], resolveExercise: () => undefined, weeklySetsByMuscle: new Map<Muscle, number>() }
+
+  it('no-pullup-bar fires for bodyweight access with no bar', () => {
+    const ids = detectAdvisories({ ...bare, equipmentAccess: ['bodyweight'] }).map((a) => a.id)
+    expect(ids).toContain('no-pullup-bar')
+  })
+
+  it('no-pullup-bar does not fire once a pull-up bar is in the access list', () => {
+    const ids = detectAdvisories({ ...bare, equipmentAccess: ['bodyweight', 'pullup_bar'] }).map((a) => a.id)
+    expect(ids).not.toContain('no-pullup-bar')
+  })
+
+  it('no-pullup-bar does not fire for a full gym, bar or not', () => {
+    expect(detectAdvisories({ ...bare, equipmentAccess: FULL_GYM }).map((a) => a.id)).not.toContain('no-pullup-bar')
+    expect(
+      detectAdvisories({ ...bare, equipmentAccess: [...FULL_GYM, 'pullup_bar'] }).map((a) => a.id),
+    ).not.toContain('no-pullup-bar')
+  })
+
+  it('no-external-load fires for any bodyweight programme, with or without a bar', () => {
+    expect(detectAdvisories({ ...bare, equipmentAccess: ['bodyweight'] }).map((a) => a.id)).toContain(
+      'no-external-load',
+    )
+    expect(
+      detectAdvisories({ ...bare, equipmentAccess: ['bodyweight', 'pullup_bar', 'bench'] }).map((a) => a.id),
+    ).toContain('no-external-load')
+  })
+
+  it('no-external-load does not fire once any load-bearing equipment is present', () => {
+    for (const eq of ['barbell', 'dumbbell', 'machine', 'cable', 'ez_bar', 'kettlebell', 'bands'] as Equipment[]) {
+      const ids = detectAdvisories({ ...bare, equipmentAccess: [eq] }).map((a) => a.id)
+      expect(ids, `${eq} should not leave no-external-load firing`).not.toContain('no-external-load')
+    }
+  })
+
+  it('no equipment access at all still normalises to the bodyweight programme, so both fire', () => {
+    const ids = detectAdvisories({ ...bare, equipmentAccess: [] }).map((a) => a.id)
+    expect(ids).toContain('no-pullup-bar')
+    expect(ids).toContain('no-external-load')
   })
 })
 

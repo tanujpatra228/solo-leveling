@@ -124,7 +124,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [8, 20],
-    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups', 'deficit-pushups', 'archer-pushups'],
     cue: 'Hands together under the sternum. Elbows brush the ribs.',
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — see docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -180,6 +180,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     increment: 0,
     repRange: [5, 12],
     standardLift: 'pullup',
+    progressionLadder: ['negative-pull-ups', 'pull-ups', 'archer-pull-ups'],
     cue: 'Full hang at the bottom. Chest to the bar, no kipping.',
     usesBodyweight: true,
     // Reasoned, not measured — a dead hang moves nearly all of it. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -389,7 +390,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [12, 20],
-    progressionLadder: ['leg-raises', 'hanging-leg-raises'],
+    progressionLadder: ['leg-raises', 'hanging-leg-raises', 'toes-to-bar'],
     cue: 'Press the lower back into the floor. Stop before it arches.',
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — legs only. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -476,7 +477,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [10, 20],
-    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups', 'deficit-pushups', 'archer-pushups'],
     cue: 'The higher the hands, the easier it is. Lower the hands as this gets easy.',
     usesBodyweight: true,
     // Reasoned, not measured, and the honest weak spot: this genuinely varies
@@ -496,10 +497,8 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     increment: 0,
     repRange: [8, 15],
     // Its own ladder, not the horizontal_push line: front_delts via a vertical
-    // press is a different pattern and muscle than a pushup. Nothing else in
-    // the library is a bodyweight vertical_push progression yet, so this rung
-    // is alone until commit 4 seeds a fallback for that gap.
-    progressionLadder: ['pike-pushups'],
+    // press is a different pattern and muscle than a pushup.
+    progressionLadder: ['pike-pushups', 'deficit-pike-pushups', 'wall-handstand-pushups'],
     cue: 'Hips high, head travels between the hands. This one is a shoulder press.',
     usesBodyweight: true,
     // Reasoned, not measured — torso vertical, most of the load on the shoulders. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -669,6 +668,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [3, 10],
+    progressionLadder: ['sliding-leg-curl', 'nordic-curl'],
     cue: 'Kneeling, ankles anchored. Lower under control for as long as possible and catch yourself at the bottom.',
     usesBodyweight: true,
     // Reasoned, not measured — the torso and hips lower under the hamstrings' control. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -720,7 +720,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [8, 15],
-    progressionLadder: ['leg-raises', 'hanging-leg-raises'],
+    progressionLadder: ['leg-raises', 'hanging-leg-raises', 'toes-to-bar'],
     cue: 'Stop the swing before each rep. Curl the pelvis rather than just lifting the legs.',
     usesBodyweight: true,
     // Reasoned from segment mass, not measured — legs, with the trunk stabilising. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -756,7 +756,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [10, 30],
-    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups'],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups', 'deficit-pushups', 'archer-pushups'],
     cue: 'Body in one line from head to heels.',
     usesBodyweight: true,
     // The most commonly cited figure for a standard pushup (~64% of bodyweight),
@@ -776,6 +776,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [15, 40],
+    progressionLadder: ['bodyweight-squat', 'sissy-squat', 'pistol-squat'],
     cue: 'Sit down between the heels. Full depth every rep.',
     usesBodyweight: true,
     // Reasoned, not measured — trunk plus most of the legs. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
@@ -800,15 +801,151 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     role: 'prescribed',
   },
 
-  /* ---------------- Fallback library ----------------
-   * Never prescribed, never a routine default, never promoted by mastering
-   * one. Exists only so `substitutesFor` (commit 5) has an answer for the
-   * groups the equipment-desert audit found (commit 5d33216). Two entries
-   * from that table are deliberately absent: Skipping (needs a jump rope,
-   * which is not in EquipmentSchema) and Plate Raise (needs a loose plate,
-   * same gap) — both would have to be tagged with equipment they do not
-   * really require, which is worse than seeding one fewer exercise.
+  /* ---------------- Bodyweight gates: ladder extensions and new movements
+   * (docs/bodyweight-gates-plan.md). Every exercise below is either a new
+   * rung on a ladder whose easier end was already prescribed, or a
+   * promotion from the fallback library below — promoted because the
+   * bodyweight-only programme (routines seeded in Phase 2) needs it as a
+   * default, not just as something to swap onto. A promoted entry keeps
+   * its original reasoning comments; only `role`, and where a ladder now
+   * exists, `progressionLadder`, changed.
    */
+  {
+    id: 'deficit-pushups',
+    name: 'Deficit Pushups',
+    aliases: ['Deficit Push-ups', 'Pushups on Blocks'],
+    pattern: 'horizontal_push',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['front_delts', 'triceps'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [8, 20],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups', 'deficit-pushups', 'archer-pushups'],
+    // The extra range of motion loads the chest at a longer stretch than a
+    // standard pushup reaches — the same stretch-mediated-hypertrophy call
+    // already made for the Romanian Deadlift and Nordic Curl.
+    cue: 'Hands on blocks or plates, chest drops below hand level at the bottom. Same lockout as a standard pushup.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same body position as Diamond Pushups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.66,
+    role: 'prescribed',
+  },
+  {
+    id: 'archer-pushups',
+    name: 'Archer Pushups',
+    aliases: ['Archer Push-ups'],
+    pattern: 'horizontal_push',
+    primaryMuscles: ['chest'],
+    secondaryMuscles: ['front_delts', 'triceps'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [4, 12],
+    progressionLadder: ['incline-pushups', 'pushups', 'diamond-pushups', 'deficit-pushups', 'archer-pushups'],
+    // Shifts most of the load onto one arm — the ladder's stand-in for
+    // external load, since nothing in a no-equipment gym can hang a plate.
+    cue: 'One arm nearly straight out to the side, lower toward the bent working arm. Alternate sides each set.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same body position as Diamond Pushups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.66,
+    role: 'prescribed',
+  },
+  {
+    id: 'deficit-pike-pushups',
+    name: 'Deficit Pike Pushups',
+    aliases: ['Deficit Pike Push-ups'],
+    pattern: 'vertical_push',
+    primaryMuscles: ['front_delts'],
+    secondaryMuscles: ['triceps', 'chest'],
+    equipment: ['bodyweight', 'bench'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [6, 15],
+    progressionLadder: ['pike-pushups', 'deficit-pike-pushups', 'wall-handstand-pushups'],
+    cue: 'Hands on a bench or blocks, hips high in a pike. Lower the head below hand level — the extra drop a floor pike pushup cannot reach.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same torso angle as Pike Pushups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.7,
+    role: 'prescribed',
+  },
+  {
+    id: 'wall-handstand-pushups',
+    name: 'Wall Handstand Pushups',
+    aliases: ['Wall HSPU', 'Handstand Pushups'],
+    pattern: 'vertical_push',
+    primaryMuscles: ['front_delts'],
+    secondaryMuscles: ['triceps', 'side_delts'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [3, 10],
+    progressionLadder: ['pike-pushups', 'deficit-pike-pushups', 'wall-handstand-pushups'],
+    cue: 'Feet up the wall, walk into a vertical handstand. Lower the head to the floor and press back up — keep someone nearby the first sessions.',
+    usesBodyweight: true,
+    // Reasoned, not measured — a true handstand puts nearly all of it
+    // overhead, closer to what Pull-ups move than Pike Pushups' half-vertical
+    // torso. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.9,
+    role: 'prescribed',
+  },
+  {
+    id: 'negative-pull-ups',
+    name: 'Negative Pull-ups',
+    aliases: ['Negative Pullups', 'Eccentric Pull-ups'],
+    pattern: 'vertical_pull',
+    primaryMuscles: ['lats'],
+    secondaryMuscles: ['biceps', 'upper_back', 'grip'],
+    equipment: ['pullup_bar', 'bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [3, 8],
+    progressionLadder: ['negative-pull-ups', 'pull-ups', 'archer-pull-ups'],
+    cue: 'Jump or step up to a chin-over-bar position, then lower as slowly as control allows — 5 seconds minimum. Reset from the floor each rep.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same near-full-bodyweight hang as Pull-ups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.95,
+    role: 'prescribed',
+  },
+  {
+    id: 'archer-pull-ups',
+    name: 'Archer Pull-ups',
+    aliases: ['Archer Pullups'],
+    pattern: 'vertical_pull',
+    primaryMuscles: ['lats'],
+    secondaryMuscles: ['biceps', 'upper_back', 'grip'],
+    equipment: ['pullup_bar', 'bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [3, 8],
+    progressionLadder: ['negative-pull-ups', 'pull-ups', 'archer-pull-ups'],
+    cue: 'Pull toward one hand while the other arm stays nearly straight along the bar. Alternate sides each set — the working arm carries most of the pull.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same near-full-bodyweight hang as Pull-ups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.95,
+    role: 'prescribed',
+  },
+  {
+    id: 'incline-inverted-row',
+    name: 'Incline Inverted Row',
+    aliases: ['High Bar Inverted Row'],
+    pattern: 'horizontal_pull',
+    primaryMuscles: ['upper_back'],
+    secondaryMuscles: ['lats', 'biceps', 'rear_delts'],
+    // Same equipment approximation as Inverted Row: "a bar, rings, or a table
+    // edge", closest available tag is pullup_bar.
+    equipment: ['pullup_bar', 'bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    progressionLadder: ['incline-inverted-row', 'inverted-row', 'feet-elevated-inverted-row'],
+    cue: 'Bar set higher than a standard row, body closer to vertical. Same straight-body line, just less of your weight in the pull.',
+    usesBodyweight: true,
+    // Reasoned, not measured — the more vertical body angle moves less than
+    // Inverted Row's 0.55, same reasoned-not-measured method as commit 5ce8d44.
+    bodyweightFactor: 0.4,
+    role: 'prescribed',
+  },
   {
     id: 'inverted-row',
     name: 'Inverted Row',
@@ -823,13 +960,280 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'reps',
     increment: 0,
     repRange: [8, 15],
+    progressionLadder: ['incline-inverted-row', 'inverted-row', 'feet-elevated-inverted-row'],
     cue: 'Bar at hip height. Body straight, pull the chest to the bar.',
     usesBodyweight: true,
     // Reasoned, not measured — a lower bar and shallower body angle move
     // less than a dead hang. Same reasoned-not-measured method as commit
     // 5ce8d44, extended to fallbacks here.
     bodyweightFactor: 0.55,
-    role: 'fallback',
+    role: 'prescribed',
+  },
+  {
+    id: 'feet-elevated-inverted-row',
+    name: 'Feet-elevated Inverted Row',
+    aliases: ['Feet-elevated Body Row'],
+    pattern: 'horizontal_pull',
+    primaryMuscles: ['upper_back'],
+    secondaryMuscles: ['lats', 'biceps', 'rear_delts'],
+    equipment: ['pullup_bar', 'bodyweight', 'bench'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [5, 12],
+    progressionLadder: ['incline-inverted-row', 'inverted-row', 'feet-elevated-inverted-row'],
+    cue: 'Feet up on a bench, body close to horizontal under the bar. The flatter the body, the more of your weight the pull has to move.',
+    usesBodyweight: true,
+    // Reasoned, not measured — a near-horizontal body moves substantially
+    // more than Inverted Row's 0.55, same reasoned-not-measured method as
+    // commit 5ce8d44.
+    bodyweightFactor: 0.75,
+    role: 'prescribed',
+  },
+  {
+    id: 'sissy-squat',
+    name: 'Sissy Squat',
+    aliases: [],
+    pattern: 'squat',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [8, 15],
+    progressionLadder: ['bodyweight-squat', 'sissy-squat', 'pistol-squat'],
+    // Loads the quads at their longest length of anything in the library
+    // that needs no equipment — the same stretch-mediated-hypertrophy call
+    // already made for the Romanian Deadlift and Nordic Curl.
+    cue: 'Rise onto the balls of the feet, lean back as the knees drive forward, lower in a straight line from knee to shoulder. Hold a wall or doorframe for balance at first.',
+    usesBodyweight: true,
+    // Reasoned, not measured — deep knee flexion, most of the trunk and legs
+    // through the rep, similar order to Split Squat's 0.85. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.85,
+    role: 'prescribed',
+  },
+  {
+    id: 'pistol-squat',
+    name: 'Pistol Squat',
+    aliases: ['Single-leg Squat'],
+    pattern: 'squat',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [3, 10],
+    progressionLadder: ['bodyweight-squat', 'sissy-squat', 'pistol-squat'],
+    cue: 'One leg extended out in front, sit back and down on the standing leg until the hip drops below the knee, then stand back up without the other foot touching down.',
+    usesBodyweight: true,
+    // Reasoned, not measured — one leg carries nearly the whole body through
+    // a full-depth squat, slightly less than Split Squat's 0.85 for the
+    // extended-leg counterbalance. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.9,
+    role: 'prescribed',
+  },
+  {
+    id: 'split-squat',
+    name: 'Split Squat',
+    aliases: ['Bulgarian Split Squat', 'Rear-foot Elevated Split Squat'],
+    pattern: 'lunge',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    progressionLadder: ['split-squat', 'deficit-split-squat'],
+    cue: 'Rear foot elevated if you have something to put it on. Front shin stays vertical.',
+    usesBodyweight: true,
+    // Reasoned, not measured — one leg carries nearly the whole body through the rep. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.85,
+    role: 'prescribed',
+  },
+  {
+    id: 'deficit-split-squat',
+    name: 'Deficit Split Squat',
+    aliases: ['Split Squat (Front Foot Elevated)'],
+    pattern: 'lunge',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [8, 15],
+    progressionLadder: ['split-squat', 'deficit-split-squat'],
+    // Same stretch-mediated-hypertrophy call as the rest of this library's
+    // deficit variants: the lower front foot adds range a flat-floor split
+    // squat does not reach.
+    cue: 'Front foot on a small step or plate, so the working leg drops below the level of the back foot.',
+    usesBodyweight: true,
+    // Reasoned, not measured — slightly more front-leg loading than Split
+    // Squat's 0.85 for the added depth. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.9,
+    role: 'prescribed',
+  },
+  {
+    id: 'glute-bridge',
+    name: 'Glute Bridge',
+    aliases: ['Hip Bridge', 'Bodyweight Glute Bridge'],
+    pattern: 'hinge',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['hamstrings'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [12, 20],
+    // The ladder's primary muscle deliberately crosses glutes -> hamstrings,
+    // same as the barbell library already splits Barbell Hip Thrust (glutes)
+    // from Romanian Deadlift (hamstrings) for the same two-leg-vs-more-hip-
+    // flexion reasoning. Not an accident inherited from the shipped push
+    // ladder's chest->triceps crossing — see docs/bodyweight-gates-plan.md §3.
+    progressionLadder: ['glute-bridge', 'single-leg-glute-bridge', 'feet-elevated-single-leg-glute-bridge'],
+    cue: 'Two feet down, squeeze at the top, ribs down rather than arching the back.',
+    usesBodyweight: true,
+    // Reasoned, not measured — both legs share the load, so less per leg than the single-leg version. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.55,
+    role: 'prescribed',
+  },
+  {
+    id: 'single-leg-glute-bridge',
+    name: 'Single-leg Glute Bridge',
+    aliases: ['Single Leg Hip Bridge'],
+    pattern: 'hinge',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    progressionLadder: ['glute-bridge', 'single-leg-glute-bridge', 'feet-elevated-single-leg-glute-bridge'],
+    cue: 'One foot down, hips square. Squeeze at the top, control the lower.',
+    usesBodyweight: true,
+    // Reasoned, not measured — one leg carries the hips, not the whole body. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.35,
+    role: 'prescribed',
+  },
+  {
+    id: 'feet-elevated-single-leg-glute-bridge',
+    name: 'Feet-elevated Single-leg Glute Bridge',
+    aliases: ['Single-leg Hip Bridge (Elevated)'],
+    pattern: 'hinge',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['glutes'],
+    equipment: ['bodyweight', 'bench'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [8, 15],
+    progressionLadder: ['glute-bridge', 'single-leg-glute-bridge', 'feet-elevated-single-leg-glute-bridge'],
+    cue: 'Heel up on a bench or chair, other leg extended. Drive through the elevated heel — the added hip flexion at the bottom stretches the hamstring further than a floor-level bridge reaches.',
+    usesBodyweight: true,
+    // Reasoned, not measured — slightly more than Single-leg Glute Bridge's
+    // 0.35 for the greater range of motion. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.4,
+    role: 'prescribed',
+  },
+  {
+    id: 'sliding-leg-curl',
+    name: 'Sliding Leg Curl',
+    aliases: ['Slider Hamstring Curl', 'Towel Leg Curl'],
+    pattern: 'isolation',
+    primaryMuscles: ['hamstrings'],
+    secondaryMuscles: ['calves'],
+    // Needs a slick floor and something for the heels to slide on (a towel,
+    // furniture sliders) — no tracked equipment tag fits, so this is
+    // approximated as bodyweight, same precedent as Inverted Row's bar-or-
+    // table-edge approximation.
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [8, 15],
+    progressionLadder: ['sliding-leg-curl', 'nordic-curl'],
+    cue: 'Lying on your back, heels on a towel or sliders on a smooth floor, hips lifted and held. Curl the heels in toward the glutes, then slide back out under control without the hips dropping.',
+    usesBodyweight: true,
+    // Reasoned, not measured — the hips stay lifted and supported throughout;
+    // only the legs and the held bridge position move. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.4,
+    role: 'prescribed',
+  },
+  {
+    id: 'standing-calf-raise',
+    name: 'Standing Calf Raise',
+    aliases: ['Bodyweight Calf Raise'],
+    pattern: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [15, 30],
+    progressionLadder: ['standing-calf-raise', 'single-leg-calf-raise', 'deficit-single-leg-calf-raise'],
+    cue: 'Full stretch at the bottom, pause at the top.',
+    usesBodyweight: true,
+    // Genuinely unsourced — how much a two-footed raise is worth versus a
+    // loaded barbell calf raise is not something this estimate is confident
+    // about. Flagged rather than presented as measured. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.9,
+    role: 'prescribed',
+  },
+  {
+    id: 'single-leg-calf-raise',
+    name: 'Single-leg Calf Raise',
+    aliases: [],
+    pattern: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [12, 20],
+    progressionLadder: ['standing-calf-raise', 'single-leg-calf-raise', 'deficit-single-leg-calf-raise'],
+    cue: 'One foot on the ground, hands lightly on a wall for balance. Full stretch at the bottom, pause at the top.',
+    usesBodyweight: true,
+    // Reasoned, not measured — standing on one leg does not halve the load;
+    // the whole body still rises through the ankle, same as the two-footed
+    // version. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.9,
+    role: 'prescribed',
+  },
+  {
+    id: 'deficit-single-leg-calf-raise',
+    name: 'Deficit Single-leg Calf Raise',
+    aliases: ['Single-leg Calf Raise (Step Edge)'],
+    pattern: 'isolation',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: [],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 15],
+    progressionLadder: ['standing-calf-raise', 'single-leg-calf-raise', 'deficit-single-leg-calf-raise'],
+    // Same stretch-mediated-hypertrophy call as the rest of this library's
+    // deficit variants: the step edge adds a stretch a flat-floor raise
+    // cannot reach.
+    cue: 'One foot on the edge of a step, heel hanging below the edge. Drop into a full stretch at the bottom before driving up onto the toes.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same mechanism as Single-leg Calf Raise. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.9,
+    role: 'prescribed',
+  },
+  {
+    id: 'toes-to-bar',
+    name: 'Toes-to-bar',
+    aliases: ['Toes to Bar'],
+    pattern: 'core',
+    primaryMuscles: ['abs'],
+    secondaryMuscles: ['obliques', 'grip'],
+    equipment: ['pullup_bar', 'bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [5, 15],
+    progressionLadder: ['leg-raises', 'hanging-leg-raises', 'toes-to-bar'],
+    cue: 'Full hang, drive the toes up to touch the bar without swinging into it. Lower back to a dead hang under control.',
+    usesBodyweight: true,
+    // Reasoned, not measured — more than Hanging Leg Raises' 0.35: the legs
+    // extend all the way to the bar, a longer range through the same mass.
+    // See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.4,
+    role: 'prescribed',
   },
   {
     id: 'chin-ups',
@@ -850,8 +1254,122 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     usesBodyweight: true,
     // Reasoned, not measured — close to a dead hang, same as Pull-ups. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
     bodyweightFactor: 0.9,
-    role: 'fallback',
+    role: 'prescribed',
   },
+  {
+    id: 'side-plank',
+    name: 'Side Plank',
+    aliases: ['Side Bridge'],
+    pattern: 'core',
+    primaryMuscles: ['obliques'],
+    secondaryMuscles: ['abs'],
+    equipment: ['bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Straight line from ankles to shoulders. Hips up and held, not sagging.',
+    usesBodyweight: true,
+    // Reasoned, not measured — roughly half the body's mass, borne along the forearm and feet. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.5,
+    role: 'prescribed',
+  },
+  {
+    id: 'dead-hang',
+    name: 'Dead Hang',
+    aliases: ['Bar Hang', 'Timed Hang'],
+    pattern: 'isolation',
+    primaryMuscles: ['grip'],
+    secondaryMuscles: ['forearms', 'lats'],
+    equipment: ['pullup_bar', 'bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Full hang, shoulders relaxed. Hold until the grip, not the shoulders, gives out.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
+    id: 'prone-ytw-raise',
+    name: 'Prone Y-T-W Raise',
+    aliases: ['YTW Raise', 'Prone Raise'],
+    pattern: 'isolation',
+    primaryMuscles: ['rear_delts'],
+    secondaryMuscles: ['upper_back'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 20],
+    cue: 'Face down on a bench or the floor. Thumbs up, squeeze the shoulder blades, not the lower back.',
+    usesBodyweight: true,
+    // Reasoned, not measured — only the arms move against gravity. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.15,
+    role: 'prescribed',
+  },
+  {
+    id: 'burpees',
+    name: 'Burpees',
+    aliases: [],
+    pattern: 'cardio',
+    primaryMuscles: ['cardio'],
+    secondaryMuscles: ['chest', 'quads'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [10, 30],
+    cue: 'Chest to the floor, full jump at the top. Keep the pace honest.',
+    usesBodyweight: true,
+    // Reasoned, not measured — full body through the rep, close to a pushup-plus-jump. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.7,
+    role: 'prescribed',
+  },
+  {
+    id: 'outdoor-run',
+    name: 'Outdoor Run',
+    aliases: ['Run', 'Jog'],
+    pattern: 'cardio',
+    primaryMuscles: ['cardio'],
+    secondaryMuscles: [],
+    equipment: ['bodyweight'],
+    unit: 'time',
+    increment: 0,
+    repRange: [1, 1],
+    cue: 'Same walk-run structure as the treadmill: five easy, five hard, repeated.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
+    id: 'plank-shoulder-tap',
+    name: 'Plank Shoulder Tap',
+    aliases: ['Shoulder Tap Plank'],
+    pattern: 'core',
+    primaryMuscles: ['obliques'],
+    secondaryMuscles: ['abs'],
+    equipment: ['bodyweight'],
+    unit: 'reps',
+    increment: 0,
+    repRange: [16, 24],
+    // Anti-rotation core work, the bodyweight stand-in for the Pallof Press —
+    // spine stability, not hypertrophy, so the stretch standard does not
+    // apply here. No progressionLadder for the same reason Pallof Press has
+    // none: there is nothing to advance toward, only more control.
+    cue: 'Plank on the hands, feet a little wider than normal for stability. Tap the opposite shoulder with one hand without letting the hips rotate or sag.',
+    usesBodyweight: true,
+    // Reasoned, not measured — same order as Side Plank: roughly half the
+    // body's mass, borne along the arms and feet. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
+    bodyweightFactor: 0.5,
+    role: 'prescribed',
+  },
+  /* ---------------- Fallback library ----------------
+   * Never prescribed, never a routine default, never promoted by mastering
+   * one. Exists only so `substitutesFor` (commit 5) has an answer for the
+   * groups the equipment-desert audit found (commit 5d33216). Two entries
+   * from that table are deliberately absent: Skipping (needs a jump rope,
+   * which is not in EquipmentSchema) and Plate Raise (needs a loose plate,
+   * same gap) — both would have to be tagged with equipment they do not
+   * really require, which is worse than seeding one fewer exercise.
+   */
   {
     id: 'single-arm-dumbbell-row',
     name: 'Single-arm Dumbbell Row (No Bench)',
@@ -882,23 +1400,6 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Lead with the elbows. Stop at shoulder height.',
     usesBodyweight: false,
     bodyweightFactor: 1,
-    role: 'fallback',
-  },
-  {
-    id: 'prone-ytw-raise',
-    name: 'Prone Y-T-W Raise',
-    aliases: ['YTW Raise', 'Prone Raise'],
-    pattern: 'isolation',
-    primaryMuscles: ['rear_delts'],
-    secondaryMuscles: ['upper_back'],
-    equipment: ['bodyweight'],
-    unit: 'reps',
-    increment: 0,
-    repRange: [10, 20],
-    cue: 'Face down on a bench or the floor. Thumbs up, squeeze the shoulder blades, not the lower back.',
-    usesBodyweight: true,
-    // Reasoned, not measured — only the arms move against gravity. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.15,
     role: 'fallback',
   },
   {
@@ -952,40 +1453,6 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     role: 'fallback',
   },
   {
-    id: 'single-leg-glute-bridge',
-    name: 'Single-leg Glute Bridge',
-    aliases: ['Single Leg Hip Bridge'],
-    pattern: 'hinge',
-    primaryMuscles: ['hamstrings'],
-    secondaryMuscles: ['glutes'],
-    equipment: ['bodyweight'],
-    unit: 'reps',
-    increment: 0,
-    repRange: [10, 20],
-    cue: 'One foot down, hips square. Squeeze at the top, control the lower.',
-    usesBodyweight: true,
-    // Reasoned, not measured — one leg carries the hips, not the whole body. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.35,
-    role: 'fallback',
-  },
-  {
-    id: 'split-squat',
-    name: 'Split Squat',
-    aliases: ['Bulgarian Split Squat', 'Rear-foot Elevated Split Squat'],
-    pattern: 'lunge',
-    primaryMuscles: ['quads'],
-    secondaryMuscles: ['glutes'],
-    equipment: ['bodyweight'],
-    unit: 'reps',
-    increment: 0,
-    repRange: [10, 20],
-    cue: 'Rear foot elevated if you have something to put it on. Front shin stays vertical.',
-    usesBodyweight: true,
-    // Reasoned, not measured — one leg carries nearly the whole body through the rep. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.85,
-    role: 'fallback',
-  },
-  {
     id: 'wall-sit',
     name: 'Wall Sit',
     aliases: [],
@@ -1005,25 +1472,6 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     role: 'fallback',
   },
   {
-    id: 'standing-calf-raise',
-    name: 'Standing Calf Raise',
-    aliases: ['Bodyweight Calf Raise'],
-    pattern: 'isolation',
-    primaryMuscles: ['calves'],
-    secondaryMuscles: [],
-    equipment: ['bodyweight'],
-    unit: 'reps',
-    increment: 0,
-    repRange: [15, 30],
-    cue: 'Full stretch at the bottom, pause at the top.',
-    usesBodyweight: true,
-    // Genuinely unsourced — how much a two-footed raise is worth versus a
-    // loaded barbell calf raise is not something this estimate is confident
-    // about. Flagged rather than presented as measured. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.9,
-    role: 'fallback',
-  },
-  {
     id: 'stair-climb',
     name: 'Stair Climb',
     aliases: ['Stairs', 'Stair Sprints'],
@@ -1037,39 +1485,6 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Steady pace up, walk down to recover. Repeat for the interval.',
     usesBodyweight: false,
     bodyweightFactor: 1,
-    role: 'fallback',
-  },
-  {
-    id: 'outdoor-run',
-    name: 'Outdoor Run',
-    aliases: ['Run', 'Jog'],
-    pattern: 'cardio',
-    primaryMuscles: ['cardio'],
-    secondaryMuscles: [],
-    equipment: ['bodyweight'],
-    unit: 'time',
-    increment: 0,
-    repRange: [1, 1],
-    cue: 'Same walk-run structure as the treadmill: five easy, five hard, repeated.',
-    usesBodyweight: false,
-    bodyweightFactor: 1,
-    role: 'fallback',
-  },
-  {
-    id: 'burpees',
-    name: 'Burpees',
-    aliases: [],
-    pattern: 'cardio',
-    primaryMuscles: ['cardio'],
-    secondaryMuscles: ['chest', 'quads'],
-    equipment: ['bodyweight'],
-    unit: 'reps',
-    increment: 0,
-    repRange: [10, 30],
-    cue: 'Chest to the floor, full jump at the top. Keep the pace honest.',
-    usesBodyweight: true,
-    // Reasoned, not measured — full body through the rep, close to a pushup-plus-jump. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.7,
     role: 'fallback',
   },
 
@@ -1093,56 +1508,6 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     cue: 'Lying on your side, elbow at 90 degrees and pinned to the ribs. Rotate the forearm up, nothing else moves.',
     usesBodyweight: false,
     bodyweightFactor: 1,
-    role: 'fallback',
-  },
-  {
-    id: 'dead-hang',
-    name: 'Dead Hang',
-    aliases: ['Bar Hang', 'Timed Hang'],
-    pattern: 'isolation',
-    primaryMuscles: ['grip'],
-    secondaryMuscles: ['forearms', 'lats'],
-    equipment: ['pullup_bar', 'bodyweight'],
-    unit: 'time',
-    increment: 0,
-    repRange: [1, 1],
-    cue: 'Full hang, shoulders relaxed. Hold until the grip, not the shoulders, gives out.',
-    usesBodyweight: false,
-    bodyweightFactor: 1,
-    role: 'fallback',
-  },
-  {
-    id: 'side-plank',
-    name: 'Side Plank',
-    aliases: ['Side Bridge'],
-    pattern: 'core',
-    primaryMuscles: ['obliques'],
-    secondaryMuscles: ['abs'],
-    equipment: ['bodyweight'],
-    unit: 'time',
-    increment: 0,
-    repRange: [1, 1],
-    cue: 'Straight line from ankles to shoulders. Hips up and held, not sagging.',
-    usesBodyweight: true,
-    // Reasoned, not measured — roughly half the body's mass, borne along the forearm and feet. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.5,
-    role: 'fallback',
-  },
-  {
-    id: 'glute-bridge',
-    name: 'Glute Bridge',
-    aliases: ['Hip Bridge', 'Bodyweight Glute Bridge'],
-    pattern: 'hinge',
-    primaryMuscles: ['glutes'],
-    secondaryMuscles: ['hamstrings'],
-    equipment: ['bodyweight'],
-    unit: 'reps',
-    increment: 0,
-    repRange: [12, 20],
-    cue: 'Two feet down, squeeze at the top, ribs down rather than arching the back.',
-    usesBodyweight: true,
-    // Reasoned, not measured — both legs share the load, so less per leg than the single-leg version. See docs/TODO.md's Exercise substitution entry (commit 5ce8d44).
-    bodyweightFactor: 0.55,
     role: 'fallback',
   },
   {
@@ -1301,6 +1666,116 @@ export const SEED_ROUTINES: readonly Routine[] = [
   },
 ]
 
+/**
+ * The bodyweight hunter's own six gates (docs/bodyweight-gates-plan.md §4).
+ * Same six `dayOfWeek` values as `SEED_ROUTINES`, so `weekDayStatus`, streaks
+ * and gate ranks all work unchanged — only which routine set gets seeded
+ * differs, decided in `domain/equipment.ts`'s selection rule. Ids are `bw-`
+ * prefixed so the two sets can never collide.
+ *
+ * Every exercise below is deliberately reachable with nothing more than
+ * `['bodyweight', 'pullup_bar']` — the plan's baseline tier — which is what
+ * `seed.test.ts` enforces. That ruled out `incline-pushups`, whose easiest
+ * rung needs a bench: Thursday opens on plain Pushups instead, one rung up
+ * the same ladder.
+ */
+export const SEED_ROUTINES_BODYWEIGHT: readonly Routine[] = [
+  {
+    id: 'bw-monday-push',
+    dayOfWeek: 1,
+    name: 'Push Gate',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'deficit-pushups', sets: 4, repRange: [8, 20], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'pike-pushups', sets: 3, repRange: [8, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'diamond-pushups', sets: 3, repRange: [8, 20], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+    ],
+  },
+  {
+    id: 'bw-tuesday-pull',
+    dayOfWeek: 2,
+    name: 'Pull Gate',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'pull-ups', sets: 5, repRange: [5, 12], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'inverted-row', sets: 4, repRange: [8, 15], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'chin-ups', sets: 4, repRange: [4, 12], restSec: 90 }] },
+      // Rear delts get direct work twice this week (here and Monday) for the
+      // same reason cable-external-rotation and machine-shoulder-press
+      // repeat Monday+Thursday in the barbell week: a small, easily-
+      // neglected group earns frequency, not just a single weekly set block.
+      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'dead-hang', sets: 3, repRange: [1, 1], restSec: 75 }] },
+    ],
+  },
+  {
+    id: 'bw-wednesday-lower-core',
+    dayOfWeek: 3,
+    name: 'Lower and Core Gate',
+    gateRank: 'D',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'split-squat', sets: 3, repRange: [10, 20], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'sliding-leg-curl', sets: 3, repRange: [8, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'single-leg-calf-raise', sets: 4, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'side-plank', sets: 2, repRange: [1, 1], restSec: 45 }] },
+      { type: 'single', items: [{ exerciseId: 'plank-shoulder-tap', sets: 3, repRange: [16, 24], restSec: 60 }] },
+    ],
+  },
+  {
+    id: 'bw-thursday-push-supersets',
+    dayOfWeek: 4,
+    name: 'Push Gate (Supersets)',
+    gateRank: 'C',
+    // Ascending difficulty across the pairs, same shape as the barbell
+    // week's Thursday — pushups (easiest bodyweight-only rung available,
+    // since Incline Pushups needs a bench this baseline tier does not
+    // guarantee) through to Archer Pushups alone.
+    blocks: [
+      {
+        type: 'superset',
+        items: [
+          { exerciseId: 'pushups', sets: 3, repRange: [10, 30], restSec: 0 },
+          { exerciseId: 'pike-pushups', sets: 3, repRange: [8, 15], restSec: 90 },
+        ],
+      },
+      {
+        type: 'superset',
+        items: [
+          { exerciseId: 'diamond-pushups', sets: 3, repRange: [8, 20], restSec: 0 },
+          { exerciseId: 'deficit-pushups', sets: 3, repRange: [8, 20], restSec: 90 },
+        ],
+      },
+      { type: 'single', items: [{ exerciseId: 'archer-pushups', sets: 3, repRange: [4, 12], restSec: 90 }] },
+    ],
+  },
+  {
+    id: 'bw-friday-legs',
+    dayOfWeek: 5,
+    name: 'Legs Gate',
+    gateRank: 'B',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'sissy-squat', sets: 3, repRange: [8, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'deficit-split-squat', sets: 3, repRange: [8, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'single-leg-glute-bridge', sets: 3, repRange: [10, 20], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'nordic-curl', sets: 2, repRange: [3, 10], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'deficit-single-leg-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
+    ],
+  },
+  {
+    id: 'bw-saturday-cardio-core',
+    dayOfWeek: 6,
+    name: 'Cardio and Core Gate',
+    gateRank: 'D',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'leg-raises', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'hanging-leg-raises', sets: 3, repRange: [8, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'side-plank', sets: 2, repRange: [1, 1], restSec: 45 }] },
+      { type: 'single', items: [{ exerciseId: 'outdoor-run', sets: 1, repRange: [1, 1], restSec: 0 }] },
+    ],
+  },
+]
+
 /** Lookup by id, for the many callers that resolve an exercise from a set log. */
 export const SEED_EXERCISE_BY_ID: ReadonlyMap<string, Exercise> = new Map(
   SEED_EXERCISES.map((exercise) => [exercise.id, exercise]),
@@ -1308,8 +1783,4 @@ export const SEED_EXERCISE_BY_ID: ReadonlyMap<string, Exercise> = new Map(
 
 export function seedExercise(id: string): Exercise | undefined {
   return SEED_EXERCISE_BY_ID.get(id)
-}
-
-export function routineForDayOfWeek(dayOfWeek: number): Routine | undefined {
-  return SEED_ROUTINES.find((routine) => routine.dayOfWeek === dayOfWeek)
 }

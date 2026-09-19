@@ -14,7 +14,7 @@
  * behaviour here is the visual grouping, not the rest logic.
  */
 import { lazy, Suspense, useMemo, useState, type ReactNode } from 'react'
-import { createRoute } from '@tanstack/react-router'
+import { createRoute, redirect } from '@tanstack/react-router'
 import { Dumbbell } from 'lucide-react'
 import { ChoiceGroup, type ChoiceOption } from '../../components/ChoiceGroup'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -34,6 +34,7 @@ import {
   type RedGate,
   type WeekDayStatus,
 } from '../../domain/gates'
+import { effectiveEquipment } from '../../domain/equipment'
 import { dropSuperseded } from '../../domain/projection'
 import type { NextTarget, ProgressionKind } from '../../domain/progression'
 import type { SubstituteCandidate } from '../../domain/substitution'
@@ -64,6 +65,13 @@ import { rootRoute } from './root'
 export const gateRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/gate',
+  // Same guard as index.tsx. Matters more than it used to: routine seeding
+  // is no longer unconditional (docs/bodyweight-gates-plan.md §5), so a
+  // pre-profile visit now finds `state.routines` genuinely empty rather than
+  // pre-populated with the barbell six.
+  beforeLoad: () => {
+    if (!useApp.getState().profile) throw redirect({ to: '/awaken' })
+  },
   component: TodaysGateScreen,
 })
 
@@ -320,7 +328,7 @@ function TodaysGateScreen() {
       ) : null}
 
       <InstantDungeonPanel
-        equipmentAccess={profile?.equipmentAccess ?? []}
+        equipmentAccess={effectiveEquipment(profile?.equipmentAccess)}
         exercises={exercises}
       />
 
@@ -409,9 +417,9 @@ function InstantDungeonPanel({
 }) {
   const startInstantDungeon = useApp((s) => s.startInstantDungeon)
   const [open, setOpen] = useState(false)
-  const [available, setAvailable] = useState<Equipment[]>(
-    equipmentAccess.length > 0 ? equipmentAccess : ['bodyweight'],
-  )
+  // equipmentAccess always carries 'bodyweight' (effectiveEquipment), so no
+  // empty-array fallback is needed here any more.
+  const [available, setAvailable] = useState<Equipment[]>(equipmentAccess)
   const [starting, setStarting] = useState(false)
 
   const preview = useMemo(

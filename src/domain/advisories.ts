@@ -10,8 +10,9 @@
  * the seed routines, so it stops firing if the hunter fixes the gap and starts
  * firing again if a new one appears.
  */
+import { effectiveEquipment, isBodyweightProgramme } from './equipment'
 import { LANDMARKS } from './volume'
-import type { Exercise, Muscle, MovementPattern, Routine } from './types'
+import type { Equipment, Exercise, Muscle, MovementPattern, Routine } from './types'
 
 export type AdvisorySeverity = 'note' | 'gap' | 'imbalance'
 
@@ -32,6 +33,13 @@ export interface AdvisoryInput {
   resolveExercise: (id: string) => Exercise | undefined
   /** Weighted weekly hard sets per muscle, from `weeklyVolumeReport`. */
   weeklySetsByMuscle: ReadonlyMap<Muscle, number>
+  /**
+   * What the hunter has, straight from the profile. Read through
+   * `effectiveEquipment`/`isBodyweightProgramme` (equipment.ts) rather than
+   * used raw — see docs/bodyweight-gates-plan.md §2 on why the raw array
+   * lies about `bodyweight`.
+   */
+  equipmentAccess: readonly Equipment[]
 }
 
 interface WeekShape {
@@ -255,6 +263,43 @@ export function detectAdvisories(input: AdvisoryInput): Advisory[] {
         'The cuff muscles hold the head of the humerus in the socket while the big pressing muscles move the arm. With two pressing days and no cuff work, the stabilisers become the weak link in a joint that is being loaded hard twice a week.',
       suggestion:
         'Two sets of cable or band external rotations after either pressing day. Light load, slow, high reps.',
+    })
+  }
+
+  // The two bodyweight-specific advisories below (docs/bodyweight-gates-plan.md
+  // §6) key off equipment access itself rather than the routine, unlike
+  // everything above. They are not tuning notes about a programme that could
+  // be rearranged — they describe a hard equipment constraint the current
+  // library has no bodyweight answer for at all, so the fix is acquiring the
+  // equipment, not moving sets around the week.
+
+  /* ---- bodyweight programme, no pull-up bar ---- */
+  if (isBodyweightProgramme(input.equipmentAccess) && !effectiveEquipment(input.equipmentAccess).includes('pullup_bar')) {
+    advisories.push({
+      id: 'no-pullup-bar',
+      severity: 'gap',
+      title: 'No pull-up bar',
+      finding:
+        'Nothing in the week trains lats, upper back, or biceps at all — there is no vertical or horizontal pull without something to hang from.',
+      why:
+        'A pull and a push are opposite ends of the same joints. Training one without the other pulls the shoulders forward over time, and leaves the entire back undertrained relative to the chest with no other way to make it up.',
+      suggestion:
+        'A doorway pull-up bar is inexpensive and is the single highest-value thing to add — it unlocks Pull-ups, Inverted Rows, and everything on their ladders in one purchase.',
+    })
+  }
+
+  /* ---- bodyweight programme, nothing can add load ---- */
+  if (isBodyweightProgramme(input.equipmentAccess)) {
+    advisories.push({
+      id: 'no-external-load',
+      severity: 'gap',
+      title: 'Nothing here can add load',
+      finding:
+        'Side delts, rotator cuff, traps, and forearms have no bodyweight movement in the library that trains them directly.',
+      why:
+        'These four groups only really respond to something pressing, pulling, or twisting against them from outside the body — a lateral raise, a shrug, an external rotation, a wrist curl. No bodyweight position replicates that resistance, so they sit below the growth floor no matter how the week is arranged.',
+      suggestion:
+        'A single light dumbbell or a set of resistance bands closes all four gaps at once, without needing a full gym.',
     })
   }
 

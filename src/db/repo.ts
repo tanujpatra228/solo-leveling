@@ -11,7 +11,7 @@
 import * as z from 'zod'
 import type { Table } from 'dexie'
 import { db, type Allocation, type DeclaredAbsence, type Progress, type SyncState } from './db'
-import { SEED_EXERCISES, SEED_ROUTINES } from './seed'
+import { SEED_EXERCISES, SEED_ROUTINES, SEED_ROUTINES_BODYWEIGHT } from './seed'
 import { createIdentity, identityFromSecret, type Identity } from '../sync/identity'
 import {
   BodyMetricSchema,
@@ -23,7 +23,9 @@ import {
   SetLogSchema,
   SettingsSchema,
   ShadowSchema,
+  type BlockItem,
   type BodyMetric,
+  type Equipment,
   type Exercise,
   type PersonalRecord,
   type Profile,
@@ -37,6 +39,7 @@ import {
   type SubstitutionReason,
   type Title,
 } from '../domain/types'
+import { isBodyweightProgramme } from '../domain/equipment'
 import { toDayKey } from '../domain/time'
 import { ZERO_STATS } from '../domain/stats'
 
@@ -97,24 +100,25 @@ const DEFAULT_PROGRESS: Progress = {
 }
 
 /**
- * Puts the exercise library and routines in place. Safe to call on every start.
+ * Puts the exercise library in place. Safe to call on every start, including
+ * the very first, when no profile exists yet and equipment access is
+ * therefore unknowable.
  *
- * Exercises and routines differ on purpose. Exercises are seed data the
- * hunter never edits, so they are upserted unconditionally (`bulkPut`) —
- * otherwise a shipped correction to the library (a fixed `bodyweightFactor`,
- * a new fallback) never reaches a device that was already seeded before it
- * existed; it just keeps reading the old row back through Zod's default
- * forever (F1). Routines will become user-editable, so
- * they stay add-only (`bulkAdd` of whatever id is missing) — overwriting one
- * on every load would silently discard a hunter's edit.
+ * Exercises are seed data the hunter never edits, so they are upserted
+ * unconditionally (`bulkPut`) — otherwise a shipped correction to the
+ * library (a fixed `bodyweightFactor`, a new fallback) never reaches a
+ * device that was already seeded before it existed; it just keeps reading
+ * the old row back through Zod's default forever (F1).
+ *
+ * Routines used to seed here too, unconditionally and add-only. That is
+ * exactly what put the barbell six on a bodyweight hunter's phone before a
+ * profile — and therefore equipment access — existed to pick the right set:
+ * see docs/bodyweight-gates-plan.md §1. Routine seeding now happens only in
+ * `reconcileRoutines`, which needs a profile to call it with.
  */
 export async function ensureSeeded(): Promise<void> {
-  await db.transaction('rw', db.exercises, db.routines, db.settings, db.progress, async () => {
+  await db.transaction('rw', db.exercises, db.settings, db.progress, async () => {
     await db.exercises.bulkPut(SEED_EXERCISES as Exercise[])
-
-    const existingRoutineIds = new Set(await db.routines.toCollection().primaryKeys())
-    const missingRoutines = SEED_ROUTINES.filter((r) => !existingRoutineIds.has(r.id))
-    if (missingRoutines.length > 0) await db.routines.bulkAdd(missingRoutines as Routine[])
 
     if (!(await db.settings.get('settings'))) {
       await db.settings.put({ ...DEFAULT_SETTINGS, updatedAt: Date.now() })
@@ -122,6 +126,85 @@ export async function ensureSeeded(): Promise<void> {
     if (!(await db.progress.get('state'))) {
       await db.progress.put({ ...DEFAULT_PROGRESS, updatedAt: Date.now() })
     }
+  })
+}
+
+function blockItemEquals(a: BlockItem, b: BlockItem): boolean {
+  return (
+    a.exerciseId === b.exerciseId &&
+    a.sets === b.sets &&
+    a.restSec === b.restSec &&
+    a.repRange[0] === b.repRange[0] &&
+    a.repRange[1] === b.repRange[1]
+  )
+}
+
+function routineEquals(a: Routine, b: Routine): boolean {
+  if (a.id !== b.id || a.dayOfWeek !== b.dayOfWeek || a.name !== b.name || a.gateRank !== b.gateRank) return false
+  if (a.blocks.length !== b.blocks.length) return false
+  return a.blocks.every((blockA, i) => {
+    const blockB = b.blocks[i]!
+    if (blockA.type !== blockB.type || blockA.items.length !== blockB.items.length) return false
+    return blockA.items.every((itemA, j) => blockItemEquals(itemA, blockB.items[j]!))
+  })
+}
+
+const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
+  [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT].map((r) => [r.id, r]),
+)
+
+/**
+ * Brings the seeded routine set in line with what `equipmentAccess` implies
+ * — bodyweight or barbell — replacing it wholesale, but only when doing so
+ * is provably safe. See docs/bodyweight-gates-plan.md §5b.
+ *
+ * Add-only routine seeding exists to protect a hunter's future edits, but
+ * there is no routine-edit path in the app yet, so every routine row on
+ * every device today is byte-identical to one of the two seed sets — every
+ * row, checked, not assumed. That is what lets this function prove a
+ * replace discards nothing. The day routine editing ships, that proof stops
+ * holding and this function has to change with it, not just its assumption.
+ *
+ * Deferred entirely while a session is open: `gate.tsx` and `state.ts` both
+ * resolve a session's own routine by id, and deleting it out from under an
+ * in-progress session would break that resolution mid-workout.
+ */
+export async function reconcileRoutines(equipmentAccess: readonly Equipment[]): Promise<void> {
+  const wanted = isBodyweightProgramme(equipmentAccess) ? SEED_ROUTINES_BODYWEIGHT : SEED_ROUTINES
+
+  await db.transaction('rw', db.sessions, db.routines, async () => {
+    const openSession = await db.sessions.filter((s) => s.endedAt === null).first()
+    if (openSession) return
+
+    const existing = await parseAll(RoutineSchema, await db.routines.toArray(), 'routine')
+    const wantedIds = new Set(wanted.map((r) => r.id))
+    if (existing.length === wantedIds.size && existing.every((r) => wantedIds.has(r.id))) return // already matches
+
+    const isUntouched = existing.every((row) => {
+      const seedRow = ALL_SEED_ROUTINES_BY_ID.get(row.id)
+      return seedRow !== undefined && routineEquals(row, seedRow)
+    })
+    if (!isUntouched) return // a real edit exists (once routines are editable) — never discard it silently
+
+    // Gate history is derived from each ended session's own routineId
+    // (state.ts's clearedGates), not a separate table, so the remap is a
+    // direct rewrite of that field: same dayOfWeek, the new set's id for it.
+    // Without this, every gate cleared in the last 14 days stops matching
+    // and, past 7, breaks — charging BACKLOG_SURCHARGE for switching
+    // equipment.
+    const sessions = await db.sessions.toArray()
+    for (const routine of existing) {
+      const replacement = wanted.find((r) => r.dayOfWeek === routine.dayOfWeek)
+      if (!replacement || replacement.id === routine.id) continue
+      for (const session of sessions) {
+        if (session.routineId === routine.id) {
+          await db.sessions.update(session.id, { routineId: replacement.id })
+        }
+      }
+    }
+
+    await db.routines.clear()
+    await db.routines.bulkAdd(wanted as Routine[])
   })
 }
 
