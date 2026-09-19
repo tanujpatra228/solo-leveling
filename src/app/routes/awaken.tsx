@@ -14,6 +14,7 @@ import { ChoiceGroup } from '../../components/ChoiceGroup'
 import { NumberField } from '../../components/NumberField'
 import { SystemValue } from '../../components/SystemValue'
 import { SystemWindow } from '../../components/SystemWindow'
+import { applyEquipmentSelection } from '../../domain/equipment'
 import { formatHeight, formatLength, formatWeight, parseHeightToCm, parseWeightToKg } from '../../domain/units'
 import type { Equipment, Sex, UnitPref } from '../../domain/types'
 import {
@@ -50,19 +51,22 @@ const STEP_TITLES: Record<AwakeningStepId, string> = {
   physique: 'Physique',
 }
 
+// 'none' is left out on purpose (see domain/equipment.ts's effectiveEquipment) —
+// zero exercises are tagged with it, and it is a redundant synonym for
+// bodyweight-with-nothing-else. Still a valid Equipment value for already-
+// stored profiles; just not offered here.
 const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
   { value: 'barbell', label: 'Barbell' },
   { value: 'dumbbell', label: 'Dumbbell' },
   { value: 'machine', label: 'Machine' },
   { value: 'cable', label: 'Cable' },
-  { value: 'bodyweight', label: 'Bodyweight only' },
+  { value: 'bodyweight', label: 'Bodyweight' },
   { value: 'pullup_bar', label: 'Pull-up bar' },
   { value: 'bench', label: 'Bench' },
   { value: 'ez_bar', label: 'EZ bar' },
   { value: 'kettlebell', label: 'Kettlebell' },
   { value: 'bands', label: 'Bands' },
   { value: 'treadmill', label: 'Treadmill' },
-  { value: 'none', label: 'None of the above' },
 ]
 
 function hasAnyPhysique(answers: AwakeningAnswers): boolean {
@@ -287,16 +291,35 @@ function StepBody({
         </label>
       )
 
-    case 'equipment':
+    case 'equipment': {
+      const current = answers.equipmentAccess ?? []
       return (
-        <ChoiceGroup<Equipment>
-          label="Equipment access"
-          multi
-          options={EQUIPMENT_OPTIONS}
-          value={answers.equipmentAccess ?? []}
-          onChange={(value) => onChange({ equipmentAccess: value })}
-        />
+        <div className="flex flex-col gap-3">
+          <ChoiceGroup<Equipment>
+            label="Equipment access"
+            multi
+            options={EQUIPMENT_OPTIONS}
+            value={current}
+            onChange={(next) => {
+              // ChoiceGroup toggles exactly one chip per click and hands back
+              // the whole resulting array — recover which one changed so the
+              // exclusivity rule (domain/equipment.ts) can be applied to it,
+              // rather than reimplementing toggle logic here.
+              const toggled =
+                next.length > current.length
+                  ? next.find((v) => !current.includes(v))
+                  : current.find((v) => !next.includes(v))
+              if (!toggled) return
+              onChange({ equipmentAccess: applyEquipmentSelection(current, toggled) })
+            }}
+          />
+          <p className="font-system text-[11px] text-ink-faint">
+            Bodyweight clears weights and machines, since the two describe different
+            programmes. A pull-up bar or a bench can stay ticked with either.
+          </p>
+        </div>
       )
+    }
 
     case 'physique':
       return (

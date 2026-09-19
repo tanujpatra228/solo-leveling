@@ -34,6 +34,7 @@ import {
   type RedGate,
   type WeekDayStatus,
 } from '../../domain/gates'
+import { effectiveEquipment } from '../../domain/equipment'
 import { dropSuperseded } from '../../domain/projection'
 import type { NextTarget, ProgressionKind } from '../../domain/progression'
 import type { SubstituteCandidate } from '../../domain/substitution'
@@ -320,7 +321,7 @@ function TodaysGateScreen() {
       ) : null}
 
       <InstantDungeonPanel
-        equipmentAccess={profile?.equipmentAccess ?? []}
+        equipmentAccess={effectiveEquipment(profile?.equipmentAccess)}
         exercises={exercises}
       />
 
@@ -409,9 +410,9 @@ function InstantDungeonPanel({
 }) {
   const startInstantDungeon = useApp((s) => s.startInstantDungeon)
   const [open, setOpen] = useState(false)
-  const [available, setAvailable] = useState<Equipment[]>(
-    equipmentAccess.length > 0 ? equipmentAccess : ['bodyweight'],
-  )
+  // equipmentAccess always carries 'bodyweight' (effectiveEquipment), so no
+  // empty-array fallback is needed here any more.
+  const [available, setAvailable] = useState<Equipment[]>(equipmentAccess)
   const [starting, setStarting] = useState(false)
 
   const preview = useMemo(

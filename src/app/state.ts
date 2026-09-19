@@ -31,6 +31,7 @@ import {
 } from '../domain/projection'
 import { computeNextTarget, type NextTarget } from '../domain/progression'
 import { substitutesFor, type SubstituteCandidate } from '../domain/substitution'
+import { effectiveEquipment } from '../domain/equipment'
 import { extractShadow, shouldExtract } from '../domain/shadows'
 import {
   buildInstantDungeon,
@@ -716,7 +717,7 @@ export const useApp = create<AppState>((set, get) => ({
       targetsByExerciseId[exercise.id] = computeNextTarget(exercise, blockItem?.sets ?? 3, {
         lastSets: lastSetsForExercise(exercise.id, state.sessions, state.sets),
         age: projection.age ?? undefined,
-        equipmentAccess: state.profile?.equipmentAccess,
+        equipmentAccess: effectiveEquipment(state.profile?.equipmentAccess),
         resolveExercise,
         repRangeOverride: blockItem?.repRange,
       })
@@ -730,7 +731,7 @@ export const useApp = create<AppState>((set, get) => ({
     for (const exercise of state.exercises) {
       substitutesByExerciseId[exercise.id] = substitutesFor(exercise, {
         exercises: state.exercises,
-        equipmentAccess: state.profile?.equipmentAccess ?? [],
+        equipmentAccess: effectiveEquipment(state.profile?.equipmentAccess),
         routine: targetRoutine ?? null,
       })
     }
