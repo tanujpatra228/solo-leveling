@@ -7,11 +7,12 @@
  * The SVGs are a two-view anatomical illustration with ~90 individually
  * id'd regions (`BodyMap.tsx` recolors any of them via scoped CSS). Most of
  * this app's 20 `Muscle` values map straight onto one region's *wrapping*
- * group id — e.g. `#rectus-abdominis` covers every one of the six-pack's
- * sub-segments, since the CSS rule targets `#id path` (every descendant),
- * not just direct children. A few map onto several sibling ids at once
- * (`hamstrings` has no single wrapping group across its three heads in this
- * atlas, so all three are listed).
+ * group id, since the CSS rule targets `#id path` (every descendant), not
+ * just direct children. A few map onto several sibling ids at once —
+ * `hamstrings` has no single wrapping group across its three heads in this
+ * atlas, so all three are listed; `abs` lists its ten ids individually
+ * rather than the `rectus-abdominis` wrapper (see the comment at `abs`
+ * below for why).
  *
  * Two approximations, both because the illustration doesn't distinguish
  * further:
@@ -56,8 +57,48 @@ export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
     front: ['forearm-distal-muscles', 'forearm-superficial-flexors', 'brachioradialis', 'flexor-carpi-radialis', 'pronator-teres'],
     back: ['forearm-distal-extensors', 'extensor-digitorum', 'extensor-carpi-ulnaris', 'anconeus', 'brachioradialis-posterior'],
   },
-  abs: { kind: 'silhouette', front: ['rectus-abdominis'] },
-  obliques: { kind: 'silhouette', front: ['external-oblique'] },
+  // Explicit sub-groups, not the `rectus-abdominis` wrapper: the source SVG
+  // nests `external-oblique-upper-segment` and
+  // `external-oblique-middle-segment` inside that wrapper as siblings of the
+  // real abs segments, so `#rectus-abdominis path` was lighting up obliques
+  // on every abs exercise regardless of that exercise's actual secondary
+  // muscles. Those two ids are listed under `obliques` below instead.
+  //
+  // The six `rectus-abdominis-*-segment` ids are only the six-pack's visible
+  // bulges, drawn as two columns hugging the flanks — the linea-alba strip
+  // down the middle is its own four ids (`thoracic-`, `upper-abdominal-`,
+  // `middle-abdominal-`, `lower-abdominal-aponeurosis`), previously
+  // unreferenced. Without them the highlight read as two side stripes with a
+  // hollow belly, not "abs".
+  //
+  // `mid-abdominal-aponeurosis-overlay-left/right-01` are two more paths this
+  // component added ids to (they had none in the source file): a second,
+  // undocumented pair of shapes covering the same area as
+  // `upper-abdominal-aponeurosis` + `middle-abdominal-aponeurosis` combined,
+  // drawn on top of them in the original artwork. Left uncoloured, they sat
+  // over the highlighted aponeurosis underneath and hid it — the mid-abs
+  // highlight read as a dark hole between the upper and lower thirds.
+  abs: {
+    kind: 'silhouette',
+    front: [
+      'rectus-abdominis-top-segment',
+      'rectus-abdominis-upper-segment',
+      'rectus-abdominis-upper-middle-segment',
+      'thoracic-aponeurosis',
+      'upper-abdominal-aponeurosis',
+      'rectus-abdominis-middle-segment',
+      'rectus-abdominis-lower-middle-segment',
+      'rectus-abdominis-lower-segment',
+      'middle-abdominal-aponeurosis',
+      'lower-abdominal-aponeurosis',
+      'mid-abdominal-aponeurosis-overlay-left-01',
+      'mid-abdominal-aponeurosis-overlay-right-01',
+    ],
+  },
+  obliques: {
+    kind: 'silhouette',
+    front: ['external-oblique', 'external-oblique-upper-segment', 'external-oblique-middle-segment'],
+  },
   traps: { kind: 'silhouette', front: ['upper-trapezius-and-clavicular-region'], back: ['trapezius'] },
   upper_back: { kind: 'silhouette', back: ['trapezius'] },
   lats: { kind: 'silhouette', back: ['latissimus-dorsi'] },
@@ -78,4 +119,49 @@ export function idsFor(muscle: Muscle, view: BodyMapView): readonly string[] {
   const mapping = MUSCLE_MAPPINGS[muscle]
   if (mapping.kind !== 'silhouette') return []
   return mapping[view] ?? []
+}
+
+/**
+ * Which third of the abdominal wall an exercise actually emphasises, keyed
+ * by exercise id rather than `Muscle` — the domain model tracks `abs` as one
+ * muscle (rectus abdominis is anatomically one sheet), so this split is
+ * presentation-only and never feeds volume, gates, or substitution.
+ *
+ * The three id lists below cut `abs`'s ten ids top-to-bottom into thirds
+ * (each pair of six-pack segments with the linea-alba strip(s) beside it).
+ * An exercise with no entry here renders `abs` uniformly, as before.
+ */
+export type AbsEmphasis = 'lower' | 'mid' | 'upper'
+
+export const ABS_EMPHASIS_BY_EXERCISE: Readonly<Record<string, AbsEmphasis>> = {
+  // Hip-flexion-driven: the pelvis curls up toward the ribs, loading the
+  // lower rectus abdominis hardest.
+  'leg-raises': 'lower',
+  'hanging-leg-raises': 'lower',
+  // Spinal-flexion-driven from a fixed pelvis: the ribs curl down toward the
+  // hips, loading the mid rectus abdominis hardest — not the very top, which
+  // sits close enough to the fixed attachment (the sternum/ribs) to do less
+  // work than the segments below it.
+  'cable-crunch': 'mid',
+  'machine-abs-crunch': 'mid',
+}
+
+const ABS_UPPER_IDS: readonly string[] = ['rectus-abdominis-top-segment', 'rectus-abdominis-upper-segment', 'thoracic-aponeurosis']
+const ABS_MID_IDS: readonly string[] = [
+  'rectus-abdominis-upper-middle-segment',
+  'rectus-abdominis-middle-segment',
+  'upper-abdominal-aponeurosis',
+  'middle-abdominal-aponeurosis',
+  'mid-abdominal-aponeurosis-overlay-left-01',
+  'mid-abdominal-aponeurosis-overlay-right-01',
+]
+const ABS_LOWER_IDS: readonly string[] = ['rectus-abdominis-lower-middle-segment', 'rectus-abdominis-lower-segment', 'lower-abdominal-aponeurosis']
+
+const ABS_THIRDS: Readonly<Record<AbsEmphasis, readonly string[]>> = { upper: ABS_UPPER_IDS, mid: ABS_MID_IDS, lower: ABS_LOWER_IDS }
+
+/** The emphasised third's ids and the other two thirds', for one `AbsEmphasis`. */
+export function absSegmentSplit(emphasis: AbsEmphasis): { emphasised: readonly string[]; rest: readonly string[] } {
+  const emphasised = ABS_THIRDS[emphasis]
+  const rest = (Object.keys(ABS_THIRDS) as AbsEmphasis[]).filter((third) => third !== emphasis).flatMap((third) => ABS_THIRDS[third])
+  return { emphasised, rest }
 }

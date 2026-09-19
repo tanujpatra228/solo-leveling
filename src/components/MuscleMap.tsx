@@ -7,7 +7,7 @@
  */
 import type { Muscle } from '../domain/types'
 import { BodyMap, type BodyMapView, type MuscleFillMap } from './anatomy/BodyMap'
-import { MUSCLE_MAPPINGS, idsFor, type MuscleMapping } from './muscleMapRegions'
+import { ABS_EMPHASIS_BY_EXERCISE, MUSCLE_MAPPINGS, absSegmentSplit, idsFor, type MuscleMapping } from './muscleMapRegions'
 
 type Tone = 'primary' | 'secondary'
 
@@ -33,11 +33,25 @@ function toneFor(muscle: Muscle, primary: ReadonlySet<Muscle>, secondary: Readon
 
 const MUSCLES = Object.keys(MUSCLE_MAPPINGS) as Muscle[]
 
-function fillsFor(view: BodyMapView, primary: ReadonlySet<Muscle>, secondary: ReadonlySet<Muscle>): MuscleFillMap {
+function fillsFor(
+  view: BodyMapView,
+  primary: ReadonlySet<Muscle>,
+  secondary: ReadonlySet<Muscle>,
+  exerciseId: string | undefined,
+): MuscleFillMap {
   const fills: MuscleFillMap = {}
   for (const muscle of MUSCLES) {
     const tone = toneFor(muscle, primary, secondary)
     if (!tone) continue
+    const emphasis = muscle === 'abs' && view === 'front' && exerciseId ? ABS_EMPHASIS_BY_EXERCISE[exerciseId] : undefined
+    if (emphasis) {
+      const { emphasised, rest } = absSegmentSplit(emphasis)
+      for (const id of emphasised) fills[id] = FILL[tone]
+      // The two thirds an exercise doesn't emphasise still train, just less —
+      // shown one tone down from whatever the emphasised third got.
+      for (const id of rest) fills[id] = FILL.secondary
+      continue
+    }
     for (const id of idsFor(muscle, view)) fills[id] = FILL[tone]
   }
   return fills
@@ -46,9 +60,11 @@ function fillsFor(view: BodyMapView, primary: ReadonlySet<Muscle>, secondary: Re
 export interface MuscleMapProps {
   primaryMuscles: readonly Muscle[]
   secondaryMuscles: readonly Muscle[]
+  /** When set and one of the muscles above is `abs`, narrows the highlight to that exercise's third of the six-pack. See `ABS_EMPHASIS_BY_EXERCISE`. */
+  exerciseId?: string
 }
 
-export function MuscleMap({ primaryMuscles, secondaryMuscles }: MuscleMapProps) {
+export function MuscleMap({ primaryMuscles, secondaryMuscles, exerciseId }: MuscleMapProps) {
   const primary = new Set(primaryMuscles)
   const secondary = new Set(secondaryMuscles)
 
@@ -62,7 +78,7 @@ export function MuscleMap({ primaryMuscles, secondaryMuscles }: MuscleMapProps) 
         <div className="flex flex-col items-center gap-1">
           <BodyMap
             view="front"
-            fills={fillsFor('front', primary, secondary)}
+            fills={fillsFor('front', primary, secondary, exerciseId)}
             baseFill={BASE_FILL}
             baseStroke={BASE_STROKE}
             className="[&_svg]:h-52 [&_svg]:w-auto"
@@ -72,7 +88,7 @@ export function MuscleMap({ primaryMuscles, secondaryMuscles }: MuscleMapProps) 
         <div className="flex flex-col items-center gap-1">
           <BodyMap
             view="back"
-            fills={fillsFor('back', primary, secondary)}
+            fills={fillsFor('back', primary, secondary, exerciseId)}
             baseFill={BASE_FILL}
             baseStroke={BASE_STROKE}
             className="[&_svg]:h-52 [&_svg]:w-auto"
