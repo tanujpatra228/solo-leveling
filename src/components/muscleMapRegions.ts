@@ -56,8 +56,27 @@ export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
     front: ['forearm-distal-muscles', 'forearm-superficial-flexors', 'brachioradialis', 'flexor-carpi-radialis', 'pronator-teres'],
     back: ['forearm-distal-extensors', 'extensor-digitorum', 'extensor-carpi-ulnaris', 'anconeus', 'brachioradialis-posterior'],
   },
-  abs: { kind: 'silhouette', front: ['rectus-abdominis'] },
-  obliques: { kind: 'silhouette', front: ['external-oblique'] },
+  // Six explicit sub-groups, not the `rectus-abdominis` wrapper: the source
+  // SVG nests `external-oblique-upper-segment` and
+  // `external-oblique-middle-segment` inside that wrapper as siblings of the
+  // real abs segments, so `#rectus-abdominis path` was lighting up obliques
+  // on every abs exercise regardless of that exercise's actual secondary
+  // muscles. Those two ids are listed under `obliques` below instead.
+  abs: {
+    kind: 'silhouette',
+    front: [
+      'rectus-abdominis-lower-segment',
+      'rectus-abdominis-upper-middle-segment',
+      'rectus-abdominis-middle-segment',
+      'rectus-abdominis-upper-segment',
+      'rectus-abdominis-lower-middle-segment',
+      'rectus-abdominis-top-segment',
+    ],
+  },
+  obliques: {
+    kind: 'silhouette',
+    front: ['external-oblique', 'external-oblique-upper-segment', 'external-oblique-middle-segment'],
+  },
   traps: { kind: 'silhouette', front: ['upper-trapezius-and-clavicular-region'], back: ['trapezius'] },
   upper_back: { kind: 'silhouette', back: ['trapezius'] },
   lats: { kind: 'silhouette', back: ['latissimus-dorsi'] },
