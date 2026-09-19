@@ -74,6 +74,16 @@ describe('MuscleMap', () => {
     expect(html).toMatch(/#rectus-abdominis-lower-segment[^{]*\{[^}]*var\(--color-system-dim\)/)
   })
 
+  it('colours the two un-id\'d overlay paths this app named, not just the aponeurosis groups underneath them', () => {
+    // anterior-outer-muscles.svg draws mid-abdominal-aponeurosis-overlay-left/right-01
+    // on top of upper-abdominal-aponeurosis + middle-abdominal-aponeurosis with no id
+    // of their own in the source file. Colouring only the groups underneath left the
+    // mid third looking like a dark hole, since the overlay painted over them.
+    const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['abs']} secondaryMuscles={[]} />)
+    expect(html).toMatch(/#mid-abdominal-aponeurosis-overlay-left-01[^{]*\{[^}]*var\(--color-system\)/)
+    expect(html).toMatch(/#mid-abdominal-aponeurosis-overlay-right-01[^{]*\{[^}]*var\(--color-system\)/)
+  })
+
   it('renders abs uniformly for an exercise id with no emphasis entry', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['abs']} secondaryMuscles={[]} exerciseId="side-plank" />)
     expect(html).toMatch(/#rectus-abdominis-top-segment[^{]*\{[^}]*var\(--color-system\)/)

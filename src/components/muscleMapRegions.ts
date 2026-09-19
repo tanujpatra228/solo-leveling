@@ -70,6 +70,14 @@ export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
   // `middle-abdominal-`, `lower-abdominal-aponeurosis`), previously
   // unreferenced. Without them the highlight read as two side stripes with a
   // hollow belly, not "abs".
+  //
+  // `mid-abdominal-aponeurosis-overlay-left/right-01` are two more paths this
+  // component added ids to (they had none in the source file): a second,
+  // undocumented pair of shapes covering the same area as
+  // `upper-abdominal-aponeurosis` + `middle-abdominal-aponeurosis` combined,
+  // drawn on top of them in the original artwork. Left uncoloured, they sat
+  // over the highlighted aponeurosis underneath and hid it — the mid-abs
+  // highlight read as a dark hole between the upper and lower thirds.
   abs: {
     kind: 'silhouette',
     front: [
@@ -83,6 +91,8 @@ export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
       'rectus-abdominis-lower-segment',
       'middle-abdominal-aponeurosis',
       'lower-abdominal-aponeurosis',
+      'mid-abdominal-aponeurosis-overlay-left-01',
+      'mid-abdominal-aponeurosis-overlay-right-01',
     ],
   },
   obliques: {
@@ -142,6 +152,8 @@ const ABS_MID_IDS: readonly string[] = [
   'rectus-abdominis-middle-segment',
   'upper-abdominal-aponeurosis',
   'middle-abdominal-aponeurosis',
+  'mid-abdominal-aponeurosis-overlay-left-01',
+  'mid-abdominal-aponeurosis-overlay-right-01',
 ]
 const ABS_LOWER_IDS: readonly string[] = ['rectus-abdominis-lower-middle-segment', 'rectus-abdominis-lower-segment', 'lower-abdominal-aponeurosis']
 
