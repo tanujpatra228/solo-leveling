@@ -682,6 +682,7 @@ export const useApp = create<AppState>((set, get) => ({
       routines: state.routines,
       resolveExercise,
       weeklySetsByMuscle: hardSetsPerMuscle(weekSets, resolveExercise),
+      equipmentAccess: effectiveEquipment(state.profile?.equipmentAccess),
     })
 
     // A gate stays open for the canon seven days. Sessions logged against a
