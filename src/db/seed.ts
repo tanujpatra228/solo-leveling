@@ -1666,6 +1666,116 @@ export const SEED_ROUTINES: readonly Routine[] = [
   },
 ]
 
+/**
+ * The bodyweight hunter's own six gates (docs/bodyweight-gates-plan.md §4).
+ * Same six `dayOfWeek` values as `SEED_ROUTINES`, so `weekDayStatus`, streaks
+ * and gate ranks all work unchanged — only which routine set gets seeded
+ * differs, decided in `domain/equipment.ts`'s selection rule. Ids are `bw-`
+ * prefixed so the two sets can never collide.
+ *
+ * Every exercise below is deliberately reachable with nothing more than
+ * `['bodyweight', 'pullup_bar']` — the plan's baseline tier — which is what
+ * `seed.test.ts` enforces. That ruled out `incline-pushups`, whose easiest
+ * rung needs a bench: Thursday opens on plain Pushups instead, one rung up
+ * the same ladder.
+ */
+export const SEED_ROUTINES_BODYWEIGHT: readonly Routine[] = [
+  {
+    id: 'bw-monday-push',
+    dayOfWeek: 1,
+    name: 'Push Gate',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'deficit-pushups', sets: 4, repRange: [8, 20], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'pike-pushups', sets: 3, repRange: [8, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'diamond-pushups', sets: 3, repRange: [8, 20], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+    ],
+  },
+  {
+    id: 'bw-tuesday-pull',
+    dayOfWeek: 2,
+    name: 'Pull Gate',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'pull-ups', sets: 5, repRange: [5, 12], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'inverted-row', sets: 4, repRange: [8, 15], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'chin-ups', sets: 4, repRange: [4, 12], restSec: 90 }] },
+      // Rear delts get direct work twice this week (here and Monday) for the
+      // same reason cable-external-rotation and machine-shoulder-press
+      // repeat Monday+Thursday in the barbell week: a small, easily-
+      // neglected group earns frequency, not just a single weekly set block.
+      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'dead-hang', sets: 3, repRange: [1, 1], restSec: 75 }] },
+    ],
+  },
+  {
+    id: 'bw-wednesday-lower-core',
+    dayOfWeek: 3,
+    name: 'Lower and Core Gate',
+    gateRank: 'D',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'split-squat', sets: 3, repRange: [10, 20], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'sliding-leg-curl', sets: 3, repRange: [8, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'single-leg-calf-raise', sets: 4, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'side-plank', sets: 2, repRange: [1, 1], restSec: 45 }] },
+      { type: 'single', items: [{ exerciseId: 'plank-shoulder-tap', sets: 3, repRange: [16, 24], restSec: 60 }] },
+    ],
+  },
+  {
+    id: 'bw-thursday-push-supersets',
+    dayOfWeek: 4,
+    name: 'Push Gate (Supersets)',
+    gateRank: 'C',
+    // Ascending difficulty across the pairs, same shape as the barbell
+    // week's Thursday — pushups (easiest bodyweight-only rung available,
+    // since Incline Pushups needs a bench this baseline tier does not
+    // guarantee) through to Archer Pushups alone.
+    blocks: [
+      {
+        type: 'superset',
+        items: [
+          { exerciseId: 'pushups', sets: 3, repRange: [10, 30], restSec: 0 },
+          { exerciseId: 'pike-pushups', sets: 3, repRange: [8, 15], restSec: 90 },
+        ],
+      },
+      {
+        type: 'superset',
+        items: [
+          { exerciseId: 'diamond-pushups', sets: 3, repRange: [8, 20], restSec: 0 },
+          { exerciseId: 'deficit-pushups', sets: 3, repRange: [8, 20], restSec: 90 },
+        ],
+      },
+      { type: 'single', items: [{ exerciseId: 'archer-pushups', sets: 3, repRange: [4, 12], restSec: 90 }] },
+    ],
+  },
+  {
+    id: 'bw-friday-legs',
+    dayOfWeek: 5,
+    name: 'Legs Gate',
+    gateRank: 'B',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'sissy-squat', sets: 3, repRange: [8, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'deficit-split-squat', sets: 3, repRange: [8, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'single-leg-glute-bridge', sets: 3, repRange: [10, 20], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'nordic-curl', sets: 2, repRange: [3, 10], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'deficit-single-leg-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
+    ],
+  },
+  {
+    id: 'bw-saturday-cardio-core',
+    dayOfWeek: 6,
+    name: 'Cardio and Core Gate',
+    gateRank: 'D',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'leg-raises', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'hanging-leg-raises', sets: 3, repRange: [8, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'side-plank', sets: 2, repRange: [1, 1], restSec: 45 }] },
+      { type: 'single', items: [{ exerciseId: 'outdoor-run', sets: 1, repRange: [1, 1], restSec: 0 }] },
+    ],
+  },
+]
+
 /** Lookup by id, for the many callers that resolve an exercise from a set log. */
 export const SEED_EXERCISE_BY_ID: ReadonlyMap<string, Exercise> = new Map(
   SEED_EXERCISES.map((exercise) => [exercise.id, exercise]),
