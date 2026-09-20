@@ -11,6 +11,7 @@
  */
 import { createRoute, redirect } from '@tanstack/react-router'
 import {
+  Activity,
   Award,
   Brain,
   Building2,
@@ -50,7 +51,7 @@ import { ShopPanel } from '../../components/ShopPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SummonList, type SummonRow } from '../../components/SummonList'
-import { PILL_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../../components/buttonStyles'
+import { PILL_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON, SUBLABEL } from '../../components/buttonStyles'
 import { SystemIcon } from '../../components/SystemIcon'
 import { SystemOverlay } from '../../components/SystemOverlay'
 import { SystemPanel } from '../../components/SystemPanel'
@@ -179,6 +180,10 @@ const STAT_MEANING: Record<StatKey, string> = {
   PER: 'From how closely effort gets logged',
 }
 
+// Same one-clause style as STAT_MEANING, for the grid cell that carries
+// fatigue's short explanation alongside the other five.
+const FATIGUE_MEANING = 'From your last 4 weeks of training load — spikes cut XP'
+
 const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
   none: 'No class yet',
   fighter: 'Fighter',
@@ -296,12 +301,7 @@ function HomeScreen() {
   const { player } = projection
   const unspent = player.unspentStatPoints
   const statMax = Math.max(...STAT_ORDER.map((key) => player.total[key]), 10) * 1.15
-  const fatigueReading =
-    projection.fatigue.band === 'insufficient_data'
-      ? projection.fatigue.daysUntilActive === null
-        ? '—'
-        : `${projection.fatigue.daysUntilActive}d`
-      : projection.fatigue.gauge
+  const fatigueReading = projection.fatigue.band === 'insufficient_data' ? '—' : projection.fatigue.gauge
 
   // `resetScroll: false` on both — TanStack Router scrolls the window to
   // (0, 0) on every navigation by default, search-param-only ones included,
@@ -417,6 +417,16 @@ function HomeScreen() {
               </span>
               <div className="flex flex-col items-end gap-1">
                 <SystemValue value={unspent} />
+              </div>
+            </SystemPanel>
+            <SystemPanel boxed className="col-span-2 flex items-start gap-2 p-2.5">
+              <SystemIcon icon={Activity} size={16} />
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-system text-[10px] tracking-[0.1em] text-ink-faint uppercase">Fatigue:</span>
+                  <SystemValue value={fatigueReading} />
+                </div>
+                <p className={SUBLABEL}>{FATIGUE_MEANING}</p>
               </div>
             </SystemPanel>
           </div>
