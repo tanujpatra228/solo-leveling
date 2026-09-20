@@ -11,7 +11,6 @@
  */
 import { createRoute, redirect } from '@tanstack/react-router'
 import {
-  Activity,
   Award,
   Brain,
   Building2,
@@ -35,9 +34,9 @@ import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
 import { HelpButton } from '../../components/HelpButton'
-import { HelpModal } from '../../components/HelpModal'
 import { HelpPanel } from '../../components/HelpPanel'
 import { HelpTopicBody } from '../../components/HelpTopicBody'
+import { HelpTopicList } from '../../components/HelpTopicList'
 import { InstallPrompt } from '../../components/InstallPrompt'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
@@ -51,7 +50,7 @@ import { ShopPanel } from '../../components/ShopPanel'
 import { StatRow } from '../../components/StatRow'
 import { StreakPanel } from '../../components/StreakPanel'
 import { SummonList, type SummonRow } from '../../components/SummonList'
-import { PILL_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON, SUBLABEL } from '../../components/buttonStyles'
+import { PILL_BUTTON, PRIMARY_BUTTON, SECONDARY_BUTTON } from '../../components/buttonStyles'
 import { SystemIcon } from '../../components/SystemIcon'
 import { SystemOverlay } from '../../components/SystemOverlay'
 import { SystemPanel } from '../../components/SystemPanel'
@@ -180,10 +179,6 @@ const STAT_MEANING: Record<StatKey, string> = {
   PER: 'From how closely effort gets logged',
 }
 
-// Same one-clause style as STAT_MEANING, for the grid cell that carries
-// fatigue's short explanation alongside the other five.
-const FATIGUE_MEANING = 'From your last 4 weeks of training load — spikes cut XP'
-
 const HUNTER_CLASS_LABELS: Record<HunterClass, string> = {
   none: 'No class yet',
   fighter: 'Fighter',
@@ -255,11 +250,12 @@ function HomeScreen() {
   // footer button, not on mount.
   const [showLicense, setShowLicense] = useState(false)
 
-  // The Status Window's own help — a standalone `HelpModal`, since nothing
-  // else can be open behind it (a summoned window's scrim already hides the
-  // Status Window's own controls whenever one is up). Holds whichever topic
-  // was last opened from the Status Window itself (Ability Points, Fatigue).
-  const [statusHelpTopic, setStatusHelpTopic] = useState<HelpTopic | null>(null)
+  // The Status Window's own help — a standalone overlay, since nothing else
+  // can be open behind it (a summoned window's scrim already hides the
+  // Status Window's own controls whenever one is up). Ability Points and
+  // Fatigue both live on this screen, so both topics show in the one
+  // window rather than needing a second "?" button to find the second one.
+  const [statusHelpOpen, setStatusHelpOpen] = useState(false)
 
   // Help reached from *inside* a summoned window (Shadow Army, Demon
   // Castle) swaps into that same `SystemOverlay` instead of stacking a
@@ -352,7 +348,7 @@ function HomeScreen() {
             <span className="font-system text-[11px] text-ink-faint uppercase">
               {classLine(player.hunterClass, projection.jobChangeDue)}
             </span>
-            <HelpButton topicTitle={HELP_TOPICS.leveling.title} onClick={() => setStatusHelpTopic(HELP_TOPICS.leveling)} />
+            <HelpButton topicTitle="Status Window" onClick={() => setStatusHelpOpen(true)} />
           </div>
 
           {/*
@@ -419,16 +415,6 @@ function HomeScreen() {
                 <SystemValue value={unspent} />
               </div>
             </SystemPanel>
-            <SystemPanel boxed className="col-span-2 flex items-start gap-2 p-2.5">
-              <SystemIcon icon={Activity} size={16} />
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="font-system text-[10px] tracking-[0.1em] text-ink-faint uppercase">Fatigue:</span>
-                  <SystemValue value={fatigueReading} />
-                </div>
-                <p className={SUBLABEL}>{FATIGUE_MEANING}</p>
-              </div>
-            </SystemPanel>
           </div>
         </div>
       </SystemWindow>
@@ -472,8 +458,10 @@ function HomeScreen() {
         </SystemOverlay>
       ) : null}
 
-      {statusHelpTopic && !windowMessagePending ? (
-        <HelpModal topic={statusHelpTopic} onClose={() => setStatusHelpTopic(null)} />
+      {statusHelpOpen && !windowMessagePending ? (
+        <SystemOverlay title="Status Window" icon={HelpCircle} onClose={() => setStatusHelpOpen(false)}>
+          <HelpTopicList topics={[HELP_TOPICS.leveling, HELP_TOPICS.fatigue]} />
+        </SystemOverlay>
       ) : null}
 
       {openWindow && !windowMessagePending ? (
