@@ -34,7 +34,7 @@ import { DailyQuestPanel } from '../../components/DailyQuestPanel'
 import { DeloadPanel } from '../../components/DeloadPanel'
 import { FatiguePanel } from '../../components/FatiguePanel'
 import { HelpButton } from '../../components/HelpButton'
-import { HelpPanel } from '../../components/HelpPanel'
+import { HelpPanel, HELP_PANEL_TOPICS } from '../../components/HelpPanel'
 import { HelpTopicBody } from '../../components/HelpTopicBody'
 import { HelpTopicList } from '../../components/HelpTopicList'
 import { InstallPrompt } from '../../components/InstallPrompt'
@@ -321,7 +321,7 @@ function HomeScreen() {
     { id: 'shop', label: 'System Shop', figure: `${gold} gold` },
     { id: 'runes', label: 'Runes', figure: `${unlockedRunes(player.level).length}` },
     { id: 'titles', label: 'Titles', figure: `${earnedTitleIds.length}` },
-    { id: 'help', label: 'Help', figure: `${Object.keys(HELP_TOPICS).length} topics` },
+    { id: 'help', label: 'Help', figure: `${HELP_PANEL_TOPICS.length} topics` },
   ]
 
   return (
