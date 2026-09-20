@@ -121,6 +121,36 @@ describe('computeFatigue', () => {
       expect(state.acwr).toBeNull()
     })
   })
+
+  describe('daysUntilActive', () => {
+    it('counts down the 27 remaining days on the first day of training', () => {
+      const state = computeFatigue(flatLoad(today, 1, 1000), today, today)
+      expect(state.band).toBe('insufficient_data')
+      expect(state.daysUntilActive).toBe(27)
+    })
+
+    it('reaches 1 the day before the chronic window fills, then null once it does', () => {
+      const map = flatLoad(today, 28, 1000)
+
+      const almost = computeFatigue(map, today, addDaysToKey(today, -26))
+      expect(almost.daysUntilActive).toBe(1)
+
+      const exact = computeFatigue(map, today, addDaysToKey(today, -27))
+      expect(exact.band).not.toBe('insufficient_data')
+      expect(exact.daysUntilActive).toBeNull()
+    })
+
+    it('is null with no training-start date at all', () => {
+      const state = computeFatigue(flatLoad(today, 28, 1000), today, null)
+      expect(state.daysUntilActive).toBeNull()
+    })
+
+    it('is 0 once the window is full but still carries no tonnage', () => {
+      const state = computeFatigue(new Map(), today, addDaysToKey(today, -27))
+      expect(state.band).toBe('insufficient_data')
+      expect(state.daysUntilActive).toBe(0)
+    })
+  })
 })
 
 describe('xpMultiplierFor', () => {

@@ -39,6 +39,12 @@ export interface FatigueState {
   gauge: number
   needsRecoveryQuest: boolean
   message: string
+  /**
+   * Training days left before the chronic window fills and a real ratio
+   * exists. Null once a ratio is computed, and null with no training-start
+   * date at all (nothing to count down from yet).
+   */
+  daysUntilActive: number | null
 }
 
 export interface TonnageByDay {
@@ -101,11 +107,17 @@ function gaugeFor(acwr: number | null): number {
   return Math.max(0, Math.min(100, Math.round(scaled)))
 }
 
-function messageFor(band: FatigueBand, acwr: number | null): string {
+function messageFor(band: FatigueBand, acwr: number | null, daysUntilActive: number | null): string {
   const value = acwr === null ? '' : acwr.toFixed(2)
   switch (band) {
     case 'insufficient_data':
-      return 'Not enough history to read your workload. The System needs about four weeks.'
+      if (daysUntilActive === null) {
+        return 'Not enough history to read your workload. Log your first session to start the countdown.'
+      }
+      if (daysUntilActive === 0) {
+        return 'The four-week window is full, but nothing is logged in it yet.'
+      }
+      return `Not enough history yet — ${daysUntilActive} day${daysUntilActive === 1 ? '' : 's'} until the System can read your workload.`
     case 'detraining':
       return 'No recent work logged. Conditioning is decaying.'
     case 'undertrained':
@@ -147,6 +159,11 @@ export function computeFatigue(
   const acwr = chronicWeekly > 0 && chronicWindowComplete ? acute / chronicWeekly : null
   const band = bandFor(acwr)
 
+  const daysUntilActive =
+    band === 'insufficient_data' && trainingStartDayKey !== null
+      ? Math.max(0, CHRONIC_WINDOW_DAYS - 1 - daysBetweenKeys(trainingStartDayKey, today))
+      : null
+
   return {
     acwr,
     acuteTonnage: acute,
@@ -155,6 +172,7 @@ export function computeFatigue(
     xpMultiplier: xpMultiplierFor(band, acwr),
     gauge: gaugeFor(acwr),
     needsRecoveryQuest: band === 'danger',
-    message: messageFor(band, acwr),
+    message: messageFor(band, acwr, daysUntilActive),
+    daysUntilActive,
   }
 }

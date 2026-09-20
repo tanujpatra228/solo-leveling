@@ -252,8 +252,9 @@ function HomeScreen() {
 
   // The Status Window's own help — a standalone `HelpModal`, since nothing
   // else can be open behind it (a summoned window's scrim already hides the
-  // Status Window's own controls whenever one is up).
-  const [statusHelpOpen, setStatusHelpOpen] = useState(false)
+  // Status Window's own controls whenever one is up). Holds whichever topic
+  // was last opened from the Status Window itself (Ability Points, Fatigue).
+  const [statusHelpTopic, setStatusHelpTopic] = useState<HelpTopic | null>(null)
 
   // Help reached from *inside* a summoned window (Shadow Army, Demon
   // Castle) swaps into that same `SystemOverlay` instead of stacking a
@@ -295,7 +296,12 @@ function HomeScreen() {
   const { player } = projection
   const unspent = player.unspentStatPoints
   const statMax = Math.max(...STAT_ORDER.map((key) => player.total[key]), 10) * 1.15
-  const fatigueReading = projection.fatigue.band === 'insufficient_data' ? '—' : projection.fatigue.gauge
+  const fatigueReading =
+    projection.fatigue.band === 'insufficient_data'
+      ? projection.fatigue.daysUntilActive === null
+        ? '—'
+        : `${projection.fatigue.daysUntilActive}d`
+      : projection.fatigue.gauge
 
   // `resetScroll: false` on both — TanStack Router scrolls the window to
   // (0, 0) on every navigation by default, search-param-only ones included,
@@ -346,7 +352,7 @@ function HomeScreen() {
             <span className="font-system text-[11px] text-ink-faint uppercase">
               {classLine(player.hunterClass, projection.jobChangeDue)}
             </span>
-            <HelpButton topicTitle={HELP_TOPICS.leveling.title} onClick={() => setStatusHelpOpen(true)} />
+            <HelpButton topicTitle={HELP_TOPICS.leveling.title} onClick={() => setStatusHelpTopic(HELP_TOPICS.leveling)} />
           </div>
 
           {/*
@@ -456,8 +462,8 @@ function HomeScreen() {
         </SystemOverlay>
       ) : null}
 
-      {statusHelpOpen && !windowMessagePending ? (
-        <HelpModal topic={HELP_TOPICS.leveling} onClose={() => setStatusHelpOpen(false)} />
+      {statusHelpTopic && !windowMessagePending ? (
+        <HelpModal topic={statusHelpTopic} onClose={() => setStatusHelpTopic(null)} />
       ) : null}
 
       {openWindow && !windowMessagePending ? (
@@ -472,7 +478,7 @@ function HomeScreen() {
             <>
               {openWindow === 'analysis' ? (
                 <div className="flex flex-col gap-3">
-                  <FatiguePanel fatigue={projection.fatigue} />
+                  <FatiguePanel fatigue={projection.fatigue} onHelp={() => setHelpTopic(HELP_TOPICS.fatigue)} />
                   <VolumePanel volume={projection.volume} />
                   <AdvisoriesPanel advisories={advisories} />
                 </div>
