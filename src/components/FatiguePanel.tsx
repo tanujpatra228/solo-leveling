@@ -5,6 +5,7 @@
  */
 import { SegmentedRing } from './SegmentedRing'
 import { SystemPanel } from './SystemPanel'
+import { HelpButton } from './HelpButton'
 import type { FatigueBand, FatigueState } from '../domain/fatigue'
 
 const RING_TONE: Record<FatigueBand, 'system' | 'warn' | 'danger' | 'good'> = {
@@ -16,13 +17,14 @@ const RING_TONE: Record<FatigueBand, 'system' | 'warn' | 'danger' | 'good'> = {
   danger: 'danger',
 }
 
-export function FatiguePanel({ fatigue }: { fatigue: FatigueState }) {
+export function FatiguePanel({ fatigue, onHelp }: { fatigue: FatigueState; onHelp: () => void }) {
   return (
     <SystemPanel className="mt-3 flex items-center gap-3">
       <div className="relative size-12 shrink-0">
         <SegmentedRing pct={fatigue.gauge} tone={RING_TONE[fatigue.band]} size={48} strokeWidth={4} />
       </div>
-      <p className="min-w-0 text-xs text-ink-soft">{fatigue.message}</p>
+      <p className="min-w-0 flex-1 text-xs text-ink-soft">{fatigue.message}</p>
+      <HelpButton topicTitle="Fatigue" onClick={onHelp} />
     </SystemPanel>
   )
 }

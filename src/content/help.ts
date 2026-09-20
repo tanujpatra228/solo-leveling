@@ -11,7 +11,7 @@ export interface HelpTopic {
   body: readonly string[]
 }
 
-export const HELP_TOPICS: Record<'leveling' | 'army' | 'castle', HelpTopic> = {
+export const HELP_TOPICS: Record<'leveling' | 'army' | 'castle' | 'fatigue', HelpTopic> = {
   leveling: {
     title: 'Ability Points',
     body: [
@@ -37,6 +37,14 @@ export const HELP_TOPICS: Record<'leveling' | 'army' | 'castle', HelpTopic> = {
       'The castle is a fixed ladder of 100 floors, generated once and identical for every hunter — there is nothing here to build or upgrade.',
       'Each floor asks for one thing: a lift-to-bodyweight ratio, a rep target, a streak length, weekly consistency, lifetime tonnage, or a player level. Difficulty climbs from clearable in week one to elite by floor 100.',
       'A floor clears itself the instant your training data meets its requirement — there is no button to press. Every 10th floor is a boss fight against a named Monarch, worth triple gold and six times the XP of a normal floor.',
+    ],
+  },
+  fatigue: {
+    title: 'Fatigue',
+    body: [
+      'Fatigue reads your acute:chronic workload ratio — this week’s tonnage against your average week over the last four. It asks whether you have ramped up faster than your body has adapted, not how much you lifted in absolute terms.',
+      'A ratio of 0.8 to 1.3 is the safe band. Below it you are undertrained, with room to add work and no penalty. Above 1.3 it is elevated, and above 1.5 it is a danger spike: the System cuts your XP multiplier and issues a Recovery Quest. Fatigue only ever costs XP — it never pays a bonus for training less.',
+      'The ratio needs a full four-week history to mean anything: in week one, a normal training week looks like a spike simply because there is nothing to compare it to yet. Until 28 days have passed since your first-ever logged session, the gauge reads a day countdown instead of a ratio — level and XP do not speed this up, only calendar time does.',
     ],
   },
 }
