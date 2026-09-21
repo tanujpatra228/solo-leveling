@@ -41,7 +41,7 @@ import {
   type OpenGate,
   type RedGate,
 } from '../domain/gates'
-import { addDaysToKey, dayOfWeekForKey, toDayKey } from '../domain/time'
+import { addDaysToKey, dayOfWeekForKey, rollingWindow, toDayKey } from '../domain/time'
 import { titleById } from '../domain/titles'
 import { forgetMirror as forgetMirrorOnServer, runSync } from '../sync/client'
 import { identityFromLicenseKey, parsePairingPayload } from '../sync/identity'
@@ -674,8 +674,13 @@ export const useApp = create<AppState>((set, get) => ({
       else setsBySession.set(s.sessionId, [s])
     }
 
+    // Rolling 7 days, shared with projection.ts's volume window (both used
+    // to compute "this week" differently — a calendar week there, this
+    // rolling window here — so the Volume Panel and the advisories it feeds
+    // disagreed on a Monday. One definition now, via `rollingWindow`.
+    const rollingWeekDays = new Set(rollingWindow(today, 7))
     const weekSets = state.sessions
-      .filter((s) => s.dayKey >= addDaysToKey(today, -6))
+      .filter((s) => rollingWeekDays.has(s.dayKey))
       .flatMap((s) => setsBySession.get(s.id) ?? [])
 
     const allAdvisories = detectAdvisories({
