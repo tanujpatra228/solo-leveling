@@ -4,6 +4,7 @@ import {
   ZERO_STATS,
   activeShadowCap,
   deriveStats,
+  intRequiredForSlot,
   questBiasFromAllocation,
   unspentPoints,
 } from './stats'
@@ -125,6 +126,24 @@ describe('activeShadowCap, which is INT as mana capacity', () => {
 
   it('does not go negative on a nonsense input', () => {
     expect(activeShadowCap(-50)).toBe(1)
+  })
+})
+
+describe('intRequiredForSlot, the inverse of activeShadowCap', () => {
+  it('needs no INT for the first slot', () => {
+    expect(intRequiredForSlot(0)).toBe(0)
+  })
+
+  it('matches the INT that actually moves activeShadowCap to cover that slot', () => {
+    // Slot index 5 is the 6th slot (0-indexed); activeShadowCap must reach
+    // 6 for it to unlock.
+    const required = intRequiredForSlot(5)
+    expect(activeShadowCap(required)).toBeGreaterThanOrEqual(6)
+    expect(activeShadowCap(required - 1)).toBeLessThan(6)
+  })
+
+  it('does not go negative on a nonsense input', () => {
+    expect(intRequiredForSlot(-3)).toBe(0)
   })
 })
 

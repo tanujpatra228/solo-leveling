@@ -158,8 +158,19 @@ export function unspentPoints(statPointsEarned: number, allocated: StatBlock): n
  * mana, and INT is the mana stat, so INT is what makes the roster a real choice
  * instead of a list that only grows.
  */
+export const INT_PER_SHADOW_SLOT = 20
+
 export function activeShadowCap(totalInt: number): number {
-  return 1 + Math.floor(Math.max(0, totalInt) / 20)
+  return 1 + Math.floor(Math.max(0, totalInt) / INT_PER_SHADOW_SLOT)
+}
+
+/**
+ * The INT a 0-indexed roster slot needs before `activeShadowCap` reaches it —
+ * the inverse of `activeShadowCap`, for a locked slot to state its own
+ * requirement rather than the roster UI re-deriving it by trial and error.
+ */
+export function intRequiredForSlot(slotIndex: number): number {
+  return Math.max(0, slotIndex) * INT_PER_SHADOW_SLOT
 }
 
 /* ------------------------------------------------------------------ */
