@@ -19,7 +19,7 @@ import { intRequiredForSlot } from '../domain/stats'
 import type { RosterState } from '../domain/shadows'
 import type { Exercise, Shadow } from '../domain/types'
 import { HelpButton } from './HelpButton'
-import { RANK_TONE, ShadowPortrait } from './ShadowPortrait'
+import { RANK_CARD_BORDER, RANK_TONE, ShadowPortrait } from './ShadowPortrait'
 import { SystemPanel } from './SystemPanel'
 import { SystemValue } from './SystemValue'
 
@@ -104,10 +104,7 @@ function ShadowCard({
   benched?: boolean
 }) {
   const tone = RANK_TONE[shadow.rank]
-  // Full-strength on every card at once read as too loud — halved just for
-  // the card's own outer edge; the rank chip and marshal tag stay
-  // full-strength, since those are small and meant to be read, not felt.
-  const cardBorder = `${tone.split(' ')[0]}/50`
+  const cardBorder = RANK_CARD_BORDER[shadow.rank]
   const [flipped, setFlipped] = useState(false)
   const labelId = useId()
 
