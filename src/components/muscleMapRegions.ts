@@ -48,9 +48,14 @@ export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
   // `pectoralis-major` still wraps six ids, not two: the source SVG drew
   // each side as one undivided shape, so this component split each side into
   // upper/mid/lower via `clip-path` (added directly to the SVG — see the
-  // `chest-third-*` clipPaths and the comment at `CHEST_EMPHASIS_BY_EXERCISE`
-  // below) rather than leaving every chest exercise lighting up the same
-  // whole-pec blob regardless of incline, flat, or decline.
+  // `chest-third-{left,right}-{upper,mid,lower}` clipPaths and the comment at
+  // `CHEST_EMPHASIS_BY_EXERCISE` below) rather than leaving every chest
+  // exercise lighting up the same whole-pec blob regardless of incline,
+  // flat, or decline. The two dividing lines are diagonal, not horizontal,
+  // and tilt toward each other (checked against a fibre-direction diagram a
+  // hunter provided) — real pec fibres fan out from near the armpit rather
+  // than stacking in flat rows, so a straight horizontal split read as
+  // anatomically wrong even though it was simpler to compute.
   chest: {
     kind: 'silhouette',
     front: [
