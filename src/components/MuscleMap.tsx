@@ -7,7 +7,7 @@
  */
 import type { Muscle } from '../domain/types'
 import { BodyMap, type BodyMapView, type MuscleFillMap } from './anatomy/BodyMap'
-import { ABS_EMPHASIS_BY_EXERCISE, MUSCLE_MAPPINGS, absSegmentSplit, idsFor, type MuscleMapping } from './muscleMapRegions'
+import { MUSCLE_MAPPINGS, idsFor, verticalThirdSplitFor, type MuscleMapping } from './muscleMapRegions'
 
 type Tone = 'primary' | 'secondary'
 
@@ -43,13 +43,12 @@ function fillsFor(
   for (const muscle of MUSCLES) {
     const tone = toneFor(muscle, primary, secondary)
     if (!tone) continue
-    const emphasis = muscle === 'abs' && view === 'front' && exerciseId ? ABS_EMPHASIS_BY_EXERCISE[exerciseId] : undefined
-    if (emphasis) {
-      const { emphasised, rest } = absSegmentSplit(emphasis)
-      for (const id of emphasised) fills[id] = FILL[tone]
+    const split = view === 'front' && exerciseId ? verticalThirdSplitFor(muscle, exerciseId) : null
+    if (split) {
+      for (const id of split.emphasised) fills[id] = FILL[tone]
       // The two thirds an exercise doesn't emphasise still train, just less —
       // shown one tone down from whatever the emphasised third got.
-      for (const id of rest) fills[id] = FILL.secondary
+      for (const id of split.rest) fills[id] = FILL.secondary
       continue
     }
     for (const id of idsFor(muscle, view)) fills[id] = FILL[tone]
@@ -60,7 +59,7 @@ function fillsFor(
 export interface MuscleMapProps {
   primaryMuscles: readonly Muscle[]
   secondaryMuscles: readonly Muscle[]
-  /** When set and one of the muscles above is `abs`, narrows the highlight to that exercise's third of the six-pack. See `ABS_EMPHASIS_BY_EXERCISE`. */
+  /** When set and one of the muscles above is `abs` or `chest`, narrows the highlight to that exercise's third of the muscle. See `verticalThirdSplitFor`. */
   exerciseId?: string
 }
 

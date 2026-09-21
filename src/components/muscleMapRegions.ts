@@ -45,7 +45,28 @@ export interface BadgeMapping {
 export type MuscleMapping = SilhouetteMapping | BadgeMapping
 
 export const MUSCLE_MAPPINGS: Readonly<Record<Muscle, MuscleMapping>> = {
-  chest: { kind: 'silhouette', front: ['pectoralis-major'] },
+  // `pectoralis-major` still wraps six ids, not two: the source SVG drew
+  // each side as one undivided shape, so this component split each side into
+  // upper/mid/lower via `clip-path` (added directly to the SVG — see the
+  // `chest-third-{left,right}-{upper,mid,lower}` clipPaths and the comment at
+  // `CHEST_EMPHASIS_BY_EXERCISE` below) rather than leaving every chest
+  // exercise lighting up the same whole-pec blob regardless of incline,
+  // flat, or decline. The two dividing lines are diagonal, not horizontal,
+  // and tilt toward each other (checked against a fibre-direction diagram a
+  // hunter provided) — real pec fibres fan out from near the armpit rather
+  // than stacking in flat rows, so a straight horizontal split read as
+  // anatomically wrong even though it was simpler to compute.
+  chest: {
+    kind: 'silhouette',
+    front: [
+      'pectoralis-major-left-upper',
+      'pectoralis-major-left-mid',
+      'pectoralis-major-left-lower',
+      'pectoralis-major-right-upper',
+      'pectoralis-major-right-mid',
+      'pectoralis-major-right-lower',
+    ],
+  },
   front_delts: { kind: 'silhouette', front: ['deltoid'] },
   side_delts: { kind: 'silhouette', front: ['deltoid'] },
   rear_delts: { kind: 'silhouette', back: ['posterior-deltoid'] },
@@ -122,18 +143,25 @@ export function idsFor(muscle: Muscle, view: BodyMapView): readonly string[] {
 }
 
 /**
- * Which third of the abdominal wall an exercise actually emphasises, keyed
- * by exercise id rather than `Muscle` — the domain model tracks `abs` as one
- * muscle (rectus abdominis is anatomically one sheet), so this split is
- * presentation-only and never feeds volume, gates, or substitution.
- *
- * The three id lists below cut `abs`'s ten ids top-to-bottom into thirds
- * (each pair of six-pack segments with the linea-alba strip(s) beside it).
- * An exercise with no entry here renders `abs` uniformly, as before.
+ * Which third of a muscle an exercise actually emphasises, keyed by exercise
+ * id rather than `Muscle` — the domain model tracks `abs` and `chest` as one
+ * muscle each (rectus abdominis and pectoralis major are anatomically one
+ * sheet apiece), so this split is presentation-only and never feeds volume,
+ * gates, or substitution. Shared between `abs` and `chest` since both are a
+ * single sheet an exercise can bias toward one end of, and the rendering
+ * rule is identical either way: the emphasised third gets the exercise's
+ * normal tone, the other two thirds get dimmed one tone down rather than
+ * disappearing. An exercise with no entry in either map below renders the
+ * whole muscle uniformly, as before this feature existed.
  */
-export type AbsEmphasis = 'lower' | 'mid' | 'upper'
+export type VerticalThird = 'upper' | 'mid' | 'lower'
 
-export const ABS_EMPHASIS_BY_EXERCISE: Readonly<Record<string, AbsEmphasis>> = {
+/**
+ * Rectus abdominis, cut top-to-bottom into thirds (each pair of six-pack
+ * segments with the linea-alba strip(s) beside it — see the `abs` mapping
+ * above for where those ten ids come from).
+ */
+export const ABS_EMPHASIS_BY_EXERCISE: Readonly<Record<string, VerticalThird>> = {
   // Hip-flexion-driven: the pelvis curls up toward the ribs, loading the
   // lower rectus abdominis hardest.
   'leg-raises': 'lower',
@@ -146,22 +174,62 @@ export const ABS_EMPHASIS_BY_EXERCISE: Readonly<Record<string, AbsEmphasis>> = {
   'machine-abs-crunch': 'mid',
 }
 
-const ABS_UPPER_IDS: readonly string[] = ['rectus-abdominis-top-segment', 'rectus-abdominis-upper-segment', 'thoracic-aponeurosis']
-const ABS_MID_IDS: readonly string[] = [
-  'rectus-abdominis-upper-middle-segment',
-  'rectus-abdominis-middle-segment',
-  'upper-abdominal-aponeurosis',
-  'middle-abdominal-aponeurosis',
-  'mid-abdominal-aponeurosis-overlay-left-01',
-  'mid-abdominal-aponeurosis-overlay-right-01',
-]
-const ABS_LOWER_IDS: readonly string[] = ['rectus-abdominis-lower-middle-segment', 'rectus-abdominis-lower-segment', 'lower-abdominal-aponeurosis']
+const ABS_THIRDS: Readonly<Record<VerticalThird, readonly string[]>> = {
+  upper: ['rectus-abdominis-top-segment', 'rectus-abdominis-upper-segment', 'thoracic-aponeurosis'],
+  mid: [
+    'rectus-abdominis-upper-middle-segment',
+    'rectus-abdominis-middle-segment',
+    'upper-abdominal-aponeurosis',
+    'middle-abdominal-aponeurosis',
+    'mid-abdominal-aponeurosis-overlay-left-01',
+    'mid-abdominal-aponeurosis-overlay-right-01',
+  ],
+  lower: ['rectus-abdominis-lower-middle-segment', 'rectus-abdominis-lower-segment', 'lower-abdominal-aponeurosis'],
+}
 
-const ABS_THIRDS: Readonly<Record<AbsEmphasis, readonly string[]>> = { upper: ABS_UPPER_IDS, mid: ABS_MID_IDS, lower: ABS_LOWER_IDS }
+/**
+ * Pectoralis major, cut top-to-bottom into thirds by `clip-path` (the source
+ * SVG drew each side as one undivided shape — see the `chest` mapping above)
+ * — the incline/flat/decline angle of a press or fly changes which fibres
+ * do the most work, same idea as the abs split above.
+ */
+export const CHEST_EMPHASIS_BY_EXERCISE: Readonly<Record<string, VerticalThird>> = {
+  // Low-to-high bar or hand path: the clavicular (upper) fibres do the most work.
+  'incline-barbell-press': 'upper',
+  'incline-pushups': 'upper',
+  'cable-chest-press-high': 'upper',
+  // Roughly horizontal bar or hand path: the sternal (mid) fibres do the most work.
+  'cable-fly': 'mid',
+  'cable-chest-press-mid': 'mid',
+  pushups: 'mid',
+  'diamond-pushups': 'mid',
+  'deficit-pushups': 'mid',
+  'archer-pushups': 'mid',
+  // High-to-low bar or hand path: the lower/costal fibres do the most work.
+  'cable-chest-press-low': 'lower',
+}
 
-/** The emphasised third's ids and the other two thirds', for one `AbsEmphasis`. */
-export function absSegmentSplit(emphasis: AbsEmphasis): { emphasised: readonly string[]; rest: readonly string[] } {
-  const emphasised = ABS_THIRDS[emphasis]
-  const rest = (Object.keys(ABS_THIRDS) as AbsEmphasis[]).filter((third) => third !== emphasis).flatMap((third) => ABS_THIRDS[third])
+const CHEST_THIRDS: Readonly<Record<VerticalThird, readonly string[]>> = {
+  upper: ['pectoralis-major-left-upper', 'pectoralis-major-right-upper'],
+  mid: ['pectoralis-major-left-mid', 'pectoralis-major-right-mid'],
+  lower: ['pectoralis-major-left-lower', 'pectoralis-major-right-lower'],
+}
+
+const THIRDS_BY_MUSCLE: Partial<Record<Muscle, { ids: Readonly<Record<VerticalThird, readonly string[]>>; byExercise: Readonly<Record<string, VerticalThird>> }>> = {
+  abs: { ids: ABS_THIRDS, byExercise: ABS_EMPHASIS_BY_EXERCISE },
+  chest: { ids: CHEST_THIRDS, byExercise: CHEST_EMPHASIS_BY_EXERCISE },
+}
+
+/**
+ * The emphasised third's ids and the other two thirds', for one exercise's
+ * take on one muscle — `null` when that muscle has no thirds concept, or
+ * this exercise doesn't emphasise a particular third of it.
+ */
+export function verticalThirdSplitFor(muscle: Muscle, exerciseId: string): { emphasised: readonly string[]; rest: readonly string[] } | null {
+  const config = THIRDS_BY_MUSCLE[muscle]
+  const emphasis = config?.byExercise[exerciseId]
+  if (!config || !emphasis) return null
+  const emphasised = config.ids[emphasis]
+  const rest = (Object.keys(config.ids) as VerticalThird[]).filter((third) => third !== emphasis).flatMap((third) => config.ids[third])
   return { emphasised, rest }
 }

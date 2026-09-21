@@ -2,7 +2,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { MuscleMap } from './MuscleMap'
-import { ABS_EMPHASIS_BY_EXERCISE, MUSCLE_MAPPINGS, absSegmentSplit, idsFor } from './muscleMapRegions'
+import { ABS_EMPHASIS_BY_EXERCISE, CHEST_EMPHASIS_BY_EXERCISE, MUSCLE_MAPPINGS, verticalThirdSplitFor, idsFor } from './muscleMapRegions'
 import anteriorSvg from './anatomy/anterior-outer-muscles.svg?raw'
 import posteriorSvg from './anatomy/posterior-outer-muscles.svg?raw'
 import { MuscleSchema } from '../domain/types'
@@ -90,6 +90,33 @@ describe('MuscleMap', () => {
     expect(html).toMatch(/#rectus-abdominis-lower-segment[^{]*\{[^}]*var\(--color-system\)/)
   })
 
+  it('fills all six pectoralis-major thirds for a plain chest exercise with no emphasis entry', () => {
+    const html = renderToStaticMarkup(<MuscleMap primaryMuscles={['chest']} secondaryMuscles={[]} />)
+    for (const id of ['pectoralis-major-left-upper', 'pectoralis-major-left-mid', 'pectoralis-major-left-lower']) {
+      expect(html).toMatch(new RegExp(`#${id}[^{]*\\{[^}]*var\\(--color-system\\)`))
+    }
+  })
+
+  it('narrows incline-barbell-press to upper chest, dimming mid and lower rather than dropping them', () => {
+    const html = renderToStaticMarkup(
+      <MuscleMap primaryMuscles={['chest']} secondaryMuscles={['front_delts']} exerciseId="incline-barbell-press" />,
+    )
+    expect(html).toMatch(/#pectoralis-major-left-upper[^{]*\{[^}]*var\(--color-system\)/)
+    expect(html).toMatch(/#pectoralis-major-right-upper[^{]*\{[^}]*var\(--color-system\)/)
+    expect(html).toMatch(/#pectoralis-major-left-mid[^{]*\{[^}]*var\(--color-system-dim\)/)
+    expect(html).toMatch(/#pectoralis-major-left-lower[^{]*\{[^}]*var\(--color-system-dim\)/)
+  })
+
+  it('gives cable-chest-press-low its own lower-chest emphasis, distinct from the mid-chest cable press', () => {
+    const low = renderToStaticMarkup(<MuscleMap primaryMuscles={['chest']} secondaryMuscles={[]} exerciseId="cable-chest-press-low" />)
+    expect(low).toMatch(/#pectoralis-major-left-lower[^{]*\{[^}]*var\(--color-system\)/)
+    expect(low).toMatch(/#pectoralis-major-left-upper[^{]*\{[^}]*var\(--color-system-dim\)/)
+
+    const mid = renderToStaticMarkup(<MuscleMap primaryMuscles={['chest']} secondaryMuscles={[]} exerciseId="cable-chest-press-mid" />)
+    expect(mid).toMatch(/#pectoralis-major-left-mid[^{]*\{[^}]*var\(--color-system\)/)
+    expect(mid).toMatch(/#pectoralis-major-left-lower[^{]*\{[^}]*var\(--color-system-dim\)/)
+  })
+
   it('still themes the base body (fill + outline) but highlights nothing for an exercise touching no muscles', () => {
     const html = renderToStaticMarkup(<MuscleMap primaryMuscles={[]} secondaryMuscles={[]} />)
     // The base rule (every `path`, unconditional) is always present — that's
@@ -101,21 +128,25 @@ describe('MuscleMap', () => {
     expect(html).not.toContain('rounded-full border')
   })
 
-  describe('ABS_EMPHASIS_BY_EXERCISE stays in sync with the seeded exercises', () => {
+  describe.each([
+    ['abs', ABS_EMPHASIS_BY_EXERCISE] as const,
+    ['chest', CHEST_EMPHASIS_BY_EXERCISE] as const,
+  ])('%s emphasis map stays in sync with the seeded exercises', (muscle, emphasisByExercise) => {
     const byId = new Map(SEED_EXERCISES.map((e) => [e.id, e]))
 
-    for (const [exerciseId, emphasis] of Object.entries(ABS_EMPHASIS_BY_EXERCISE)) {
-      it(`'${exerciseId}' is a seeded exercise that actually trains abs`, () => {
+    for (const [exerciseId, emphasis] of Object.entries(emphasisByExercise)) {
+      it(`'${exerciseId}' is a seeded exercise that actually trains ${muscle}`, () => {
         const exercise = byId.get(exerciseId)
-        expect(exercise, `'${exerciseId}' in ABS_EMPHASIS_BY_EXERCISE is not a seeded exercise id`).toBeDefined()
-        expect(exercise!.primaryMuscles.includes('abs') || exercise!.secondaryMuscles.includes('abs')).toBe(true)
+        expect(exercise, `'${exerciseId}' is not a seeded exercise id`).toBeDefined()
+        expect(exercise!.primaryMuscles.includes(muscle) || exercise!.secondaryMuscles.includes(muscle)).toBe(true)
       })
 
-      it(`'${exerciseId}'s '${emphasis}' emphasis ids are all real abs ids`, () => {
-        const { emphasised, rest } = absSegmentSplit(emphasis)
-        const absIds = idsFor('abs', 'front')
-        for (const id of [...emphasised, ...rest]) {
-          expect(absIds, `'${id}' is not one of abs's front ids`).toContain(id)
+      it(`'${exerciseId}'s '${emphasis}' emphasis ids are all real ${muscle} ids`, () => {
+        const split = verticalThirdSplitFor(muscle, exerciseId)
+        expect(split, `'${exerciseId}' has no ${muscle} thirds split`).not.toBeNull()
+        const muscleIds = idsFor(muscle, 'front')
+        for (const id of [...split!.emphasised, ...split!.rest]) {
+          expect(muscleIds, `'${id}' is not one of ${muscle}'s front ids`).toContain(id)
         }
       })
     }
