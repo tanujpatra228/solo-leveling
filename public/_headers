@@ -5,9 +5,19 @@
 # header set in code would not apply to the app shell.
 #
 # The free plan allows 100 rules here, and this uses a handful.
+#
+# img-src carries https://res.cloudinary.com alongside 'self'/data:/blob: —
+# shadow portrait art (components/shadowArt.ts) is hotlinked straight from
+# Cloudinary, never bundled or proxied through the Worker. Every <img> to
+# that host was rendering blank before this line existed: CSP blocks the
+# request silently (no console error a first-time reader would connect to
+# "the image didn't load"), even though the same URL opens fine typed
+# directly into a browser tab, since CSP only governs requests made *by* a
+# page, not direct navigation to the asset. connect-src does not need the
+# same addition — nothing here fetches Cloudinary, only <img src> loads it.
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://res.cloudinary.com; font-src 'self'; connect-src 'self'; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Cross-Origin-Opener-Policy: same-origin

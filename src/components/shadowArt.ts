@@ -7,16 +7,15 @@
  * Served straight from Cloudinary — nothing is downloaded or bundled, so
  * adding a name here never touches the Worker's request or CPU budget.
  *
- * No `w_/q_/f_` transform segment: an earlier version added one
- * (`w_360,q_auto,f_auto/`) for URL-side resizing, and every image broke.
- * Cloudinary's own docs confirm the cause — "Strict Transformations", on by
- * default for some accounts, 401s any on-the-fly transform that wasn't
- * pre-approved in the console, while the untransformed original URL a
- * hunter copies straight from their Media Library always resolves. Sizing
- * is handled entirely by CSS (`ShadowPortrait`'s `object-contain`) instead
- * — if resize-on-delivery is wanted later, it needs Strict Transformations
- * turned off (or the transform pre-allowed) in the Cloudinary console
- * first, not a URL change here.
+ * No `w_/q_/f_` transform segment — kept as the plain URLs pasted into the
+ * chat that requested this feature, byte for byte. The images loading fine
+ * from a bare browser tab but nowhere in the app was never a Cloudinary
+ * problem in the first place: it was `public/_headers`'s CSP `img-src`,
+ * which had no Cloudinary host on it at all and silently dropped every
+ * `<img>` request to this domain regardless of the URL. See that file's
+ * comment for the fix. Sizing is handled by CSS (`ShadowPortrait`'s
+ * `object-contain`) rather than a URL transform, which stays simplest now
+ * that nothing forces the choice either way.
  */
 function cloudinaryUrl(version: string, publicId: string): string {
   return `https://res.cloudinary.com/dieiu4i8l/image/upload/${version}/solo-leveling/${publicId}.png`
