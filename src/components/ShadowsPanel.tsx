@@ -112,7 +112,15 @@ function ShadowCard({
   }
 
   return (
-    <div className="[-webkit-perspective:800px] [perspective:800px]">
+    // Benched dimming lives here, outside the perspective/transform context,
+    // not on the flipping element itself — found on a real device: a
+    // benched card's back face rendered blank (no Summon button) exactly
+    // like the overflow-hidden bug above, because `opacity` on an element
+    // that also carries a 3D transform forces its own compositing layer,
+    // which breaks backface-visibility the same way. This way the flip
+    // fully resolves in its own layer first, and only the finished result
+    // gets dimmed.
+    <div className={`[-webkit-perspective:800px] [perspective:800px] ${benched ? 'opacity-55' : ''}`}>
       <div
         role="button"
         tabIndex={0}
@@ -132,7 +140,7 @@ function ShadowCard({
         }}
         className={`relative aspect-[3/4] cursor-pointer [-webkit-transform-style:preserve-3d] [transform-style:preserve-3d] transition-transform duration-500 ${
           flipped ? '[transform:rotateY(180deg)]' : ''
-        } ${benched ? 'opacity-55' : ''}`}
+        }`}
       >
         <span id={labelId} className="sr-only">
           {shadow.name}, {shadow.rank} rank{shadow.isMarshal ? ', marshal' : ''}. Tap to {flipped ? 'show portrait' : 'show details'}.
@@ -176,35 +184,35 @@ function ShadowCard({
   )
 }
 
+// A locked/empty slot, an occupied card and a flipped card must all end up
+// the exact same height, or a row stretches to its tallest member and
+// leaves dead space under everything shorter in it (found on a real
+// device). `aspect-[3/4]` on one shared outer box, the same way
+// `ShadowCard`'s flip container carries it, is what actually guarantees
+// that — two stacked boxes (an icon area plus an appended text area, the
+// previous shape here) each get their own height and the sum is never
+// pinned to anything.
 function LockedSlot({ requiredInt, totalInt, slotNumber }: { requiredInt: number; totalInt: number; slotNumber: number }) {
   return (
-    <div className="flex flex-col border border-dashed border-panel-edge">
-      <div className="flex aspect-[3/4] items-center justify-center text-ink-faint">
-        <Lock size={22} strokeWidth={1.6} />
-      </div>
-      <div className="flex flex-1 flex-col items-center gap-0.5 p-2 text-center">
-        <p className="font-system text-[10px] tracking-[0.1em] text-ink-faint uppercase">Locked</p>
-        <p className="font-system text-[8px] text-ink-faint uppercase">Slot {slotNumber}</p>
-        <p className="mt-0.5 font-body text-sm font-semibold text-ink tabular-nums">
-          {totalInt}
-          <span className="text-xs text-ink-faint">/{requiredInt}</span>
-        </p>
-        <p className="font-system text-[8px] tracking-[0.06em] text-ink-faint uppercase">INT to unlock</p>
-      </div>
+    <div className="flex aspect-[3/4] flex-col items-center justify-center gap-0.5 border border-dashed border-panel-edge p-2 text-center text-ink-faint">
+      <Lock size={22} strokeWidth={1.6} />
+      <p className="mt-1 font-system text-[10px] tracking-[0.1em] uppercase">Locked</p>
+      <p className="font-system text-[8px] uppercase">Slot {slotNumber}</p>
+      <p className="mt-0.5 font-body text-sm font-semibold text-ink tabular-nums">
+        {totalInt}
+        <span className="text-xs text-ink-faint">/{requiredInt}</span>
+      </p>
+      <p className="font-system text-[8px] tracking-[0.06em] uppercase">INT to unlock</p>
     </div>
   )
 }
 
 function EmptySlot() {
   return (
-    <div className="flex flex-col border border-dashed border-system/40">
-      <div className="flex aspect-[3/4] items-center justify-center text-system-dim">
-        <Plus size={22} strokeWidth={1.6} />
-      </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-0.5 p-2 text-center">
-        <p className="font-system text-[10px] tracking-[0.1em] text-system uppercase">Empty</p>
-        <p className="text-[10px] text-ink-soft">Ready for a shadow</p>
-      </div>
+    <div className="flex aspect-[3/4] flex-col items-center justify-center gap-1 border border-dashed border-system/40 text-center">
+      <Plus size={22} strokeWidth={1.6} className="text-system-dim" />
+      <p className="font-system text-[10px] tracking-[0.1em] text-system uppercase">Empty</p>
+      <p className="text-[10px] text-ink-soft">Ready for a shadow</p>
     </div>
   )
 }
