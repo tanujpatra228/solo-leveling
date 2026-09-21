@@ -13,7 +13,7 @@
  * sit in their own list below: they never occupy a paginated slot, since
  * that would conflate "not enough mana" with "chose not to."
  */
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Lock, Plus } from 'lucide-react'
 import { intRequiredForSlot } from '../domain/stats'
 import type { RosterState } from '../domain/shadows'
@@ -68,6 +68,18 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return pages
 }
 
+// Both faces need the vendor-prefixed property alongside the standard one —
+// iOS Safari (including the in-app WebView this PWA runs in) still ignores
+// unprefixed backface-visibility/transform-style on some versions, and a
+// missing prefix there shows both faces superimposed instead of flipping.
+const FACE = '[backface-visibility:hidden] [-webkit-backface-visibility:hidden] absolute inset-0'
+
+/**
+ * The card's front is the portrait alone — name, exercise and buff live on
+ * the back, reached by tapping the card. A 3D flip rather than a swap:
+ * mid-turn the card visibly has two sides, which is what sells it as a
+ * card rather than a toggle.
+ */
 function ShadowCard({
   shadow,
   exercises,
@@ -82,36 +94,72 @@ function ShadowCard({
   benched?: boolean
 }) {
   const tone = RANK_TONE[shadow.rank]
+  const [flipped, setFlipped] = useState(false)
+  const labelId = useId()
+
+  function toggleFlip() {
+    setFlipped((f) => !f)
+  }
 
   return (
-    <div className={`flex flex-col border bg-void-soft ${tone.split(' ')[0]} ${benched ? 'opacity-55' : ''}`}>
-      <div className="relative flex aspect-[3/4] items-end justify-center bg-panel">
-        {shadow.isMarshal ? (
-          <span className="absolute top-1.5 left-1.5 border border-gold bg-void/70 px-1.5 py-0.5 font-system text-[8px] tracking-[0.08em] text-gold uppercase">
-            Marshal
-          </span>
-        ) : null}
-        <span
-          className={`absolute top-1.5 right-1.5 border bg-void/70 px-1.5 py-0.5 font-system text-[9px] tracking-[0.06em] uppercase ${tone}`}
-        >
-          {shadow.rank}-Rank
+    <div className="[-webkit-perspective:800px] [perspective:800px]">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={flipped}
+        aria-labelledby={labelId}
+        onClick={toggleFlip}
+        onKeyDown={(e) => {
+          // The nested Return/Summon button turns its own Enter/Space into a
+          // click that stops there (see its handler below), but the keydown
+          // itself still bubbles here first — without this guard, focusing
+          // that button and pressing Enter would flip the card *and* fire
+          // the action.
+          if (e.target !== e.currentTarget) return
+          if (e.key !== 'Enter' && e.key !== ' ') return
+          e.preventDefault()
+          toggleFlip()
+        }}
+        className={`relative aspect-[3/4] cursor-pointer [-webkit-transform-style:preserve-3d] [transform-style:preserve-3d] transition-transform duration-500 ${
+          flipped ? '[transform:rotateY(180deg)]' : ''
+        } ${benched ? 'opacity-55' : ''}`}
+      >
+        <span id={labelId} className="sr-only">
+          {shadow.name}, {shadow.rank} rank{shadow.isMarshal ? ', marshal' : ''}. Tap to {flipped ? 'show portrait' : 'show details'}.
         </span>
-        <ShadowPortrait name={shadow.name} rank={shadow.rank} muted={benched} />
-      </div>
-      <div className="flex flex-1 flex-col gap-0.5 p-2">
-        <p className="text-sm font-semibold text-ink">{shadow.name}</p>
-        <p className="font-system text-[8px] tracking-[0.05em] text-ink-faint uppercase">
-          {exerciseName(exercises, shadow.exerciseId)}
-        </p>
-        <p className="mt-0.5 flex-1 text-[10px] text-ink-soft">{shadow.buff}</p>
-        <div className="mt-1 border-t border-panel-edge pt-1 text-right">
-          <button
-            type="button"
-            onClick={onAction}
-            className="min-h-7 font-system text-[9px] tracking-[0.08em] text-ink-faint uppercase underline"
-          >
-            {actionLabel}
-          </button>
+
+        {/* Front: portrait only. */}
+        <div className={`flex items-end justify-center overflow-hidden border bg-panel ${tone.split(' ')[0]} ${FACE}`}>
+          <ShadowPortrait name={shadow.name} rank={shadow.rank} muted={benched} />
+        </div>
+
+        {/* Back: everything else, pre-rotated so it lands right-reading once flipped. */}
+        <div
+          className={`flex flex-col overflow-hidden border bg-void-soft p-2 [transform:rotateY(180deg)] ${tone.split(' ')[0]} ${FACE}`}
+        >
+          <div className="flex items-start justify-between gap-1">
+            <p className="text-sm font-semibold text-ink">{shadow.name}</p>
+            <span className={`shrink-0 border bg-void/70 px-1.5 py-0.5 font-system text-[9px] tracking-[0.06em] uppercase ${tone}`}>
+              {shadow.rank}
+            </span>
+          </div>
+          {shadow.isMarshal ? <p className="font-system text-[8px] tracking-[0.08em] text-gold uppercase">Marshal</p> : null}
+          <p className="mt-0.5 font-system text-[8px] tracking-[0.05em] text-ink-faint uppercase">
+            {exerciseName(exercises, shadow.exerciseId)}
+          </p>
+          <p className="mt-0.5 flex-1 text-[10px] text-ink-soft">{shadow.buff}</p>
+          <div className="mt-1 border-t border-panel-edge pt-1 text-right">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAction()
+              }}
+              className="min-h-7 font-system text-[9px] tracking-[0.08em] text-ink-faint uppercase underline"
+            >
+              {actionLabel}
+            </button>
+          </div>
         </div>
       </div>
     </div>
