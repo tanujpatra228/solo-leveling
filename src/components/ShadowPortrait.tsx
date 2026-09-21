@@ -16,6 +16,25 @@ export const RANK_TONE: Record<Rank, string> = {
   S: 'border-gold text-gold',
 }
 
+/**
+ * Full-strength on every card in a 2x2 grid at once reads as too loud — this
+ * is the card's own outer edge at half that. Written out per rank rather
+ * than derived from RANK_TONE at runtime (`RANK_TONE[rank].split(' ')[0] +
+ * '/50'`): Tailwind's build only generates CSS for class names it can find
+ * as literal text while scanning source files, so a class name assembled by
+ * string concatenation at runtime is invisible to it and silently emits no
+ * rule at all — found on a real device as a plain white border, `currentColor`
+ * filling in for the color utility that never got generated.
+ */
+export const RANK_CARD_BORDER: Record<Rank, string> = {
+  E: 'border-ink-faint/50',
+  D: 'border-good/50',
+  C: 'border-system/50',
+  B: 'border-system-glow/50',
+  A: 'border-warn/50',
+  S: 'border-gold/50',
+}
+
 const RANK_GLOW: Record<Rank, string> = {
   E: 'var(--color-ink-faint)',
   D: 'var(--color-good)',
