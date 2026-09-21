@@ -14,7 +14,7 @@
  * that would conflate "not enough mana" with "chose not to."
  */
 import { useId, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Lock, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, Plus, RotateCw } from 'lucide-react'
 import { intRequiredForSlot } from '../domain/stats'
 import type { RosterState } from '../domain/shadows'
 import type { Exercise, Shadow } from '../domain/types'
@@ -72,6 +72,16 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
 // iOS Safari (including the in-app WebView this PWA runs in) still ignores
 // unprefixed backface-visibility/transform-style on some versions, and a
 // missing prefix there shows both faces superimposed instead of flipping.
+//
+// Deliberately no `overflow-hidden` here (found on a real device: the back
+// face flipped to but rendered with none of its content visible — name,
+// exercise, buff and the Return/Summon button all gone, not just clipped).
+// `overflow: hidden` on the same element as `backface-visibility: hidden`
+// is a known breaker of the 3D compositing context on mobile WebKit/Blink:
+// it can make the browser flatten the transform, at which point its own
+// face-culling logic gets confused about which face is "front" and hides
+// both. Neither face needs it anyway — the portrait is already bounded by
+// `object-contain`, and the back's text just flows inside the card.
 const FACE = '[backface-visibility:hidden] [-webkit-backface-visibility:hidden] absolute inset-0'
 
 /**
@@ -128,15 +138,15 @@ function ShadowCard({
           {shadow.name}, {shadow.rank} rank{shadow.isMarshal ? ', marshal' : ''}. Tap to {flipped ? 'show portrait' : 'show details'}.
         </span>
 
-        {/* Front: portrait only. */}
-        <div className={`flex items-end justify-center overflow-hidden border bg-panel ${tone.split(' ')[0]} ${FACE}`}>
+        {/* Front: portrait only, plus a faint corner glyph — with nothing
+            else on this face, there is no other cue that it is tappable. */}
+        <div className={`flex items-end justify-center border bg-panel ${tone.split(' ')[0]} ${FACE}`}>
+          <RotateCw size={12} strokeWidth={1.75} className="absolute top-1.5 right-1.5 text-ink-faint/70" />
           <ShadowPortrait name={shadow.name} rank={shadow.rank} muted={benched} />
         </div>
 
         {/* Back: everything else, pre-rotated so it lands right-reading once flipped. */}
-        <div
-          className={`flex flex-col overflow-hidden border bg-void-soft p-2 [transform:rotateY(180deg)] ${tone.split(' ')[0]} ${FACE}`}
-        >
+        <div className={`flex flex-col border bg-void-soft p-2 [transform:rotateY(180deg)] ${tone.split(' ')[0]} ${FACE}`}>
           <div className="flex items-start justify-between gap-1">
             <p className="text-sm font-semibold text-ink">{shadow.name}</p>
             <span className={`shrink-0 border bg-void/70 px-1.5 py-0.5 font-system text-[9px] tracking-[0.06em] uppercase ${tone}`}>
