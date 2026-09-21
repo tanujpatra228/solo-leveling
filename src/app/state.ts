@@ -54,6 +54,7 @@ import type {
   Exercise,
   Profile,
   QuestLog,
+  Rank,
   Routine,
   SessionLog,
   SetLog,
@@ -79,6 +80,8 @@ export interface SystemMessage {
    * docs/system-visuals-plan.md §7.
    */
   kind?: 'toast' | 'window'
+  /** Set only on an ARISE announcement, so `MessageQueue` can show the shadow's own portrait. */
+  shadow?: { name: string; rank: Rank }
 }
 
 export type SyncStatus = 'idle' | 'syncing' | 'ok' | 'failed' | 'offline'
@@ -1214,6 +1217,7 @@ export const useApp = create<AppState>((set, get) => ({
         body: `${shadow.name}, ${shadow.rank}-rank, extracted from ${exercise.name}. ${shadow.buff}`,
         tone: 'system',
         kind: 'window',
+        shadow: { name: shadow.name, rank: shadow.rank },
       })
     }
 

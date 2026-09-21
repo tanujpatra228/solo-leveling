@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
 import { useApp, type SystemMessage } from '../app/state'
 import { playSystemChime, vibrate } from '../platform/capabilities'
+import { ShadowPortrait } from './ShadowPortrait'
 import { SystemOverlay } from './SystemOverlay'
 
 const TONE_BORDER: Record<SystemMessage['tone'], string> = {
@@ -102,10 +103,15 @@ function Toast({ message, onDismiss }: { message: SystemMessage; onDismiss: () =
  * exits), with "Acknowledge" kept in the body as the on-brand affirmative
  * action rather than the only way out.
  */
-function SystemMessageWindow({ message, onDismiss }: { message: SystemMessage; onDismiss: () => void }) {
+export function SystemMessageWindow({ message, onDismiss }: { message: SystemMessage; onDismiss: () => void }) {
   return (
     <SystemOverlay title="Notification" icon={AlertCircle} iconTone={message.tone} onClose={onDismiss}>
       <div className="flex flex-col items-center gap-3 py-2 text-center">
+        {message.shadow ? (
+          <div className="flex h-48 items-end justify-center">
+            <ShadowPortrait name={message.shadow.name} rank={message.shadow.rank} size="lg" />
+          </div>
+        ) : null}
         <p className="text-lg font-semibold text-ink italic">{message.title}</p>
         {message.body ? <p className="max-w-sm text-sm text-ink-soft">{message.body}</p> : null}
         <button
