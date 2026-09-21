@@ -487,6 +487,7 @@ function HomeScreen() {
                 <ShadowsPanel
                   roster={projection.roster}
                   exercises={exercises}
+                  totalInt={player.total.INT}
                   onToggle={(id, active) => void setShadowActive(id, active)}
                   onHelp={() => setHelpTopic(HELP_TOPICS.army)}
                 />
