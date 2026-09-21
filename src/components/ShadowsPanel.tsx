@@ -17,22 +17,13 @@ import { useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Lock, Plus } from 'lucide-react'
 import { intRequiredForSlot } from '../domain/stats'
 import type { RosterState } from '../domain/shadows'
-import type { Exercise, Rank, Shadow } from '../domain/types'
+import type { Exercise, Shadow } from '../domain/types'
 import { HelpButton } from './HelpButton'
+import { RANK_TONE, ShadowPortrait } from './ShadowPortrait'
 import { SystemPanel } from './SystemPanel'
 import { SystemValue } from './SystemValue'
-import { SHADOW_ART } from './shadowArt'
 
 const SLOTS_PER_PAGE = 4
-
-const RANK_TONE: Record<Rank, string> = {
-  E: 'border-ink-faint text-ink-faint',
-  D: 'border-good text-good',
-  C: 'border-system text-system',
-  B: 'border-system-glow text-system-glow',
-  A: 'border-warn text-warn',
-  S: 'border-gold text-gold',
-}
 
 function exerciseName(exercises: readonly Exercise[], id: string): string {
   return exercises.find((e) => e.id === id)?.name ?? id
@@ -91,7 +82,6 @@ function ShadowCard({
   benched?: boolean
 }) {
   const tone = RANK_TONE[shadow.rank]
-  const art = SHADOW_ART[shadow.name]
 
   return (
     <div className={`flex flex-col border bg-void-soft ${tone.split(' ')[0]} ${benched ? 'opacity-55' : ''}`}>
@@ -106,18 +96,7 @@ function ShadowCard({
         >
           {shadow.rank}-Rank
         </span>
-        {art ? (
-          <img
-            src={art}
-            alt={shadow.name}
-            loading="lazy"
-            className={`max-h-[96%] max-w-[92%] object-contain ${benched ? 'grayscale' : ''}`}
-          />
-        ) : (
-          <div className={`grid size-14 place-items-center rounded-full border-2 font-system text-lg font-bold ${tone}`}>
-            {shadow.name.charAt(0)}
-          </div>
-        )}
+        <ShadowPortrait name={shadow.name} rank={shadow.rank} muted={benched} />
       </div>
       <div className="flex flex-1 flex-col gap-0.5 p-2">
         <p className="text-sm font-semibold text-ink">{shadow.name}</p>
