@@ -41,12 +41,19 @@ export function ShadowPortrait({
   const art = SHADOW_ART[name]
 
   if (art) {
+    // `sm` (the roster card) fills its frame edge to edge — object-cover,
+    // cropping rather than letterboxing, since the front face is the whole
+    // card now and a margin around the art there just reads as wasted
+    // space. `lg` (the ARISE reveal) stays object-contain: a full-body
+    // reveal shot is the point there, and cropping it would cut the
+    // character off.
+    const sizing = size === 'lg' ? 'max-h-48 max-w-[80%] object-contain' : 'absolute inset-0 size-full object-cover'
     return (
       <img
         src={art}
         alt={name}
         loading="lazy"
-        className={`${size === 'lg' ? 'max-h-48 max-w-[80%]' : 'max-h-[96%] max-w-[92%]'} object-contain ${muted ? 'grayscale' : ''}`}
+        className={`${sizing} ${muted ? 'grayscale' : ''}`}
         style={size === 'lg' && !muted ? { filter: `drop-shadow(0 0 18px ${RANK_GLOW[rank]})` } : undefined}
       />
     )

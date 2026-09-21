@@ -104,6 +104,10 @@ function ShadowCard({
   benched?: boolean
 }) {
   const tone = RANK_TONE[shadow.rank]
+  // Full-strength on every card at once read as too loud — halved just for
+  // the card's own outer edge; the rank chip and marshal tag stay
+  // full-strength, since those are small and meant to be read, not felt.
+  const cardBorder = `${tone.split(' ')[0]}/50`
   const [flipped, setFlipped] = useState(false)
   const labelId = useId()
 
@@ -148,13 +152,13 @@ function ShadowCard({
 
         {/* Front: portrait only, plus a faint corner glyph — with nothing
             else on this face, there is no other cue that it is tappable. */}
-        <div className={`flex items-end justify-center border bg-panel ${tone.split(' ')[0]} ${FACE}`}>
+        <div className={`flex items-end justify-center border bg-panel ${cardBorder} ${FACE}`}>
           <RotateCw size={12} strokeWidth={1.75} className="absolute top-1.5 right-1.5 text-ink-faint/70" />
           <ShadowPortrait name={shadow.name} rank={shadow.rank} muted={benched} />
         </div>
 
         {/* Back: everything else, pre-rotated so it lands right-reading once flipped. */}
-        <div className={`flex flex-col border bg-void-soft p-2 [transform:rotateY(180deg)] ${tone.split(' ')[0]} ${FACE}`}>
+        <div className={`flex flex-col border bg-void-soft p-2 [transform:rotateY(180deg)] ${cardBorder} ${FACE}`}>
           <div className="flex items-start justify-between gap-1">
             <p className="text-sm font-semibold text-ink">{shadow.name}</p>
             <span className={`shrink-0 border bg-void/70 px-1.5 py-0.5 font-system text-[9px] tracking-[0.06em] uppercase ${tone}`}>
