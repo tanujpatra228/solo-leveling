@@ -19,7 +19,7 @@ import { evaluateTitles, type TitleDef } from './titles'
 import { unlockedRunes, type RuneDef } from './runes'
 import { highestClearedFloor, nextUnclearedFloor, type TowerFloor } from './tower'
 import { weeklyVolumeReport, type MuscleVolume } from './volume'
-import { ageFromBirthYear, dayKeyRange, dayOfWeekForKey, rollingWindow, weekStartKey } from './time'
+import { ageFromBirthYear, dayOfWeekForKey, rollingWindow } from './time'
 import type {
   BodyMetric,
   DayKey,
@@ -372,9 +372,17 @@ export function projectPlayer(input: ProjectionInput): Projection {
   const total = addStats(derived, input.allocated)
   const unspent = unspentPoints(level.statPointsEarned, input.allocated)
 
-  /* ---- weekly volume, for the current training week only ---- */
-  const weekStart = weekStartKey(input.today)
-  const weekDays = new Set(dayKeyRange(weekStart, input.today))
+  /* ---- weekly volume: a rolling 7 days, not the calendar week ----
+   * A calendar week (Monday to today) reads as "everything untrained" every
+   * Monday morning, even for a hunter mid-programme — Thursday's and
+   * Friday's real sets just fell outside the window. Advisories already use
+   * a rolling 7 days (state.ts); this used to use the calendar week instead,
+   * so the two disagreed on a Monday — Volume Panel reads every muscle
+   * Untrained while an advisory computed from the same week's real sets
+   * still (correctly) fires. One window, shared via `rollingWindow`, same
+   * as the 28-day windows just above.
+   */
+  const weekDays = new Set(rollingWindow(input.today, 7))
   const weekSets = input.sessions
     .filter((s) => weekDays.has(s.dayKey))
     .flatMap((s) => setsBySession.get(s.id) ?? [])
