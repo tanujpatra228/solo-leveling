@@ -4,12 +4,23 @@
  * are tested directly against `RosterState` fixtures. `ShadowsPanel` itself
  * gets one smoke test per real state (empty, and a populated roster) through
  * `renderToStaticMarkup`, per the precedent in `DailyQuestPanel.test.tsx`.
+ * The flip card's click wiring needs a real DOM (`createRoot`/`act`, per
+ * `StatusFooter.test.tsx`'s precedent) since it's about event propagation,
+ * not markup.
  */
+import { act } from 'react'
+import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { RosterState } from '../domain/shadows'
 import type { Shadow } from '../domain/types'
 import { ShadowsPanel, buildRosterSlots } from './ShadowsPanel'
+
+declare global {
+  // eslint-disable-next-line no-var
+  var IS_REACT_ACT_ENVIRONMENT: boolean | undefined
+}
+globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 function shadow(partial: Partial<Shadow> & { id: string }): Shadow {
   return {
@@ -115,5 +126,66 @@ describe('ShadowsPanel', () => {
     )
     expect(html).not.toContain('<img')
     expect(html).toContain('>V<')
+  })
+})
+
+describe('ShadowCard flip', () => {
+  let container: HTMLDivElement
+  let root: ReturnType<typeof createRoot>
+
+  beforeEach(() => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+  })
+
+  afterEach(async () => {
+    await act(async () => root.unmount())
+    container.remove()
+  })
+
+  it('starts unflipped, and tapping the card flips it', async () => {
+    const active = [shadow({ id: 's1', name: 'Vulcan', rank: 'B' })]
+    await act(async () =>
+      root.render(
+        <ShadowsPanel
+          roster={roster({ cap: 1, activeCount: 1, active })}
+          exercises={[]}
+          totalInt={0}
+          onToggle={() => {}}
+          onHelp={() => {}}
+        />,
+      ),
+    )
+    const card = container.querySelector('[role="button"]') as HTMLElement
+    expect(card.getAttribute('aria-pressed')).toBe('false')
+
+    await act(async () => card.click())
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('tapping the Return button acts on the shadow without also flipping the card', async () => {
+    const active = [shadow({ id: 's1', name: 'Vulcan', rank: 'B' })]
+    let toggled: [string, boolean] | null = null
+    await act(async () =>
+      root.render(
+        <ShadowsPanel
+          roster={roster({ cap: 1, activeCount: 1, active })}
+          exercises={[]}
+          totalInt={0}
+          onToggle={(id, next) => {
+            toggled = [id, next]
+          }}
+          onHelp={() => {}}
+        />,
+      ),
+    )
+    const card = container.querySelector('[role="button"]') as HTMLElement
+    const returnButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent === 'Return')!
+
+    await act(async () => returnButton.click())
+
+    expect(toggled).toEqual(['s1', false])
+    expect(card.getAttribute('aria-pressed')).toBe('false')
   })
 })
