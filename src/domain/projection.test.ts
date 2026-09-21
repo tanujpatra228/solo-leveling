@@ -140,6 +140,39 @@ describe('a single logged session', () => {
   })
 })
 
+describe('weekly volume is a rolling 7 days, not the calendar week', () => {
+  // Monday. A calendar-week window (Monday to today) would be one day long
+  // here and exclude Thursday's session entirely — every muscle would read
+  // "Untrained" even though the hunter trained three days ago, while
+  // state.ts's advisories (already rolling) kept seeing that same session.
+  // The two disagreeing on exactly this kind of Monday is what surfaced the
+  // bug: the Analysis screen showed "front delts outweigh rear delts" next
+  // to a Volume Panel claiming every muscle, including front delts, was
+  // untrained.
+  const monday = '2026-03-09'
+  const thursday = '2026-03-05'
+  const sessions = [session('s1', thursday, Date.parse(`${thursday}T10:00:00Z`))]
+  const sets = [set('s1', 'incline-barbell-press', 60, 6, 0, Date.parse(`${thursday}T10:00:00Z`))]
+  const projection = projectPlayer(baseInput({ today: monday, sessions, sets }))
+
+  it('still counts Thursday\'s session toward this week\'s volume', () => {
+    const chest = projection.volume.find((v) => v.muscle === 'chest')
+    expect(chest).toBeDefined()
+    expect(chest!.sets).toBeGreaterThan(0)
+    expect(chest!.verdict).not.toBe('none')
+  })
+
+  it('drops out of the window once it is more than 7 days old', () => {
+    const eightDaysBeforeMonday = '2026-03-01'
+    const oldSessions = [session('s1', eightDaysBeforeMonday, Date.parse(`${eightDaysBeforeMonday}T10:00:00Z`))]
+    const oldSets = [set('s1', 'incline-barbell-press', 60, 6, 0, Date.parse(`${eightDaysBeforeMonday}T10:00:00Z`))]
+    const stale = projectPlayer(baseInput({ today: monday, sessions: oldSessions, sets: oldSets }))
+    const chest = stale.volume.find((v) => v.muscle === 'chest')
+    expect(chest!.sets).toBe(0)
+    expect(chest!.verdict).toBe('none')
+  })
+})
+
 describe('gateDifficulty reads the bodyweight-adjusted weight, not the raw set weight', () => {
   it('scores a bodyweight-only session above E, since it is not free work', () => {
     // situps: bodyweightFactor 0.45. Six sets of 20 at a 80 kg session
