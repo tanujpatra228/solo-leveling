@@ -23,7 +23,6 @@ import {
   SetLogSchema,
   SettingsSchema,
   ShadowSchema,
-  type BlockItem,
   type BodyMetric,
   type Equipment,
   type Exercise,
@@ -129,32 +128,11 @@ export async function ensureSeeded(): Promise<void> {
   })
 }
 
-function blockItemEquals(a: BlockItem, b: BlockItem): boolean {
-  return (
-    a.exerciseId === b.exerciseId &&
-    a.sets === b.sets &&
-    a.restSec === b.restSec &&
-    a.repRange[0] === b.repRange[0] &&
-    a.repRange[1] === b.repRange[1]
-  )
-}
-
-function routineEquals(a: Routine, b: Routine): boolean {
-  if (a.id !== b.id || a.dayOfWeek !== b.dayOfWeek || a.name !== b.name || a.gateRank !== b.gateRank) return false
-  if (a.blocks.length !== b.blocks.length) return false
-  return a.blocks.every((blockA, i) => {
-    const blockB = b.blocks[i]!
-    if (blockA.type !== blockB.type || blockA.items.length !== blockB.items.length) return false
-    return blockA.items.every((itemA, j) => blockItemEquals(itemA, blockB.items[j]!))
-  })
-}
-
 // Includes LEGACY_SEED_ROUTINES_CST alongside the two live sets: a hunter
 // still seeded with the old CST split has rows whose id no longer appears in
-// SEED_ROUTINES at all now that it holds the Push/Pull/Legs content, and the
-// "is this untouched" check below needs to find their original shape
-// somewhere to compare against, or it can never prove they are safe to
-// replace and the split would never reach an existing hunter.
+// SEED_ROUTINES at all now that it holds the Push/Pull/Legs content, and
+// `reconcileRoutines` below needs every id we have ever shipped under, not
+// just the current ones, to recognize their rows as seed-derived.
 const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
   [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT, ...LEGACY_SEED_ROUTINES_CST].map((r) => [r.id, r]),
 )
@@ -164,24 +142,19 @@ const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
  * — bodyweight or barbell — replacing it wholesale, but only when doing so
  * is provably safe. See docs/bodyweight-gates-plan.md §5b.
  *
- * Add-only routine seeding exists to protect a hunter's future edits, but
- * there is no routine-edit path in the app yet, so every routine row on
- * every device today is byte-identical to some seed shape — live or
- * historical (`ALL_SEED_ROUTINES_BY_ID`) — every row, checked, not assumed.
- * That is what lets this function prove a replace discards nothing. The day
- * routine editing ships, that proof stops holding and this function has to
- * change with it, not just its assumption.
- *
- * The early id-set check below is only that — ids, not content. A shipped
- * correction to a routine that keeps its id will never reach an
- * already-seeded hunter through this function: `isUntouched` would compare
- * their (pre-correction) row against the same live seed entry the id-check
- * already matched against, fail identically, and refuse to replace it — a
- * content check here does not help, since for a still-live id the two
- * comparisons resolve to the same object. Shipping such a correction so it
- * actually reaches hunters means bumping the id (as this function's own
- * CST->PPL migration did) or preserving the pre-correction shape in a
- * legacy array the same way, not editing content under a live id in place.
+ * "Safe" is checked by id, not content. There is no routine-edit path in the
+ * app yet (confirmed structurally: `db.routines` is written only here and by
+ * `wipeEverything`), so every row on every device was necessarily put there
+ * by a past run of this function — its content may have drifted from
+ * whatever `ALL_SEED_ROUTINES_BY_ID` captures today if a correction shipped
+ * after that device was seeded (exactly what stranded hunters on the old CST
+ * week after Cable External Rotation was added to it), but its id proves its
+ * origin regardless. Matching on content in addition to id was tried and
+ * reverted: it can only ever make this check fail *more* often on rows nothing
+ * has actually touched, never catch a real edit that id-matching would miss,
+ * since there is nothing yet capable of producing one. The day routine
+ * editing ships, an edited row still carries a seed id, so this proof stops
+ * holding and this function has to change with it, not just its assumption.
  *
  * Deferred entirely while a session is open: `gate.tsx` and `state.ts` both
  * resolve a session's own routine by id, and deleting it out from under an
@@ -198,11 +171,8 @@ export async function reconcileRoutines(equipmentAccess: readonly Equipment[]): 
     const wantedIds = new Set(wanted.map((r) => r.id))
     if (existing.length === wantedIds.size && existing.every((r) => wantedIds.has(r.id))) return // already matches
 
-    const isUntouched = existing.every((row) => {
-      const seedRow = ALL_SEED_ROUTINES_BY_ID.get(row.id)
-      return seedRow !== undefined && routineEquals(row, seedRow)
-    })
-    if (!isUntouched) return // a real edit exists (once routines are editable) — never discard it silently
+    const isUntouched = existing.every((row) => ALL_SEED_ROUTINES_BY_ID.has(row.id))
+    if (!isUntouched) return // an id we never shipped — once routines are editable, never discard a real edit silently
 
     // Gate history is derived from each ended session's own routineId
     // (state.ts's clearedGates), not a separate table, so the remap is a
