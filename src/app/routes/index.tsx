@@ -61,7 +61,7 @@ import { TowerPanel } from '../../components/TowerPanel'
 import { VolumePanel } from '../../components/VolumePanel'
 import { HELP_TOPICS, type HelpTopic } from '../../content/help'
 import type { FatigueBand } from '../../domain/fatigue'
-import { activeQuestFor, JOB_CHANGE_LEVEL } from '../../domain/quests'
+import { activePenaltyQuest, activeQuestFor, JOB_CHANGE_LEVEL } from '../../domain/quests'
 import { unlockedRunes } from '../../domain/runes'
 import { dayKeyStart } from '../../domain/time'
 import { TOWER_FLOORS } from '../../domain/tower'
@@ -278,8 +278,9 @@ function HomeScreen() {
     if (projection.deload.due) return 'deload'
     if (projection.reawakeningDue) return 'reawakening'
     if (quests.some((q) => q.type === 'job_change' && q.status === 'issued')) return 'jobchange'
-    const penaltyQuest = activeQuestFor(quests, today, 'penalty')
-    if (penaltyQuest && penaltyQuest.status !== 'complete') return 'penalty'
+    // Day-agnostic on purpose: a Penalty Quest stays owed across a day
+    // rollover, unlike a Daily Quest, which is always freshly issued.
+    if (activePenaltyQuest(quests)) return 'penalty'
     const dailyQuest = activeQuestFor(quests, today, 'daily')
     if (dailyQuest && dailyQuest.status !== 'complete') return 'dailyquest'
     if (projection.roster.benched.some((s) => s.active)) return 'shadows'

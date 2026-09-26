@@ -801,6 +801,7 @@ describe('Daily Quest per-item progress (F2)', () => {
     // 1-6 all have a routine), so neither is forgiven as a rest day.
     const MONDAY_10AM = new Date(2026, 0, 5, 10, 0).getTime()
     const TUESDAY_10AM = new Date(2026, 0, 6, 10, 0).getTime()
+    const WEDNESDAY_10AM = new Date(2026, 0, 7, 10, 0).getTime()
 
     afterEach(() => vi.useRealTimers())
 
@@ -886,6 +887,34 @@ describe('Daily Quest per-item progress (F2)', () => {
       await useApp.getState().completePenaltyQuest(secondHalf)
       expect(useApp.getState().quests.find((q) => q.type === 'penalty')!.status).toBe('complete')
       expect(useApp.getState().messages.at(-1)?.title).toContain('cleared')
+    })
+
+    it('survives a further day rollover with nobody checking in, and blocks a second one from stacking (found on a real device)', async () => {
+      await seedMissedYesterdayAndAdvance()
+      const mondayPenalty = useApp.getState().quests.find((q) => q.type === 'penalty')!
+      const payload = mondayPenalty.payload as PenaltyQuestPayload
+
+      // A further day passes with the app never opened in between. Tuesday's
+      // own fresh daily quest is also left entirely undone (restTokens is
+      // still 0 from the setup), so this rollover has two things to prove:
+      // the Monday-issued penalty must still be reachable even though its
+      // own dayKey is now two days stale, and Tuesday's separate miss must
+      // not stack a second, competing penalty quest alongside it.
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(WEDNESDAY_10AM)
+      await useApp.getState().refresh()
+      await useApp.getState().ensureQuestsForToday()
+      await useApp.getState().refresh()
+
+      const penaltyRows = useApp.getState().quests.filter((q) => q.type === 'penalty')
+      expect(penaltyRows).toHaveLength(1)
+      expect(penaltyRows[0]!.id).toBe(mondayPenalty.id)
+
+      const full: Partial<Record<string, number>> = {}
+      for (const item of payload.items) full[item.kind] = item.target
+      await useApp.getState().completePenaltyQuest(full)
+
+      expect(useApp.getState().quests.find((q) => q.type === 'penalty')!.status).toBe('complete')
     })
 
     it('does not crash logging against a penalty row issued before `progress` existed (found on a real device)', async () => {

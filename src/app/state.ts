@@ -11,6 +11,7 @@ import { FLAVOUR_TABLE, flavourFor } from '../domain/flavour'
 import { hardSetsPerMuscle } from '../domain/volume'
 import { computeStreak, type StreakState } from '../domain/streak'
 import {
+  activePenaltyQuest,
   activeQuestFor,
   generateDailyQuest,
   generatePenaltyQuest,
@@ -822,11 +823,12 @@ export const useApp = create<AppState>((set, get) => ({
     // The active row, not just any row for the day — a rerolled-away quest
     // (m7b-plan F3) must not generate a penalty for the one it replaced.
     const yesterdayDaily = activeQuestFor(state.quests, yesterday, 'daily')
-    if (
-      yesterdayDaily &&
-      yesterdayDaily.status === 'issued' &&
-      !existing.some((q) => q.type === 'penalty')
-    ) {
+    // The old guard here (`!existing.some(q => q.type === 'penalty')`) only
+    // ever checked *today's* quests, which are always freshly empty on a
+    // new day — it never actually prevented anything. Marking yesterday's
+    // row is unconditional below; only issuing a *new* Penalty Quest is
+    // gated, and on `activePenaltyQuest` (day-agnostic), not on today.
+    if (yesterdayDaily && yesterdayDaily.status === 'issued') {
       // A rest day is forgiven without spending anything: the hunter did not
       // miss it, the System never asked.
       const forgiven = state.absences.includes(yesterday) || get().isRestDay(yesterday)
@@ -847,31 +849,38 @@ export const useApp = create<AppState>((set, get) => ({
         })
       } else {
         await repo.setQuestStatus(yesterdayDaily.id, 'failed')
-        const missedPayload = yesterdayDaily.payload as DailyQuestPayload
-        const penalty = generatePenaltyQuest({
-          missed: missedPayload,
-          completed: missedPayload.progress,
-        })
-        if (penalty) {
-          await repo.putQuest({
-            id: `penalty-${today}`,
-            dayKey: today,
-            type: 'penalty',
-            status: 'issued',
-            issuedAt: Date.now(),
-            expiresAt: null,
-            payload: { ...penalty, progress: {} } satisfies PenaltyQuestPayload,
+        // Only one Penalty Quest is ever outstanding at a time. A second
+        // miss while an earlier one is still unresolved does not stack a
+        // competing quest — activePenaltyQuest only ever surfaces one, so a
+        // second row here would just orphan whichever one it didn't pick,
+        // the exact bug this whole lookup exists to not repeat.
+        if (!activePenaltyQuest(state.quests)) {
+          const missedPayload = yesterdayDaily.payload as DailyQuestPayload
+          const penalty = generatePenaltyQuest({
+            missed: missedPayload,
+            completed: missedPayload.progress,
           })
-          // A window, not a toast (found on a real device: a 6-second toast
-          // is not enough time to read a penalty explanation) — this is a
-          // consequence the hunter has to actually register, the same
-          // treatment a level-up or Job Change Quest arrival gets.
-          get().pushMessage({
-            title: penalty.announcement,
-            body: penalty.reassurance,
-            tone: 'danger',
-            kind: 'window',
-          })
+          if (penalty) {
+            await repo.putQuest({
+              id: `penalty-${today}`,
+              dayKey: today,
+              type: 'penalty',
+              status: 'issued',
+              issuedAt: Date.now(),
+              expiresAt: null,
+              payload: { ...penalty, progress: {} } satisfies PenaltyQuestPayload,
+            })
+            // A window, not a toast (found on a real device: a 6-second toast
+            // is not enough time to read a penalty explanation) — this is a
+            // consequence the hunter has to actually register, the same
+            // treatment a level-up or Job Change Quest arrival gets.
+            get().pushMessage({
+              title: penalty.announcement,
+              body: penalty.reassurance,
+              tone: 'danger',
+              kind: 'window',
+            })
+          }
         }
       }
     }
@@ -1308,7 +1317,7 @@ export const useApp = create<AppState>((set, get) => ({
    */
   async completePenaltyQuest(progressByKind) {
     const state = get()
-    const row = activeQuestFor(state.quests, state.today, 'penalty')
+    const row = activePenaltyQuest(state.quests)
     if (!row || row.status === 'complete') return
 
     // `progress` was added the same day as this action — a penalty row

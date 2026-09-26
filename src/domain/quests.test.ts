@@ -6,6 +6,7 @@ import {
   PENALTY_SURCHARGE,
   REST_TOKENS_PER_MONTH,
   RUN_TARGET_CAP_METRES,
+  activePenaltyQuest,
   activeQuestFor,
   classFromStats,
   dailyScale,
@@ -274,6 +275,38 @@ describe('activeQuestFor (m7b-plan commit 4)', () => {
     const gate = quest({ id: 'g1', dayKey: '2026-03-01', type: 'gate' })
     const otherDay = quest({ id: 'd2', dayKey: '2026-03-02', type: 'daily' })
     expect(activeQuestFor([daily, gate, otherDay], '2026-03-01', 'daily')).toEqual(daily)
+  })
+})
+
+describe('activePenaltyQuest, deliberately day-agnostic unlike activeQuestFor', () => {
+  it('returns null with no penalty at all', () => {
+    expect(activePenaltyQuest([])).toBeNull()
+  })
+
+  it('finds an outstanding penalty no matter how many days ago it was issued', () => {
+    // Issued five real-world days before "today" would be, with nothing
+    // else ever having looked at it since — activeQuestFor(quests, today,
+    // 'penalty') would already have stopped finding this on day two.
+    const penalty = quest({ id: 'p1', dayKey: '2026-03-01', type: 'penalty', status: 'issued' })
+    expect(activePenaltyQuest([penalty])).toEqual(penalty)
+  })
+
+  it('ignores a penalty already cleared', () => {
+    const penalty = quest({ id: 'p1', type: 'penalty', status: 'complete' })
+    expect(activePenaltyQuest([penalty])).toBeNull()
+  })
+
+  it('returns the reroll rather than the row it supersedes', () => {
+    const original = quest({ id: 'p1', type: 'penalty' })
+    const reroll = quest({ id: 'p2', type: 'penalty', supersedes: 'p1' })
+    expect(activePenaltyQuest([original, reroll])).toEqual(reroll)
+  })
+
+  it('ignores daily and gate rows', () => {
+    const daily = quest({ id: 'd1', type: 'daily' })
+    const gate = quest({ id: 'g1', type: 'gate' })
+    const penalty = quest({ id: 'p1', type: 'penalty' })
+    expect(activePenaltyQuest([daily, gate, penalty])).toEqual(penalty)
   })
 })
 
