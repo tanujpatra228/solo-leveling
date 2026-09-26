@@ -14,6 +14,8 @@ import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
 import { addDaysToKey, dayOfWeekForKey } from '../domain/time'
 import { addShadow, putQuest, reconcileRoutines, updateProgress, wipeEverything } from '../db/repo'
+import { db } from '../db/db'
+import { LEGACY_SEED_ROUTINES_CST } from '../db/seed'
 import { generateDailyQuest, type DailyQuestPayload, type PenaltyQuestPayload } from '../domain/quests'
 import { QUEST_REROLL_PRICE_GOLD, REST_TOKEN_PRICE_GOLD } from '../domain/shop'
 import { encodeLicenseKey, generateHunterSecret, pairingPayload } from '../sync/identity'
@@ -29,16 +31,36 @@ beforeEach(async () => {
   await useApp.getState().load()
 })
 
+/**
+ * Injects the old 'saturday-cardio-abs' shape (leg-raises, cable-crunch,
+ * hanging-leg-raises, treadmill-intervals — 4 blocks) for tests below that
+ * need a stable multi-exercise routine to substitute and demote within,
+ * independent of whatever the currently-shipped SEED_ROUTINES actually
+ * looks like. Reused from LEGACY_SEED_ROUTINES_CST purely as a convenient,
+ * already-real fixture — nothing here is about the CST->PPL migration
+ * LEGACY_SEED_ROUTINES_CST otherwise exists for.
+ *
+ * Written straight to the fake-indexeddb `db`, not just `useApp.setState`:
+ * startGate/logSet/finishGate all call refresh() internally, which re-reads
+ * routines from the database and would silently wipe an in-memory-only
+ * injection the next time any of them ran.
+ */
+async function seedLegacySaturdayCardioAbs(): Promise<void> {
+  const routine = LEGACY_SEED_ROUTINES_CST.find((r) => r.id === 'saturday-cardio-abs')!
+  await db.routines.put(routine)
+  await useApp.getState().refresh()
+}
+
 describe('targetFor resolves the routine from the active session (G1)', () => {
   // Driven through the real startGate/logSet actions rather than useApp.setState:
   // targetFor now reads a map built once in recompute() (see the crash fix
   // below), so an injected `sessions`/`activeSessionId` with no recompute()
   // in between would just read stale (likely empty) targets.
   it('uses the started routine, not the day-of-week lookup for "today"', async () => {
-    // Friday Legs' squat block is 4 sets. Whatever routine today's actual
+    // Legs Gate A's squat block is 4 sets. Whatever routine today's actual
     // weekday would have matched instead is irrelevant — the session's own
     // routineId must win regardless of what day it happens to be run on.
-    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().startGate('ppl-wednesday-legs-a')
 
     const target = useApp.getState().targetFor('barbell-squat')
     expect(target).not.toBeNull()
@@ -343,7 +365,7 @@ describe('the Job Change Quest is issued at level 20 and completes on demand (m7
 
 describe('abandonGate discards an open session instead of finishing it', () => {
   it('deletes the session and its sets, and clears activeSessionId', async () => {
-    const sessionId = await useApp.getState().startGate('friday-legs')
+    const sessionId = await useApp.getState().startGate('ppl-wednesday-legs-a')
     await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 5 })
     expect(useApp.getState().sets.some((s) => s.sessionId === sessionId)).toBe(true)
 
@@ -359,29 +381,25 @@ describe('abandonGate discards an open session instead of finishing it', () => {
   })
 })
 
-describe('a full Friday Legs session, then next week\'s targets (M3-D5)', () => {
-  it('logs all 17 working sets and every exercise progresses to increase_load', async () => {
-    const routine = useApp.getState().routines.find((r) => r.id === 'friday-legs')!
+describe('a full Legs Gate A session, then next week\'s targets (M3-D5)', () => {
+  it('logs all 20 working sets and every exercise progresses to increase_load', async () => {
+    const routine = useApp.getState().routines.find((r) => r.id === 'ppl-wednesday-legs-a')!
     const items = routine.blocks.flatMap((b) => b.items)
-    expect(items.reduce((total, item) => total + item.sets, 0)).toBe(25)
+    expect(items.reduce((total, item) => total + item.sets, 0)).toBe(20)
 
     // A baseline weight per exercise, arbitrary but distinct, so the
     // post-session assertions can check each exercise moved by its own
     // increment rather than all landing on the same number by coincidence.
-    // nordic-curl is bodyweight/reps and logs weight 0, same convention used
-    // for every other bodyweight exercise in this file, so it is deliberately
-    // left out of this map rather than given a fake kg baseline.
     const baseline: Record<string, number> = {
       'barbell-squat': 100,
       'romanian-deadlift': 60,
-      'barbell-hip-thrust': 40,
       'leg-press': 120,
       'hamstring-curl': 40,
-      'leg-extension': 35,
       'barbell-calf-raise': 60,
+      'cable-crunch': 30,
     }
 
-    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().startGate('ppl-wednesday-legs-a')
 
     for (const item of items) {
       for (let i = 0; i < item.sets; i += 1) {
@@ -397,21 +415,20 @@ describe('a full Friday Legs session, then next week\'s targets (M3-D5)', () => 
     const loggedCount = useApp
       .getState()
       .sets.filter((s) => s.sessionId === useApp.getState().activeSessionId).length
-    expect(loggedCount).toBe(25)
+    expect(loggedCount).toBe(20)
 
     await useApp.getState().finishGate()
 
     // Every loaded lift returns increase_load at +increment, rounded — the
-    // exact rule stated in M3-D5. hamstring-curl and leg-extension step by
+    // exact rule stated in M3-D5. hamstring-curl and cable-crunch step by
     // the 2.5 kg pin increment; every barbell lift here by 5 kg.
     const increments: Record<string, number> = {
       'barbell-squat': 5,
       'romanian-deadlift': 5,
-      'barbell-hip-thrust': 5,
       'leg-press': 5,
       'hamstring-curl': 2.5,
-      'leg-extension': 2.5,
       'barbell-calf-raise': 5,
+      'cable-crunch': 2.5,
     }
 
     for (const exerciseId of Object.keys(baseline)) {
@@ -480,6 +497,8 @@ describe('announceBodyweightFactorRegradeIfNeeded', () => {
 })
 
 describe('substituteExercise records the choice for the open session (commit 9de7140)', () => {
+  beforeEach(async () => { await seedLegacySaturdayCardioAbs() })
+
   it('is readable from activeSubstitutions once recorded', async () => {
     await useApp.getState().startGate('saturday-cardio-abs')
     useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
@@ -506,7 +525,7 @@ describe('substituteExercise records the choice for the open session (commit 9de
   })
 
   it('logSet leaves both fields undefined for an ordinary set, so every pre-existing call site is unaffected', async () => {
-    await useApp.getState().startGate('friday-legs')
+    await useApp.getState().startGate('ppl-wednesday-legs-a')
     await useApp.getState().logSet({ exerciseId: 'barbell-squat', weight: 100, reps: 8 })
 
     const logged = useApp.getState().sets.find((s) => s.exerciseId === 'barbell-squat')!
@@ -583,6 +602,8 @@ describe('substituteExercise records the choice for the open session (commit 9de
 })
 
 describe('finishGate summarizes substitutions (commit 4d6f484)', () => {
+  beforeEach(async () => { await seedLegacySaturdayCardioAbs() })
+
   it('names the swap and its reason in the gate-cleared message', async () => {
     await useApp.getState().startGate('saturday-cardio-abs')
     useApp.getState().substituteExercise('hanging-leg-raises', 'leg-raises', 'occupied')
@@ -634,6 +655,7 @@ describe('substitutesByExerciseId (commit 7)', () => {
 
   it('ranks candidates for every prescribed exercise in today\'s routine, using its own equipment as the default block', async () => {
     await awaken()
+    await seedLegacySaturdayCardioAbs()
     await useApp.getState().startGate('saturday-cardio-abs')
 
     const candidates = useApp.getState().substitutesByExerciseId['cable-crunch'] ?? []
@@ -647,6 +669,7 @@ describe('substitutesByExerciseId (commit 7)', () => {
 
   it('demotes Leg Raises for Hanging Leg Raises, since both are already in today\'s routine', async () => {
     await awaken()
+    await seedLegacySaturdayCardioAbs()
     await useApp.getState().startGate('saturday-cardio-abs')
 
     const candidates = useApp.getState().substitutesByExerciseId['hanging-leg-raises'] ?? []

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { substitutesFor } from './substitution'
-import { SEED_EXERCISES, SEED_EXERCISE_BY_ID, SEED_ROUTINES } from '../db/seed'
-import type { Equipment, Exercise } from './types'
+import { SEED_EXERCISES, SEED_EXERCISE_BY_ID } from '../db/seed'
+import type { Equipment, Exercise, Routine } from './types'
 
 function findExercise(id: string): Exercise {
   const exercise = SEED_EXERCISE_BY_ID.get(id)
@@ -81,7 +81,19 @@ describe('substitutesFor', () => {
 
   it('Hanging Leg Raises returns Leg Raises as a ladder neighbour, demoted for already being in today\'s routine', () => {
     const hangingLegRaises = findExercise('hanging-leg-raises')
-    const routine = SEED_ROUTINES.find((r) => r.id === 'saturday-cardio-abs')!
+    // Synthetic, not read off SEED_ROUTINES: this test is about the demote-
+    // when-already-prescribed-today logic, not about which specific day the
+    // shipped week happens to pair these two on (it doesn't, currently).
+    const routine: Routine = {
+      id: 'synthetic-cardio-abs',
+      dayOfWeek: 6,
+      name: 'Synthetic Cardio and Abs Gate',
+      gateRank: 'D',
+      blocks: [
+        { type: 'single', items: [{ exerciseId: 'leg-raises', sets: 3, repRange: [12, 20], restSec: 60 }] },
+        { type: 'single', items: [{ exerciseId: 'hanging-leg-raises', sets: 3, repRange: [8, 15], restSec: 75 }] },
+      ],
+    }
     const candidates = substitutesFor(hangingLegRaises, {
       exercises: SEED_EXERCISES,
       equipmentAccess: ALL_EQUIPMENT,

@@ -1532,13 +1532,15 @@ export const SEED_EXERCISES: readonly Exercise[] = [
 ]
 
 /**
- * The six training days. Day numbers match `Date.prototype.getDay`, so Sunday
- * is 0 and is deliberately absent — Sunday is rest.
- *
- * Gate ranks here are starting values. Once there is history the real rank is
- * computed from planned tonnage and intensity by `gateDifficulty`.
+ * The barbell hunter's old six-day CST/back-biceps/legs split — no longer
+ * seeded (see `SEED_ROUTINES` below), kept only so `repo.reconcileRoutines`
+ * can still prove an already-onboarded hunter's stored rows are untouched
+ * before replacing them with the Push/Pull/Legs split. Never edit this
+ * array's content: its whole purpose is being a frozen, known-old shape to
+ * compare against. If it stops being referenced by any live migration path,
+ * delete it rather than let it silently rot.
  */
-export const SEED_ROUTINES: readonly Routine[] = [
+export const LEGACY_SEED_ROUTINES_CST: readonly Routine[] = [
   {
     id: 'monday-cst',
     dayOfWeek: 1,
@@ -1568,16 +1570,8 @@ export const SEED_ROUTINES: readonly Routine[] = [
       { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 3, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'farmers-carry', sets: 3, repRange: [1, 1], restSec: 90 }] },
-      // Last, not first: the compound pulls above already tax grip
-      // isometrically, and fresh forearms would only mean less weight on
-      // the row and pull-up. This is direct hypertrophy work for the
-      // muscles that actually produce grip force — the carry above trains
-      // holding endurance, not the stretched-to-shortened range that drives
-      // growth.
       { type: 'single', items: [{ exerciseId: 'wrist-curl', sets: 3, repRange: [12, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'reverse-wrist-curl', sets: 2, repRange: [15, 20], restSec: 45 }] },
-      // Pinch is its own grip quality, distinct from the crush strength the
-      // carry trains — the thumb group gets nothing from either curl above.
       { type: 'single', items: [{ exerciseId: 'dumbbell-hub-pinch', sets: 3, repRange: [1, 1], restSec: 60 }] },
     ],
   },
@@ -1587,8 +1581,6 @@ export const SEED_ROUTINES: readonly Routine[] = [
     name: 'Abs and Biceps Gate',
     gateRank: 'D',
     blocks: [
-      // Second squat/hinge/lunge-pattern day of the week — closes the
-      // push-day-to-leg-day frequency gap without adding a session.
       { type: 'single', items: [{ exerciseId: 'dumbbell-bulgarian-split-squat', sets: 3, repRange: [8, 12], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'machine-preacher-curl', sets: 3, repRange: [10, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 3, repRange: [10, 15], restSec: 60 }] },
@@ -1603,7 +1595,6 @@ export const SEED_ROUTINES: readonly Routine[] = [
     dayOfWeek: 4,
     name: 'CST Gate (Supersets)',
     gateRank: 'C',
-    // The `+` pairs in the brief are real supersets, performed alternating.
     blocks: [
       {
         type: 'superset',
@@ -1662,6 +1653,120 @@ export const SEED_ROUTINES: readonly Routine[] = [
       { type: 'single', items: [{ exerciseId: 'cable-crunch', sets: 3, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'hanging-leg-raises', sets: 3, repRange: [8, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'treadmill-intervals', sets: 1, repRange: [1, 1], restSec: 0 }] },
+    ],
+  },
+]
+
+/**
+ * The six training days. Day numbers match `Date.prototype.getDay`, so Sunday
+ * is 0 and is deliberately absent — Sunday is rest.
+ *
+ * A Push/Pull/Legs split, twice through the week — replaced the CST/back-
+ * biceps/legs split above (docs/TODO.md, "Push/Pull/Legs replaces the CST
+ * split") after a hunter's own Analysis screen turned up eight simultaneous
+ * warnings against it: no hip hinge, biceps on back-to-back days, three-plus
+ * biceps exercises in one session, front delts outweighing rear delts, twice
+ * as many push days as leg days, no single-leg work, no direct grip work, no
+ * rotator cuff work. Every one of those is closed by design here, not by
+ * accident — verified against the real `detectAdvisories`/`weeklyVolumeReport`
+ * before this shipped: zero advisories fire, and every muscle this split
+ * trains clears its MEV floor. Two honest trade-offs that remain, neither
+ * tripping a warning: traps sit below their floor (a pre-existing gap the
+ * old split had too — only one weekly Cable Shrug exists in the prescribed
+ * library), and grip runs a little hot (Farmer's Carry stacked on top of two
+ * pull sessions' worth of rowing) without reaching its recoverable ceiling.
+ *
+ * Gate ranks here are starting values. Once there is history the real rank is
+ * computed from planned tonnage and intensity by `gateDifficulty`.
+ */
+export const SEED_ROUTINES: readonly Routine[] = [
+  {
+    id: 'ppl-monday-push-a',
+    dayOfWeek: 1,
+    name: 'Push Gate A',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'incline-barbell-press', sets: 4, repRange: [5, 8], restSec: 180 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-shoulder-press', sets: 3, repRange: [8, 12], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-lateral-raise', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'skullcrusher', sets: 3, repRange: [8, 12], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-external-rotation', sets: 2, repRange: [15, 20], restSec: 45 }] },
+    ],
+  },
+  {
+    id: 'ppl-tuesday-pull-a',
+    dayOfWeek: 2,
+    name: 'Pull Gate A',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'pull-ups', sets: 4, repRange: [5, 12], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'dumbbell-row', sets: 3, repRange: [8, 12], restSec: 120 }] },
+      // Direct rear-delt work on every Pull day, deliberately — this and its
+      // Friday counterpart are what keep front delts from running away from
+      // rear delts, since nothing on a Push day adds isolated front-delt
+      // work beyond what pressing already gives it.
+      { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-shrug', sets: 3, repRange: [10, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 3, repRange: [10, 15], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-preacher-curl', sets: 2, repRange: [10, 15], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'farmers-carry', sets: 3, repRange: [1, 1], restSec: 90 }] },
+    ],
+  },
+  {
+    id: 'ppl-wednesday-legs-a',
+    dayOfWeek: 3,
+    name: 'Legs Gate A',
+    gateRank: 'B',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'barbell-squat', sets: 4, repRange: [5, 8], restSec: 210 }] },
+      { type: 'single', items: [{ exerciseId: 'romanian-deadlift', sets: 3, repRange: [6, 10], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'leg-press', sets: 3, repRange: [10, 15], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 3, repRange: [10, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'barbell-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-crunch', sets: 3, repRange: [10, 15], restSec: 60 }] },
+    ],
+  },
+  {
+    id: 'ppl-thursday-push-b',
+    dayOfWeek: 4,
+    name: 'Push Gate B',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'cable-chest-press-mid', sets: 4, repRange: [10, 15], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-shoulder-press', sets: 3, repRange: [8, 12], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-fly', sets: 3, repRange: [10, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'tricep-overhead-extension', sets: 3, repRange: [10, 15], restSec: 75 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-lateral-raise', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-external-rotation', sets: 2, repRange: [15, 20], restSec: 45 }] },
+    ],
+  },
+  {
+    id: 'ppl-friday-pull-b',
+    dayOfWeek: 5,
+    name: 'Pull Gate B',
+    gateRank: 'C',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'one-arm-cable-lat-pulldown', sets: 4, repRange: [8, 12], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'dumbbell-row', sets: 3, repRange: [8, 12], restSec: 120 }] },
+      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'strict-curl', sets: 3, repRange: [6, 10], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 2, repRange: [10, 15], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'pallof-press', sets: 3, repRange: [10, 12], restSec: 60 }] },
+    ],
+  },
+  {
+    id: 'ppl-saturday-legs-b',
+    dayOfWeek: 6,
+    name: 'Legs Gate B',
+    gateRank: 'B',
+    blocks: [
+      { type: 'single', items: [{ exerciseId: 'leg-press', sets: 4, repRange: [10, 15], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'barbell-hip-thrust', sets: 3, repRange: [8, 12], restSec: 120 }] },
+      // Closes the no-single-leg-work gap — the only unilateral movement in
+      // the split, deliberately on the second Legs day rather than repeated.
+      { type: 'single', items: [{ exerciseId: 'dumbbell-bulgarian-split-squat', sets: 3, repRange: [8, 12], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 3, repRange: [10, 15], restSec: 90 }] },
+      { type: 'single', items: [{ exerciseId: 'barbell-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
     ],
   },
 ]
