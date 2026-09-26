@@ -16,17 +16,16 @@
  */
 import { useMemo } from 'react'
 import { useApp } from '../app/state'
-import { activeQuestFor, isDailyQuestComplete, type DailyItemKind, type PenaltyQuestPayload } from '../domain/quests'
+import { activePenaltyQuest, isDailyQuestComplete, type DailyItemKind, type PenaltyQuestPayload } from '../domain/quests'
 import { DailyQuestClearedRow, DailyQuestRow } from './DailyQuestPanel'
 import { SystemWindow } from './SystemWindow'
 
 export function PenaltyQuestPanel({ strong = false, index }: { strong?: boolean; index?: number }) {
   const quests = useApp((s) => s.quests)
-  const today = useApp((s) => s.today)
   const completePenaltyQuest = useApp((s) => s.completePenaltyQuest)
 
   const quest = useMemo(() => {
-    const row = activeQuestFor(quests, today, 'penalty')
+    const row = activePenaltyQuest(quests)
     if (!row) return null
     const payload = row.payload as PenaltyQuestPayload
     // `progress` was added the same day this panel was — a penalty row
@@ -35,7 +34,7 @@ export function PenaltyQuestPanel({ strong = false, index }: { strong?: boolean;
     // real device: the hunter's own already-issued penalty did exactly
     // this the moment the new code first loaded).
     return { ...payload, progress: payload.progress ?? {} }
-  }, [quests, today])
+  }, [quests])
 
   if (!quest) return null
 

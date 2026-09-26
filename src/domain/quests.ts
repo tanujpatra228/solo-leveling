@@ -100,6 +100,24 @@ export function activeQuestFor(
   return candidates.find((q) => !supersededIds.has(q.id)) ?? null
 }
 
+/**
+ * The one outstanding Penalty Quest, if any. Unlike a Daily Quest, a penalty
+ * is never day-scoped — its own reassurance text says the debt is "carried
+ * forward," not "owed today" — so looking it up the same way `activeQuestFor`
+ * looks up a daily (`dayKey === today`) orphans it the moment a single day
+ * passes without the hunter checking in: found on a real device, a broken
+ * streak with a penalty already issued that nothing could ever surface or
+ * complete again, since every lookup compared its issue day against
+ * whatever day it happened to be by the time anyone looked.
+ */
+export function activePenaltyQuest(quests: readonly QuestLog[]): QuestLog | null {
+  const candidates = quests.filter((q) => q.type === 'penalty')
+  const supersededIds = new Set(
+    candidates.map((q) => q.supersedes).filter((id): id is string => id !== undefined),
+  )
+  return candidates.find((q) => !supersededIds.has(q.id) && q.status !== 'complete') ?? null
+}
+
 /** The canon Daily Quest, reached at the level the XP curve targets for a year. */
 export const CANON_TARGETS = { pushups: 100, situps: 100, squats: 100, runMetres: 10_000 } as const
 
