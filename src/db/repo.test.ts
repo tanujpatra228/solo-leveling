@@ -56,13 +56,17 @@ describe('reconcileRoutines', () => {
 
   it('is a no-op once the matching set is already seeded', async () => {
     await reconcileRoutines(BARBELL_ACCESS)
-    await db.routines.update('monday-cst', { name: 'Renamed for this test' })
+    await db.routines.update('ppl-monday-push-a', { name: 'Renamed for this test' })
 
     await reconcileRoutines(BARBELL_ACCESS)
 
     // Untouched by the second call: the id set already matched, so the
-    // early-return fires before the row is ever inspected.
-    expect((await db.routines.get('monday-cst'))?.name).toBe('Renamed for this test')
+    // early-return fires before the row is ever inspected. Note the
+    // asymmetry this implies: a content-only correction to a routine that
+    // *keeps its id* would never reach an already-seeded hunter through
+    // this path — see reconcileRoutines's own doc comment. Only an id
+    // change (like the CST->PPL migration below) does.
+    expect((await db.routines.get('ppl-monday-push-a'))?.name).toBe('Renamed for this test')
   })
 
   it('replaces the barbell set with the bodyweight one when every existing row is untouched', async () => {
@@ -76,7 +80,7 @@ describe('reconcileRoutines', () => {
 
   it('never replaces when any existing routine has been hand-edited', async () => {
     await reconcileRoutines(BARBELL_ACCESS)
-    await db.routines.update('monday-cst', { name: 'Hand-edited name' })
+    await db.routines.update('ppl-monday-push-a', { name: 'Hand-edited name' })
 
     await reconcileRoutines(BODYWEIGHT_ACCESS)
 
@@ -85,12 +89,12 @@ describe('reconcileRoutines', () => {
     // of "this is the hunter's programme".
     const ids = (await db.routines.toArray()).map((r) => r.id).sort()
     expect(ids).toEqual(SEED_ROUTINES.map((r) => r.id).sort())
-    expect((await db.routines.get('monday-cst'))?.name).toBe('Hand-edited name')
+    expect((await db.routines.get('ppl-monday-push-a'))?.name).toBe('Hand-edited name')
   })
 
   it('remaps cleared-gate history to the new set’s routine for the same day, so switching does not trigger a Dungeon Break', async () => {
     await reconcileRoutines(BARBELL_ACCESS)
-    const session = await startSession({ routineId: 'monday-cst', at: Date.parse('2026-01-05T10:00:00Z') })
+    const session = await startSession({ routineId: 'ppl-monday-push-a', at: Date.parse('2026-01-05T10:00:00Z') })
     await endSession(session.id, Date.parse('2026-01-05T11:00:00Z'))
 
     await reconcileRoutines(BODYWEIGHT_ACCESS)
@@ -101,7 +105,7 @@ describe('reconcileRoutines', () => {
 
   it('is deferred entirely while a session is open', async () => {
     await reconcileRoutines(BARBELL_ACCESS)
-    await startSession({ routineId: 'monday-cst' }) // endedAt: null
+    await startSession({ routineId: 'ppl-monday-push-a' }) // endedAt: null
 
     await reconcileRoutines(BODYWEIGHT_ACCESS)
 

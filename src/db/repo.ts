@@ -11,7 +11,7 @@
 import * as z from 'zod'
 import type { Table } from 'dexie'
 import { db, type Allocation, type DeclaredAbsence, type Progress, type SyncState } from './db'
-import { SEED_EXERCISES, SEED_ROUTINES, SEED_ROUTINES_BODYWEIGHT } from './seed'
+import { LEGACY_SEED_ROUTINES_CST, SEED_EXERCISES, SEED_ROUTINES, SEED_ROUTINES_BODYWEIGHT } from './seed'
 import { createIdentity, identityFromSecret, type Identity } from '../sync/identity'
 import {
   BodyMetricSchema,
@@ -149,8 +149,14 @@ function routineEquals(a: Routine, b: Routine): boolean {
   })
 }
 
+// Includes LEGACY_SEED_ROUTINES_CST alongside the two live sets: a hunter
+// still seeded with the old CST split has rows whose id no longer appears in
+// SEED_ROUTINES at all now that it holds the Push/Pull/Legs content, and the
+// "is this untouched" check below needs to find their original shape
+// somewhere to compare against, or it can never prove they are safe to
+// replace and the split would never reach an existing hunter.
 const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
-  [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT].map((r) => [r.id, r]),
+  [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT, ...LEGACY_SEED_ROUTINES_CST].map((r) => [r.id, r]),
 )
 
 /**
@@ -160,10 +166,22 @@ const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
  *
  * Add-only routine seeding exists to protect a hunter's future edits, but
  * there is no routine-edit path in the app yet, so every routine row on
- * every device today is byte-identical to one of the two seed sets — every
- * row, checked, not assumed. That is what lets this function prove a
- * replace discards nothing. The day routine editing ships, that proof stops
- * holding and this function has to change with it, not just its assumption.
+ * every device today is byte-identical to some seed shape — live or
+ * historical (`ALL_SEED_ROUTINES_BY_ID`) — every row, checked, not assumed.
+ * That is what lets this function prove a replace discards nothing. The day
+ * routine editing ships, that proof stops holding and this function has to
+ * change with it, not just its assumption.
+ *
+ * The early id-set check below is only that — ids, not content. A shipped
+ * correction to a routine that keeps its id will never reach an
+ * already-seeded hunter through this function: `isUntouched` would compare
+ * their (pre-correction) row against the same live seed entry the id-check
+ * already matched against, fail identically, and refuse to replace it — a
+ * content check here does not help, since for a still-live id the two
+ * comparisons resolve to the same object. Shipping such a correction so it
+ * actually reaches hunters means bumping the id (as this function's own
+ * CST->PPL migration did) or preserving the pre-correction shape in a
+ * legacy array the same way, not editing content under a live id in place.
  *
  * Deferred entirely while a session is open: `gate.tsx` and `state.ts` both
  * resolve a session's own routine by id, and deleting it out from under an

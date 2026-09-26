@@ -322,7 +322,7 @@ describe('the swap sheet (commit 6b2b0eb, rule 14)', () => {
       },
       bodyweightKg: 72,
     })
-    await useApp.getState().startGate('saturday-cardio-abs')
+    await useApp.getState().startGate('ppl-wednesday-legs-a')
 
     const { container, unmount } = await mountInteractive('/gate')
     const swapButton = Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Swap')

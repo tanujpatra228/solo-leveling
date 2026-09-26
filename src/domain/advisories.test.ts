@@ -49,42 +49,55 @@ const input = {
 const found = detectAdvisories(input)
 const ids = found.map((a) => a.id)
 
-describe('the gaps the brief originally named are now closed in the seed week', () => {
-  // These five were the structural gaps this test file used to pin down
-  // (see git history around this describe block). The Romanian Deadlift,
-  // Barbell Hip Thrust, Cable External Rotation, Farmer's Carry and Dumbbell
-  // Bulgarian Split Squat additions close them, so the corresponding
-  // advisory must no longer fire against the real seed week.
-  it('no longer finds a missing hip hinge — the Romanian Deadlift and Hip Thrust are hinges', () => {
+describe('the Push/Pull/Legs split closes every gap the CST split had', () => {
+  // The CST/back-biceps/legs split (now LEGACY_SEED_ROUTINES_CST) closed
+  // five structural gaps over its own lifetime — Romanian Deadlift, Barbell
+  // Hip Thrust, Cable External Rotation, Farmer's Carry, Dumbbell Bulgarian
+  // Split Squat — but still left three warnings firing simultaneously
+  // (biceps on back-to-back days, three curl variants in one session, heavy
+  // front-delt volume), found on a real hunter's Analysis screen. The PPL
+  // split that replaced it (docs/TODO.md) was verified against this exact
+  // function before shipping: every one of the eight closes, none by
+  // accident — each `it` below names the specific design choice responsible.
+  it('finds no missing hip hinge — Romanian Deadlift, Legs A', () => {
     expect(ids).not.toContain('no-hip-hinge')
   })
 
-  it('no longer finds missing grip work — the Farmer\'s Carry trains it directly', () => {
+  it('finds no missing grip work — Farmer\'s Carry, Pull A', () => {
     expect(ids).not.toContain('no-grip-work')
   })
 
-  it('no longer finds missing rotator cuff work — Cable External Rotation trains it directly', () => {
+  it('finds no missing rotator cuff work — Cable External Rotation, both Push days', () => {
     expect(ids).not.toContain('no-cuff-prehab')
   })
 
-  it('no longer finds missing unilateral leg work — the Bulgarian Split Squat is single-leg', () => {
+  it('finds no missing unilateral leg work — Dumbbell Bulgarian Split Squat, Legs B', () => {
     expect(ids).not.toContain('no-unilateral-lower')
   })
 
-  it('no longer finds a push-day-to-leg-day imbalance — Wednesday now trains a lunge pattern too', () => {
+  it('finds no push-day-to-leg-day imbalance — two Push, two Pull, two Legs', () => {
     expect(ids).not.toContain('push-leg-day-imbalance')
   })
 
-  it('still finds direct biceps on back-to-back days — unrelated to the fixes above', () => {
-    expect(ids).toContain('biceps-consecutive-days')
+  it('finds no biceps on back-to-back days — biceps work lives only on Pull A (Tue) and Pull B (Fri), never adjacent', () => {
+    expect(ids).not.toContain('biceps-consecutive-days')
   })
 
-  it('still finds three curl variants in the Wednesday session — unrelated to the fixes above', () => {
-    expect(ids).toContain('many-variants-biceps:3')
+  it('finds no three-plus biceps exercises in one session — capped at two per Pull day', () => {
+    expect(ids).not.toContain('many-variants-biceps:2')
+    expect(ids).not.toContain('many-variants-biceps:3')
   })
 
-  it('still finds the heavy front-delt volume — unrelated to the fixes above', () => {
-    expect(ids).toContain('front-delt-overload')
+  it('finds no front-delt overload — no front-raise-style isolation anywhere; pressing alone stays under the ceiling', () => {
+    expect(ids).not.toContain('front-delt-overload')
+  })
+
+  it('finds no front-delt/rear-delt imbalance either — every Pull day carries direct rear-delt work', () => {
+    expect(ids).not.toContain('delt-front-rear-imbalance')
+  })
+
+  it('fires nothing at all against the shipped week', () => {
+    expect(ids).toEqual([])
   })
 
   it('explains every finding with a reason and a concrete suggestion', () => {
@@ -204,14 +217,22 @@ describe('the bodyweight-specific advisories (docs/bodyweight-gates-plan.md §6)
 })
 
 describe('dismissal', () => {
+  // A synthetic list, not `found` — the PPL split fires nothing against the
+  // real seed week (the point of the describe block above), which would
+  // make these vacuous. activeAdvisories is pure filtering logic and does
+  // not care what produced its input.
+  const synthetic = [
+    { id: 'no-hip-hinge', severity: 'gap', title: '', finding: '', why: '', suggestion: '' },
+    { id: 'front-delt-overload', severity: 'imbalance', title: '', finding: '', why: '', suggestion: '' },
+  ] as const
+
   it('filters out what the hunter has dismissed', () => {
-    const remaining = activeAdvisories(found, ['front-delt-overload'])
-    expect(remaining.map((a) => a.id)).not.toContain('front-delt-overload')
-    expect(remaining.length).toBe(found.length - 1)
+    const remaining = activeAdvisories(synthetic, ['front-delt-overload'])
+    expect(remaining.map((a) => a.id)).toEqual(['no-hip-hinge'])
   })
 
   it('leaves everything when nothing is dismissed', () => {
-    expect(activeAdvisories(found, [])).toHaveLength(found.length)
+    expect(activeAdvisories(synthetic, [])).toHaveLength(synthetic.length)
   })
 })
 
