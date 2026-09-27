@@ -3,14 +3,17 @@
  * proof-before-replace safety check (docs/bodyweight-gates-plan.md §5b).
  * Exercises are upserted unconditionally so a shipped correction reaches a
  * device seeded before it existed; routines only ever replace wholesale,
- * and only when every existing row still matches its seed-set counterpart
- * exactly — otherwise a hunter's edit could be silently discarded.
+ * and only when every existing row's id is one this codebase has shipped
+ * under (live or `LEGACY_SEED_ROUTINES_CST`) — content is allowed to have
+ * drifted from whatever that id maps to today, since there is no edit path
+ * to have drifted it any other way than a seed correction that never
+ * reached the device.
  */
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from './db'
 import { endSession, ensureSeeded, reconcileRoutines, startSession, wipeEverything } from './repo'
-import { SEED_EXERCISES, SEED_ROUTINES, SEED_ROUTINES_BODYWEIGHT } from './seed'
+import { LEGACY_SEED_ROUTINES_CST, SEED_EXERCISES, SEED_ROUTINES, SEED_ROUTINES_BODYWEIGHT } from './seed'
 
 const BARBELL_ACCESS = ['barbell', 'dumbbell', 'bench'] as const
 const BODYWEIGHT_ACCESS = ['bodyweight', 'pullup_bar'] as const
@@ -61,11 +64,7 @@ describe('reconcileRoutines', () => {
     await reconcileRoutines(BARBELL_ACCESS)
 
     // Untouched by the second call: the id set already matched, so the
-    // early-return fires before the row is ever inspected. Note the
-    // asymmetry this implies: a content-only correction to a routine that
-    // *keeps its id* would never reach an already-seeded hunter through
-    // this path — see reconcileRoutines's own doc comment. Only an id
-    // change (like the CST->PPL migration below) does.
+    // early-return fires before the row is ever inspected.
     expect((await db.routines.get('ppl-monday-push-a'))?.name).toBe('Renamed for this test')
   })
 
@@ -78,18 +77,40 @@ describe('reconcileRoutines', () => {
     expect(ids).toEqual(SEED_ROUTINES_BODYWEIGHT.map((r) => r.id).sort())
   })
 
-  it('never replaces when any existing routine has been hand-edited', async () => {
+  it('migrates a hunter still seeded with the old CST week, even though a later correction means their rows no longer byte-match the captured legacy shape', async () => {
+    // Reproduces the real bug: a device seeded before Cable External
+    // Rotation was added to the CST week has a monday-cst row with 7 blocks,
+    // one short of LEGACY_SEED_ROUTINES_CST's 8. Add-only seeding never
+    // patched it in, so this row can never byte-match any snapshot this
+    // codebase has ever captured — but its id still proves it came from a
+    // past run of this same seed script, which is all reconcileRoutines
+    // needs to prove replacing it discards nothing.
+    const drifted = LEGACY_SEED_ROUTINES_CST.map((r) =>
+      r.id === 'monday-cst' ? { ...r, blocks: r.blocks.slice(0, -1) } : r,
+    )
+    await db.routines.bulkAdd(drifted)
+
     await reconcileRoutines(BARBELL_ACCESS)
-    await db.routines.update('ppl-monday-push-a', { name: 'Hand-edited name' })
+
+    const ids = (await db.routines.toArray()).map((r) => r.id).sort()
+    expect(ids).toEqual(SEED_ROUTINES.map((r) => r.id).sort())
+  })
+
+  it('never replaces when an existing routine has an id this codebase has never shipped under', async () => {
+    await reconcileRoutines(BARBELL_ACCESS)
+    await db.routines.add({
+      ...(await db.routines.get('ppl-monday-push-a'))!,
+      id: 'some-hand-rolled-routine-id',
+    })
 
     await reconcileRoutines(BODYWEIGHT_ACCESS)
 
-    // The whole set is left alone, not just the edited row — a partial
-    // replace would silently discard the edit's siblings' original meaning
-    // of "this is the hunter's programme".
+    // The whole set is left alone — an id no seed script has ever produced
+    // is the only signal this function has for "something else wrote this",
+    // since there is no edit path yet to leave any other trace.
     const ids = (await db.routines.toArray()).map((r) => r.id).sort()
-    expect(ids).toEqual(SEED_ROUTINES.map((r) => r.id).sort())
-    expect((await db.routines.get('ppl-monday-push-a'))?.name).toBe('Hand-edited name')
+    expect(ids).toContain('some-hand-rolled-routine-id')
+    expect(ids).toEqual([...SEED_ROUTINES.map((r) => r.id), 'some-hand-rolled-routine-id'].sort())
   })
 
   it('remaps cleared-gate history to the new set’s routine for the same day, so switching does not trigger a Dungeon Break', async () => {
