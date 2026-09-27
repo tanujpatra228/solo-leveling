@@ -38,3 +38,21 @@
 # Hashed build output is immutable by construction.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The bridge page (src/bridge/, mana-plate docs/m1-plan.md §9.1) is framed by
+# Mana Plate, which the global policy above forbids outright
+# (frame-ancestors 'none'). Headers from matching rules merge rather than
+# override, so the global CSP has to be detached here (the leading `!`)
+# before a replacement naming Mana Plate's origin can take effect — otherwise
+# this block would just add a second, conflicting Content-Security-Policy
+# header alongside the first. Nothing else on the bridge loosens: no
+# scripts but its own, no network calls, no ability to be framed by anyone
+# else. Workers static assets redirect /bridge.html to /bridge by default,
+# so both paths need the same replacement.
+/bridge
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'none'; frame-ancestors https://mana-plate.tanujpatra228.workers.dev; base-uri 'none'; form-action 'none'; object-src 'none'
+
+/bridge.html
+  ! Content-Security-Policy
+  Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'none'; frame-ancestors https://mana-plate.tanujpatra228.workers.dev; base-uri 'none'; form-action 'none'; object-src 'none'

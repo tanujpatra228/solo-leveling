@@ -55,5 +55,14 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: false,
+    rollupOptions: {
+      // A second entry alongside the app shell: the bridge page a sibling
+      // app (Mana Plate) frames for its setup prefill (mana-plate
+      // docs/m1-plan.md §9.1). It has to be a real entry rather than a
+      // public/ file with an inline script, because the CSP set for it in
+      // public/_headers forbids inline scripts, and so bridge/read.ts can
+      // import this app's own Zod schemas instead of duplicating them.
+      input: { main: 'index.html', bridge: 'bridge.html' },
+    },
   },
 })

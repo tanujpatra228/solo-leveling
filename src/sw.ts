@@ -29,8 +29,19 @@ cleanupOutdatedCaches()
  * offline: a reload on `/gate` with no network 404'd while a reload on `/`
  * happened to work. This is the standard fix — every navigation gets the
  * cached shell, and the router takes it from there.
+ *
+ * The bridge page is denylisted from that fallback: it is Mana Plate's
+ * iframe target (mana-plate docs/m1-plan.md §9.1), not a router-owned route,
+ * and answering its navigation with this SPA shell instead of bridge.html
+ * would mean the bridge script never runs and every prefill request times
+ * out. Its own files are still precached by the `globPatterns` above, so the
+ * prefill keeps working offline.
  */
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')))
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('/index.html'), {
+    denylist: [/^\/bridge(\.html)?$/],
+  }),
+)
 
 /**
  * The app asks before reloading, so the worker waits rather than taking over
