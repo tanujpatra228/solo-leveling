@@ -253,6 +253,13 @@ describe('the seed week measured against volume landmarks', () => {
     expect(['above_mav', 'over_mrv', 'optimal']).toContain(frontDelts.verdict)
   })
 
+  it('shows the rear delts past their growth floor and no longer trailing the front delts', () => {
+    const rearDelts = report.find((r) => r.muscle === 'rear_delts')!
+    const frontDelts = report.find((r) => r.muscle === 'front_delts')!
+    expect(['optimal', 'above_mav']).toContain(rearDelts.verdict)
+    expect(rearDelts.sets).toBeGreaterThanOrEqual(frontDelts.sets)
+  })
+
   it('shows the biceps well served, since three days touch them', () => {
     const biceps = report.find((r) => r.muscle === 'biceps')!
     expect(biceps.sets).toBeGreaterThan(0)

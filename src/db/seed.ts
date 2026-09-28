@@ -224,7 +224,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
   {
     id: 'machine-reverse-fly',
     name: 'Machine Reverse Fly',
-    aliases: ['Reverse Fly Machine', 'Rear Delt Machine', 'Pec Deck Reverse'],
+    aliases: ['Reverse Fly Machine', 'Rear Delt Machine', 'Pec Deck Reverse', 'Reverse Pec Deck'],
     pattern: 'isolation',
     primaryMuscles: ['rear_delts'],
     secondaryMuscles: ['upper_back'],
@@ -233,6 +233,22 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     increment: PIN_STEP,
     repRange: [12, 20],
     cue: 'Arms nearly straight. Think about spreading the hands apart, not squeezing the blades.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
+    id: 'dumbbell-rear-delt-fly',
+    name: 'Dumbbell Rear Delt Fly',
+    aliases: ['Dumbbell Rear Delt Flyes', 'Dumble Rear Delt Flyes', 'Dumbbell Reverse Fly', 'Bent-Over Reverse Fly'],
+    pattern: 'isolation',
+    primaryMuscles: ['rear_delts'],
+    secondaryMuscles: ['upper_back'],
+    equipment: ['dumbbell'],
+    unit: 'kg',
+    increment: 1,
+    repRange: [12, 20],
+    cue: 'Hinge until the torso is near parallel. Sweep the weights out wide with soft elbows and stop at shoulder height.',
     usesBodyweight: false,
     bodyweightFactor: 1,
     role: 'prescribed',
@@ -1701,11 +1717,13 @@ export const SEED_ROUTINES: readonly Routine[] = [
     blocks: [
       { type: 'single', items: [{ exerciseId: 'pull-ups', sets: 4, repRange: [5, 12], restSec: 150 }] },
       { type: 'single', items: [{ exerciseId: 'dumbbell-row', sets: 3, repRange: [8, 12], restSec: 120 }] },
-      // Direct rear-delt work on every Pull day, deliberately — this and its
-      // Friday counterpart are what keep front delts from running away from
-      // rear delts, since nothing on a Push day adds isolated front-delt
-      // work beyond what pressing already gives it.
+      // Two rear-delt movements on every Pull day, deliberately: the machine
+      // holds tension all the way through, the dumbbell fly is hardest at the
+      // top, so they cover different parts of the range. Twelve direct sets a
+      // week is what lifts rear delts past their growth floor so they keep
+      // pace with front delts, which both Push days already feed by pressing.
       { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'dumbbell-rear-delt-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'cable-shrug', sets: 3, repRange: [10, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 3, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'machine-preacher-curl', sets: 2, repRange: [10, 15], restSec: 60 }] },
@@ -1748,7 +1766,10 @@ export const SEED_ROUTINES: readonly Routine[] = [
     blocks: [
       { type: 'single', items: [{ exerciseId: 'one-arm-cable-lat-pulldown', sets: 4, repRange: [8, 12], restSec: 120 }] },
       { type: 'single', items: [{ exerciseId: 'dumbbell-row', sets: 3, repRange: [8, 12], restSec: 120 }] },
-      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+      // Order swapped from Pull A so each movement gets a turn leading the
+      // rear-delt work while fresh.
+      { type: 'single', items: [{ exerciseId: 'dumbbell-rear-delt-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'strict-curl', sets: 3, repRange: [6, 10], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 2, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'pallof-press', sets: 3, repRange: [10, 12], restSec: 60 }] },
