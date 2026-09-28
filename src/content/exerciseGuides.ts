@@ -173,6 +173,19 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
       'Using too much weight and relying on momentum instead of a controlled arc.',
     ],
   },
+  'dumbbell-rear-delt-fly': {
+    setup: 'Hinge forward at the hips with a flat back until the torso is near parallel to the floor, a light dumbbell in each hand hanging under the shoulders.',
+    steps: [
+      'With a soft bend in the elbows, sweep the dumbbells out and up in a wide arc, leading with the elbows.',
+      'Stop when the arms are level with the shoulders and pause for a beat.',
+      'Lower under control without letting the torso rise.',
+    ],
+    commonMistakes: [
+      'Standing too upright, which turns it into a trap and side-delt raise.',
+      'Swinging the torso to throw the weights up — drop the weight instead.',
+      'Bending the elbows into a row so the lats and biceps take over.',
+    ],
+  },
   'cable-bicep-curl': {
     setup: 'Standing at a low pulley with a straight or EZ handle, elbows pinned to the sides.',
     steps: [
