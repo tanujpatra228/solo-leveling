@@ -59,7 +59,7 @@ plan named in the row.
 
 | | |
 |---|---|
-| Tests | 1308 passing |
+| Tests | 1311 passing |
 | Typecheck, `check:render`, build | Clean |
 | Bundle | 216.12 KB JS + 7.42 KB CSS + 2.20 KB `workbox-window` ≈ 225.7 KB gzipped initial route, under half the ~480 KB Slow-4G budget. The Hunter License card, the QR scanner, and `ExerciseHelpModal` (the anatomy atlas SVGs live here — 113.05 KB gzipped, paid only the first time a hunter opens a "?") ship as their own lazy chunks — Tower, Shadow Army and Shop were folded back into the main bundle 2026-09-10 (each under 1 KB, not worth Suspense's timing cost) |
 | Deployed | Live on workers.dev, deployed 2026-09-09 by the Actions workflow's first run — the router scroll-to-top fix and the workflow itself |
