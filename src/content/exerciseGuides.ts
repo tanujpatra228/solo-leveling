@@ -173,6 +173,19 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
       'Using too much weight and relying on momentum instead of a controlled arc.',
     ],
   },
+  'dumbbell-rear-delt-fly': {
+    setup: 'Hinge forward at the hips with a flat back until the torso is near parallel to the floor, a light dumbbell in each hand hanging under the shoulders.',
+    steps: [
+      'With a soft bend in the elbows, sweep the dumbbells out and up in a wide arc, leading with the elbows.',
+      'Stop when the arms are level with the shoulders and pause for a beat.',
+      'Lower under control without letting the torso rise.',
+    ],
+    commonMistakes: [
+      'Standing too upright, which turns it into a trap and side-delt raise.',
+      'Swinging the torso to throw the weights up — drop the weight instead.',
+      'Bending the elbows into a row so the lats and biceps take over.',
+    ],
+  },
   'cable-bicep-curl': {
     setup: 'Standing at a low pulley with a straight or EZ handle, elbows pinned to the sides.',
     steps: [
@@ -288,6 +301,20 @@ export const EXERCISE_GUIDES: Readonly<Record<string, ExerciseGuide>> = {
     commonMistakes: [
       'Letting the hips rock back and forth to help — the hips should not move; only the spine curls.',
       'Pulling with the arms or lats instead of the abs.',
+    ],
+  },
+  'glute-step-down': {
+    setup: 'Stand on one leg on a step or bench, the free leg hanging off the edge. Pick a height where the free heel can tap the floor with the standing thigh near parallel. Hold a dumbbell at the chest once bodyweight gets easy.',
+    steps: [
+      'Lean the torso forward and sit the hips back, like a one-legged hinge, as you lower.',
+      'Lower until the free heel lightly taps the floor, keeping the knee over the foot rather than far past the toes.',
+      'Pause for a beat, then drive the hips forward and stand up through the standing leg, with no push from the free foot.',
+    ],
+    commonMistakes: [
+      'Staying upright and letting the knee drive forward, which turns it into a quad exercise.',
+      'Pushing off the free foot instead of lifting with the standing leg.',
+      'Rounding the back or hunching the shoulders to reach the floor.',
+      'Letting the standing knee cave inward on the way up.',
     ],
   },
   'dumbbell-bulgarian-split-squat': {

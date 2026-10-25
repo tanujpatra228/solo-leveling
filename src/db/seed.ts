@@ -224,7 +224,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
   {
     id: 'machine-reverse-fly',
     name: 'Machine Reverse Fly',
-    aliases: ['Reverse Fly Machine', 'Rear Delt Machine', 'Pec Deck Reverse'],
+    aliases: ['Reverse Fly Machine', 'Rear Delt Machine', 'Pec Deck Reverse', 'Reverse Pec Deck'],
     pattern: 'isolation',
     primaryMuscles: ['rear_delts'],
     secondaryMuscles: ['upper_back'],
@@ -233,6 +233,22 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     increment: PIN_STEP,
     repRange: [12, 20],
     cue: 'Arms nearly straight. Think about spreading the hands apart, not squeezing the blades.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
+    id: 'dumbbell-rear-delt-fly',
+    name: 'Dumbbell Rear Delt Fly',
+    aliases: ['Dumbbell Rear Delt Flyes', 'Dumble Rear Delt Flyes', 'Dumbbell Reverse Fly', 'Bent-Over Reverse Fly'],
+    pattern: 'isolation',
+    primaryMuscles: ['rear_delts'],
+    secondaryMuscles: ['upper_back'],
+    equipment: ['dumbbell'],
+    unit: 'kg',
+    increment: 1,
+    repRange: [12, 20],
+    cue: 'Hinge until the torso is near parallel. Sweep the weights out wide with soft elbows and stop at shoulder height.',
     usesBodyweight: false,
     bodyweightFactor: 1,
     role: 'prescribed',
@@ -425,6 +441,29 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     increment: PIN_STEP,
     repRange: [10, 15],
     cue: 'Hips stay where they are. Pull the elbows toward the knees with the abs.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
+    id: 'glute-step-down',
+    // Short on purpose: a long name here overflows the guide dialog on a phone.
+    // Bret Contreras's own name for it stays searchable as an alias.
+    name: 'Glute Step Down',
+    aliases: ['Glute-Dominated Step Down', 'Glute-Focused Step Down', 'Glute Dominant Step Down'],
+    pattern: 'lunge',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['quads', 'hamstrings'],
+    // The forward lean and hips-back position are what move the work off the
+    // quads and onto the glutes, and make it a one-legged hip extension, which
+    // is why hamstrings are credited as a secondary mover. Pattern 'lunge' so
+    // it counts as single-leg work. Starts at bodyweight (0 kg) and is loaded
+    // with a dumbbell, the same way the Bulgarian split squat is.
+    equipment: ['dumbbell', 'bench'],
+    unit: 'kg',
+    increment: 2.5,
+    repRange: [8, 12],
+    cue: 'Lean forward and sit the hips back. The free heel only taps the floor, then drive up through the standing glute.',
     usesBodyweight: false,
     bodyweightFactor: 1,
     role: 'prescribed',
@@ -649,7 +688,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'kg',
     increment: PIN_STEP,
     repRange: [10, 15],
-    cue: 'No longer the only hamstring work in the week — the Romanian Deadlift now covers the hip-extension half. Control the lowering here.',
+    cue: 'Control the lowering and pause for a beat at the top of the curl.',
     usesBodyweight: false,
     bodyweightFactor: 1,
     role: 'prescribed',
@@ -1701,11 +1740,13 @@ export const SEED_ROUTINES: readonly Routine[] = [
     blocks: [
       { type: 'single', items: [{ exerciseId: 'pull-ups', sets: 4, repRange: [5, 12], restSec: 150 }] },
       { type: 'single', items: [{ exerciseId: 'dumbbell-row', sets: 3, repRange: [8, 12], restSec: 120 }] },
-      // Direct rear-delt work on every Pull day, deliberately — this and its
-      // Friday counterpart are what keep front delts from running away from
-      // rear delts, since nothing on a Push day adds isolated front-delt
-      // work beyond what pressing already gives it.
+      // Two rear-delt movements on every Pull day, deliberately: the machine
+      // holds tension all the way through, the dumbbell fly is hardest at the
+      // top, so they cover different parts of the range. Twelve direct sets a
+      // week is what lifts rear delts past their growth floor so they keep
+      // pace with front delts, which both Push days already feed by pressing.
       { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'dumbbell-rear-delt-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'cable-shrug', sets: 3, repRange: [10, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 3, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'machine-preacher-curl', sets: 2, repRange: [10, 15], restSec: 60 }] },
@@ -1718,9 +1759,13 @@ export const SEED_ROUTINES: readonly Routine[] = [
     name: 'Legs Gate A',
     gateRank: 'B',
     blocks: [
-      { type: 'single', items: [{ exerciseId: 'barbell-squat', sets: 4, repRange: [5, 8], restSec: 210 }] },
-      { type: 'single', items: [{ exerciseId: 'romanian-deadlift', sets: 3, repRange: [6, 10], restSec: 150 }] },
+      // Barbell Squats (first) and Romanian Deadlift (second) are out of the
+      // programme for now, at the hunter's own decision because they cannot
+      // do them at the moment. Both stay in the exercise library untouched;
+      // put the two blocks back in this order to bring them back.
+      { type: 'single', items: [{ exerciseId: 'glute-step-down', sets: 4, repRange: [8, 12], restSec: 120 }] },
       { type: 'single', items: [{ exerciseId: 'leg-press', sets: 3, repRange: [10, 15], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'leg-extension', sets: 3, repRange: [12, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 3, repRange: [10, 15], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'barbell-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'cable-crunch', sets: 3, repRange: [10, 15], restSec: 60 }] },
@@ -1748,7 +1793,10 @@ export const SEED_ROUTINES: readonly Routine[] = [
     blocks: [
       { type: 'single', items: [{ exerciseId: 'one-arm-cable-lat-pulldown', sets: 4, repRange: [8, 12], restSec: 120 }] },
       { type: 'single', items: [{ exerciseId: 'dumbbell-row', sets: 3, repRange: [8, 12], restSec: 120 }] },
-      { type: 'single', items: [{ exerciseId: 'prone-ytw-raise', sets: 3, repRange: [10, 20], restSec: 60 }] },
+      // Order swapped from Pull A so each movement gets a turn leading the
+      // rear-delt work while fresh.
+      { type: 'single', items: [{ exerciseId: 'dumbbell-rear-delt-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
+      { type: 'single', items: [{ exerciseId: 'machine-reverse-fly', sets: 3, repRange: [12, 20], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'strict-curl', sets: 3, repRange: [6, 10], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'cable-bicep-curl', sets: 2, repRange: [10, 15], restSec: 60 }] },
       { type: 'single', items: [{ exerciseId: 'pallof-press', sets: 3, repRange: [10, 12], restSec: 60 }] },
@@ -1765,7 +1813,10 @@ export const SEED_ROUTINES: readonly Routine[] = [
       // Closes the no-single-leg-work gap — the only unilateral movement in
       // the split, deliberately on the second Legs day rather than repeated.
       { type: 'single', items: [{ exerciseId: 'dumbbell-bulgarian-split-squat', sets: 3, repRange: [8, 12], restSec: 90 }] },
-      { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 3, repRange: [10, 15], restSec: 90 }] },
+      // Four sets, one more than Legs A: with the Romanian deadlift out, the
+      // curls are the hamstrings' main direct work, and 4 + 3 sets plus the
+      // credit from the hip thrust and step-down keeps them in their range.
+      { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 4, repRange: [10, 15], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'barbell-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
     ],
   },

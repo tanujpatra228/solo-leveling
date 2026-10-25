@@ -66,12 +66,13 @@ describe('targetFor resolves the routine from the active session (G1)', () => {
   // below), so an injected `sessions`/`activeSessionId` with no recompute()
   // in between would just read stale (likely empty) targets.
   it('uses the started routine, not the day-of-week lookup for "today"', async () => {
-    // Legs Gate A's squat block is 4 sets. Whatever routine today's actual
-    // weekday would have matched instead is irrelevant — the session's own
-    // routineId must win regardless of what day it happens to be run on.
+    // Legs Gate A's step-down block is 4 sets, and no other routine has that
+    // exercise. Whatever routine today's actual weekday would have matched
+    // instead is irrelevant — the session's own routineId must win regardless
+    // of what day it happens to be run on.
     await useApp.getState().startGate('ppl-wednesday-legs-a')
 
-    const target = useApp.getState().targetFor('barbell-squat')
+    const target = useApp.getState().targetFor('glute-step-down')
     expect(target).not.toBeNull()
     expect(target!.repTargets).toHaveLength(4)
   })
@@ -81,13 +82,15 @@ describe('targetFor resolves the routine from the active session (G1)', () => {
 
     const state = useApp.getState()
     const routine = state.routines.find((r) => r.dayOfWeek === dayOfWeekForKey(state.today))
-    const blockItem = routine?.blocks
-      .flatMap((b) => b.items)
-      .find((item) => item.exerciseId === 'barbell-squat')
+    // An exercise from today's own routine, so the set count read back can only
+    // come from the day-of-week lookup. On a rest day there is no routine and
+    // the default of 3 applies to any exercise. Cross-checked against the same
+    // seed data the store reads rather than a day hardcoded into the test, since
+    // this needs to pass on any real date.
+    const blockItem = routine?.blocks.flatMap((b) => b.items)[0]
+    const exerciseId = blockItem?.exerciseId ?? 'leg-press'
 
-    // Cross-checked against the same seed data the store reads, rather than a
-    // day hardcoded into the test, since this needs to pass on any real date.
-    const target = state.targetFor('barbell-squat')
+    const target = state.targetFor(exerciseId)
     expect(target).not.toBeNull()
     expect(target!.repTargets).toHaveLength(blockItem?.sets ?? 3)
   })
@@ -400,10 +403,10 @@ describe('a full Legs Gate A session, then next week\'s targets (M3-D5)', () => 
     // post-session assertions can check each exercise moved by its own
     // increment rather than all landing on the same number by coincidence.
     const baseline: Record<string, number> = {
-      'barbell-squat': 100,
-      'romanian-deadlift': 60,
+      'glute-step-down': 10,
       'leg-press': 120,
-      'hamstring-curl': 40,
+      'leg-extension': 40,
+      'hamstring-curl': 50,
       'barbell-calf-raise': 60,
       'cable-crunch': 30,
     }
@@ -429,12 +432,13 @@ describe('a full Legs Gate A session, then next week\'s targets (M3-D5)', () => 
     await useApp.getState().finishGate()
 
     // Every loaded lift returns increase_load at +increment, rounded — the
-    // exact rule stated in M3-D5. hamstring-curl and cable-crunch step by
-    // the 2.5 kg pin increment; every barbell lift here by 5 kg.
+    // exact rule stated in M3-D5. The step-down, leg-extension, hamstring-curl
+    // and cable-crunch step by 2.5 kg (a dumbbell or a pin); leg-press and the
+    // barbell calf raise by 5 kg.
     const increments: Record<string, number> = {
-      'barbell-squat': 5,
-      'romanian-deadlift': 5,
+      'glute-step-down': 2.5,
       'leg-press': 5,
+      'leg-extension': 2.5,
       'hamstring-curl': 2.5,
       'barbell-calf-raise': 5,
       'cable-crunch': 2.5,

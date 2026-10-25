@@ -59,7 +59,7 @@ describe('the Push/Pull/Legs split closes every gap the CST split had', () => {
   // split that replaced it (docs/TODO.md) was verified against this exact
   // function before shipping: every one of the eight closes, none by
   // accident — each `it` below names the specific design choice responsible.
-  it('finds no missing hip hinge — Romanian Deadlift, Legs A', () => {
+  it('finds no missing hip hinge — Barbell Hip Thrust, Legs B', () => {
     expect(ids).not.toContain('no-hip-hinge')
   })
 
@@ -244,6 +244,18 @@ describe('the seed week measured against volume landmarks', () => {
     expect(['below_mev', 'optimal', 'above_mav']).toContain(hamstrings.verdict)
   })
 
+  it('keeps hamstrings, glutes and quads in their productive range without a squat or a loaded hinge', () => {
+    // Legs A's step-down and leg extension stand in for the squat and the
+    // Romanian deadlift. Hamstrings come from the curls (3 + 4 sets), the hip
+    // thrust's 1.5 and the step-down's 2; glutes from the hip thrust and the
+    // step-down; quads from the leg presses, split squat and leg extension.
+    const verdict = (muscle: Muscle) => report.find((r) => r.muscle === muscle)!
+    expect(verdict('hamstrings').sets).toBe(10.5)
+    expect(verdict('hamstrings').verdict).toBe('optimal')
+    expect(verdict('glutes').verdict).toBe('optimal')
+    expect(verdict('quads').verdict).toBe('optimal')
+  })
+
   it('shows the rotator cuff getting real work now, from the external rotation sets', () => {
     expect(report.find((r) => r.muscle === 'rotator_cuff')!.verdict).not.toBe('none')
   })
@@ -251,6 +263,13 @@ describe('the seed week measured against volume landmarks', () => {
   it('shows the front delts at or above the top of their productive range', () => {
     const frontDelts = report.find((r) => r.muscle === 'front_delts')!
     expect(['above_mav', 'over_mrv', 'optimal']).toContain(frontDelts.verdict)
+  })
+
+  it('shows the rear delts past their growth floor and no longer trailing the front delts', () => {
+    const rearDelts = report.find((r) => r.muscle === 'rear_delts')!
+    const frontDelts = report.find((r) => r.muscle === 'front_delts')!
+    expect(['optimal', 'above_mav']).toContain(rearDelts.verdict)
+    expect(rearDelts.sets).toBeGreaterThanOrEqual(frontDelts.sets)
   })
 
   it('shows the biceps well served, since three days touch them', () => {
