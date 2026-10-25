@@ -59,7 +59,7 @@ describe('the Push/Pull/Legs split closes every gap the CST split had', () => {
   // split that replaced it (docs/TODO.md) was verified against this exact
   // function before shipping: every one of the eight closes, none by
   // accident — each `it` below names the specific design choice responsible.
-  it('finds no missing hip hinge — Romanian Deadlift, Legs A', () => {
+  it('finds no missing hip hinge — Barbell Hip Thrust, Legs B', () => {
     expect(ids).not.toContain('no-hip-hinge')
   })
 
@@ -242,6 +242,18 @@ describe('the seed week measured against volume landmarks', () => {
   it('shows the hamstrings now cleared past the growth floor, with the hinge added', () => {
     const hamstrings = report.find((r) => r.muscle === 'hamstrings')!
     expect(['below_mev', 'optimal', 'above_mav']).toContain(hamstrings.verdict)
+  })
+
+  it('keeps hamstrings, glutes and quads in their productive range without a squat or a loaded hinge', () => {
+    // Legs A's step-down and leg extension stand in for the squat and the
+    // Romanian deadlift. Hamstrings come from the curls (3 + 4 sets), the hip
+    // thrust's 1.5 and the step-down's 2; glutes from the hip thrust and the
+    // step-down; quads from the leg presses, split squat and leg extension.
+    const verdict = (muscle: Muscle) => report.find((r) => r.muscle === muscle)!
+    expect(verdict('hamstrings').sets).toBe(10.5)
+    expect(verdict('hamstrings').verdict).toBe('optimal')
+    expect(verdict('glutes').verdict).toBe('optimal')
+    expect(verdict('quads').verdict).toBe('optimal')
   })
 
   it('shows the rotator cuff getting real work now, from the external rotation sets', () => {

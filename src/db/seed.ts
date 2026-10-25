@@ -446,6 +446,29 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     role: 'prescribed',
   },
   {
+    id: 'glute-step-down',
+    // Short on purpose: a long name here overflows the guide dialog on a phone.
+    // Bret Contreras's own name for it stays searchable as an alias.
+    name: 'Glute Step Down',
+    aliases: ['Glute-Dominated Step Down', 'Glute-Focused Step Down', 'Glute Dominant Step Down'],
+    pattern: 'lunge',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['quads', 'hamstrings'],
+    // The forward lean and hips-back position are what move the work off the
+    // quads and onto the glutes, and make it a one-legged hip extension, which
+    // is why hamstrings are credited as a secondary mover. Pattern 'lunge' so
+    // it counts as single-leg work. Starts at bodyweight (0 kg) and is loaded
+    // with a dumbbell, the same way the Bulgarian split squat is.
+    equipment: ['dumbbell', 'bench'],
+    unit: 'kg',
+    increment: 2.5,
+    repRange: [8, 12],
+    cue: 'Lean forward and sit the hips back. The free heel only taps the floor, then drive up through the standing glute.',
+    usesBodyweight: false,
+    bodyweightFactor: 1,
+    role: 'prescribed',
+  },
+  {
     id: 'dumbbell-bulgarian-split-squat',
     name: 'Dumbbell Bulgarian Split Squat',
     aliases: ['Bulgarian Split Squat', 'Rear-foot Elevated Split Squat (Loaded)'],
@@ -665,7 +688,7 @@ export const SEED_EXERCISES: readonly Exercise[] = [
     unit: 'kg',
     increment: PIN_STEP,
     repRange: [10, 15],
-    cue: 'No longer the only hamstring work in the week — the Romanian Deadlift now covers the hip-extension half. Control the lowering here.',
+    cue: 'Control the lowering and pause for a beat at the top of the curl.',
     usesBodyweight: false,
     bodyweightFactor: 1,
     role: 'prescribed',
@@ -1736,9 +1759,13 @@ export const SEED_ROUTINES: readonly Routine[] = [
     name: 'Legs Gate A',
     gateRank: 'B',
     blocks: [
-      { type: 'single', items: [{ exerciseId: 'barbell-squat', sets: 4, repRange: [5, 8], restSec: 210 }] },
-      { type: 'single', items: [{ exerciseId: 'romanian-deadlift', sets: 3, repRange: [6, 10], restSec: 150 }] },
+      // Barbell Squats (first) and Romanian Deadlift (second) are out of the
+      // programme for now, at the hunter's own decision because they cannot
+      // do them at the moment. Both stay in the exercise library untouched;
+      // put the two blocks back in this order to bring them back.
+      { type: 'single', items: [{ exerciseId: 'glute-step-down', sets: 4, repRange: [8, 12], restSec: 120 }] },
       { type: 'single', items: [{ exerciseId: 'leg-press', sets: 3, repRange: [10, 15], restSec: 150 }] },
+      { type: 'single', items: [{ exerciseId: 'leg-extension', sets: 3, repRange: [12, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 3, repRange: [10, 15], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'barbell-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
       { type: 'single', items: [{ exerciseId: 'cable-crunch', sets: 3, repRange: [10, 15], restSec: 60 }] },
@@ -1786,7 +1813,10 @@ export const SEED_ROUTINES: readonly Routine[] = [
       // Closes the no-single-leg-work gap — the only unilateral movement in
       // the split, deliberately on the second Legs day rather than repeated.
       { type: 'single', items: [{ exerciseId: 'dumbbell-bulgarian-split-squat', sets: 3, repRange: [8, 12], restSec: 90 }] },
-      { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 3, repRange: [10, 15], restSec: 90 }] },
+      // Four sets, one more than Legs A: with the Romanian deadlift out, the
+      // curls are the hamstrings' main direct work, and 4 + 3 sets plus the
+      // credit from the hip thrust and step-down keeps them in their range.
+      { type: 'single', items: [{ exerciseId: 'hamstring-curl', sets: 4, repRange: [10, 15], restSec: 90 }] },
       { type: 'single', items: [{ exerciseId: 'barbell-calf-raise', sets: 4, repRange: [10, 15], restSec: 75 }] },
     ],
   },
