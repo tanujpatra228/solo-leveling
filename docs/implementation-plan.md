@@ -636,8 +636,11 @@ named as unreachable with this equipment, left honest rather than papered over.
 settings and progress) into `reconcileRoutines(equipmentAccess)`, wired from both `completeAwakening`
 (so the first visit to `/` already shows the right gates) and `load()` (so switching equipment access
 later still reaches the matching set). It replaces the seeded routines wholesale, but only when every
-existing row is still byte-identical to its seed-set counterpart — provable today since there is no
-routine-edit path yet — and never while a session is open. On a real replace it remaps every ended
+existing row's id is one this codebase has shipped under (live or `LEGACY_SEED_ROUTINES_CST`) — provable
+today since there is no routine-edit path yet, and checked by id rather than content because a device
+seeded before a later correction never matches a frozen snapshot — and never while a session is open.
+A matching id set with stale content is refreshed the same way, so a correction that keeps its
+routine id reaches devices that were already seeded. On a real replace it remaps every ended
 session's `routineId` to the new set's routine for the same `dayOfWeek` first, so gate-clear history
 survives the swap and a hunter switching equipment is not charged a Dungeon Break for it. `/gate`
 gained the same no-profile `beforeLoad` redirect `/` already had, since seeding is no longer

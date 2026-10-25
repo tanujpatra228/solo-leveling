@@ -137,6 +137,20 @@ const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
   [...SEED_ROUTINES, ...SEED_ROUTINES_BODYWEIGHT, ...LEGACY_SEED_ROUTINES_CST].map((r) => [r.id, r]),
 )
 
+// Positional arrays rather than the row itself, so key order in a stored row
+// can never read as a difference and rewrite the table on every load.
+function routineContentKey(r: Routine): string {
+  return JSON.stringify([
+    r.dayOfWeek,
+    r.name,
+    r.gateRank,
+    r.blocks.map((b) => [
+      b.type,
+      b.items.map((i) => [i.exerciseId, i.sets, i.repRange[0], i.repRange[1], i.restSec]),
+    ]),
+  ])
+}
+
 /**
  * Brings the seeded routine set in line with what `equipmentAccess` implies
  * — bodyweight or barbell — replacing it wholesale, but only when doing so
@@ -149,12 +163,17 @@ const ALL_SEED_ROUTINES_BY_ID: ReadonlyMap<string, Routine> = new Map(
  * whatever `ALL_SEED_ROUTINES_BY_ID` captures today if a correction shipped
  * after that device was seeded (exactly what stranded hunters on the old CST
  * week after Cable External Rotation was added to it), but its id proves its
- * origin regardless. Matching on content in addition to id was tried and
- * reverted: it can only ever make this check fail *more* often on rows nothing
- * has actually touched, never catch a real edit that id-matching would miss,
- * since there is nothing yet capable of producing one. The day routine
- * editing ships, an edited row still carries a seed id, so this proof stops
- * holding and this function has to change with it, not just its assumption.
+ * origin regardless. Matching on content as a safety proof was tried and
+ * reverted: it can only make this check fail *more* often on rows nothing has
+ * touched, never catch a real edit, since nothing yet can produce one.
+ *
+ * The same argument is why a matching id set is not "already current": a row
+ * with a live id but stale content is refreshed, exactly as `ensureSeeded`
+ * upserts exercises. Without that, a correction that keeps its id (a swapped
+ * exercise, a set count) never reaches a device that was seeded before it.
+ * The day routine editing ships, an edited row still carries a seed id, so
+ * both halves of this stop holding and this function has to change with it,
+ * not just its assumption.
  *
  * Deferred entirely while a session is open: `gate.tsx` and `state.ts` both
  * resolve a session's own routine by id, and deleting it out from under an
@@ -168,8 +187,14 @@ export async function reconcileRoutines(equipmentAccess: readonly Equipment[]): 
     if (openSession) return
 
     const existing = await parseAll(RoutineSchema, await db.routines.toArray(), 'routine')
-    const wantedIds = new Set(wanted.map((r) => r.id))
-    if (existing.length === wantedIds.size && existing.every((r) => wantedIds.has(r.id))) return // already matches
+    const wantedById = new Map(wanted.map((r) => [r.id, r]))
+    const alreadyCurrent =
+      existing.length === wantedById.size &&
+      existing.every((r) => {
+        const seedRow = wantedById.get(r.id)
+        return seedRow !== undefined && routineContentKey(r) === routineContentKey(seedRow)
+      })
+    if (alreadyCurrent) return
 
     const isUntouched = existing.every((row) => ALL_SEED_ROUTINES_BY_ID.has(row.id))
     if (!isUntouched) return // an id we never shipped — once routines are editable, never discard a real edit silently

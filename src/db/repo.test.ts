@@ -57,15 +57,45 @@ describe('reconcileRoutines', () => {
     expect(ids).toEqual(SEED_ROUTINES_BODYWEIGHT.map((r) => r.id).sort())
   })
 
-  it('is a no-op once the matching set is already seeded', async () => {
+  it('writes nothing once the matching set is already seeded and current', async () => {
     await reconcileRoutines(BARBELL_ACCESS)
-    await db.routines.update('ppl-monday-push-a', { name: 'Renamed for this test' })
+
+    let creates = 0
+    const onCreate = () => {
+      creates += 1
+    }
+    db.routines.hook('creating', onCreate)
+    try {
+      await reconcileRoutines(BARBELL_ACCESS)
+    } finally {
+      db.routines.hook('creating').unsubscribe(onCreate)
+    }
+
+    expect(creates).toBe(0)
+  })
+
+  it('refreshes a row whose id is live but whose content is stale, so a shipped correction reaches an already-seeded device', async () => {
+    await reconcileRoutines(BARBELL_ACCESS)
+    const seedRow = SEED_ROUTINES.find((r) => r.id === 'ppl-friday-pull-b')!
+    // A device seeded before the rear-delt work landed: same id, one block short.
+    await db.routines.update('ppl-friday-pull-b', { blocks: seedRow.blocks.slice(0, -1) })
 
     await reconcileRoutines(BARBELL_ACCESS)
 
-    // Untouched by the second call: the id set already matched, so the
-    // early-return fires before the row is ever inspected.
-    expect((await db.routines.get('ppl-monday-push-a'))?.name).toBe('Renamed for this test')
+    expect(await db.routines.get('ppl-friday-pull-b')).toEqual(seedRow)
+    expect(await db.routines.count()).toBe(SEED_ROUTINES.length)
+  })
+
+  it('keeps cleared-gate history on the same routine id when only content is refreshed', async () => {
+    await reconcileRoutines(BARBELL_ACCESS)
+    const session = await startSession({ routineId: 'ppl-friday-pull-b', at: Date.parse('2026-01-09T10:00:00Z') })
+    await endSession(session.id, Date.parse('2026-01-09T11:00:00Z'))
+    await db.routines.update('ppl-friday-pull-b', { name: 'Stale name' })
+
+    await reconcileRoutines(BARBELL_ACCESS)
+
+    expect((await db.routines.get('ppl-friday-pull-b'))?.name).toBe('Pull Gate B')
+    expect((await db.sessions.get(session.id))?.routineId).toBe('ppl-friday-pull-b')
   })
 
   it('replaces the barbell set with the bodyweight one when every existing row is untouched', async () => {
