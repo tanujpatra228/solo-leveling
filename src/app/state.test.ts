@@ -13,7 +13,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildRedGate } from '../domain/gates'
 import { lastSetsForExercise } from '../domain/projection'
 import { addDaysToKey, dayOfWeekForKey } from '../domain/time'
-import { addShadow, putQuest, reconcileRoutines, updateProgress, wipeEverything } from '../db/repo'
+import {
+  addSet,
+  addShadow,
+  endSession,
+  putQuest,
+  reconcileRoutines,
+  startSession,
+  updateProgress,
+  wipeEverything,
+} from '../db/repo'
 import { db } from '../db/db'
 import { LEGACY_SEED_ROUTINES_CST } from '../db/seed'
 import { generateDailyQuest, type DailyQuestPayload, type PenaltyQuestPayload } from '../domain/quests'
@@ -1340,5 +1349,81 @@ describe('pairWithScannedKey (m6-plan commit 5)', () => {
     await useApp.getState().pairWithScannedKey(pairingPayload(scannedKey))
 
     expect(useApp.getState().sets.length).toBe(setsBefore)
+  })
+})
+
+describe('the training calendar log', () => {
+  it('starts empty: nothing trained, no first day', () => {
+    const log = useApp.getState().trainingLog
+    expect(log.daysTrained).toBe(0)
+    expect(log.firstDayKey).toBeNull()
+    expect(log.elapsed).toBeNull()
+  })
+
+  it('an open session adds nothing, and finishing it adds today exactly once', async () => {
+    await useApp.getState().startGate('ppl-monday-push-a')
+    await useApp.getState().logSet({ exerciseId: 'incline-barbell-press', weight: 60, reps: 8 })
+    expect(useApp.getState().trainingLog.daysTrained).toBe(0)
+
+    await useApp.getState().finishGate()
+
+    const { trainingLog, today } = useApp.getState()
+    expect(trainingLog.daysTrained).toBe(1)
+    expect(trainingLog.trainedDayKeys.has(today)).toBe(true)
+    expect(trainingLog.firstDayKey).toBe(today)
+  })
+
+  it('a second gate cleared the same day does not add a second day', async () => {
+    await useApp.getState().startGate('ppl-monday-push-a')
+    await useApp.getState().logSet({ exerciseId: 'incline-barbell-press', weight: 60, reps: 8 })
+    await useApp.getState().finishGate()
+    await useApp.getState().startInstantDungeon(['bodyweight'])
+    await useApp.getState().logSet({ exerciseId: 'pushups', weight: 0, reps: 15 })
+    await useApp.getState().finishGate()
+
+    expect(useApp.getState().projection!.sessionSummaries).toHaveLength(2)
+    expect(useApp.getState().trainingLog.daysTrained).toBe(1)
+  })
+
+  it('a finished session that logged only warmups does not count as a cleared day', async () => {
+    await useApp.getState().startGate('ppl-monday-push-a')
+    await useApp.getState().logSet({ exerciseId: 'incline-barbell-press', weight: 20, reps: 10, isWarmup: true })
+    await useApp.getState().finishGate()
+
+    expect(useApp.getState().trainingLog.daysTrained).toBe(0)
+  })
+
+  it('an abandoned gate leaves no day behind', async () => {
+    await useApp.getState().startGate('ppl-monday-push-a')
+    await useApp.getState().logSet({ exerciseId: 'incline-barbell-press', weight: 60, reps: 8 })
+    await useApp.getState().abandonGate()
+
+    expect(useApp.getState().trainingLog.daysTrained).toBe(0)
+  })
+
+  it('is built from stored history across weeks, counting a Sunday session and ignoring an unfinished one', async () => {
+    const at = (day: string) => Date.parse(`${day}T10:00:00`)
+    const finished = async (day: string, routineId: string) => {
+      const session = await startSession({ routineId, at: at(day) })
+      await addSet({ sessionId: session.id, exerciseId: 'incline-barbell-press', order: 0, weight: 60, reps: 8, at: at(day) })
+      await endSession(session.id, at(day) + 3_600_000)
+    }
+    await finished('2026-09-07', 'ppl-monday-push-a') // Monday
+    await finished('2026-09-09', 'ppl-wednesday-legs-a') // Wednesday, same week
+    await finished('2026-09-13', 'ppl-monday-push-a') // Sunday, a rest day, same week
+    await finished('2026-09-15', 'ppl-tuesday-pull-a') // Tuesday of the next week
+    await startSession({ routineId: 'ppl-thursday-push-b', at: at('2026-09-17') }) // never finished
+
+    await useApp.getState().refresh()
+    const log = useApp.getState().trainingLog
+
+    expect(log.daysTrained).toBe(4)
+    expect(log.weeksTrained).toBe(2)
+    expect(log.monthsTrained).toBe(1)
+    expect(log.firstDayKey).toBe('2026-09-07')
+    expect(log.trainedDayKeys.has('2026-09-17')).toBe(false)
+    expect(log.trainedDayKeys.has('2026-09-13')).toBe(true)
+    // The routines in play are Monday to Saturday; Sunday is not among them.
+    expect([...log.scheduledWeekdays].sort()).toEqual([1, 2, 3, 4, 5, 6])
   })
 })
