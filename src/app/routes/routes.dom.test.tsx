@@ -288,6 +288,38 @@ describe('the summon overlay (m10-plan commit 3, F14)', () => {
     await unmount()
   })
 
+  it('the Calendar window mounts from its summon row on a fresh hunter, with nothing cleared yet', async () => {
+    await awakenPastIntro()
+
+    const { container, unmount } = await mountInteractive('/')
+    const calendarRow = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('[ Calendar ]'),
+    )
+    await click(calendarRow)
+
+    expectRendered(container.innerHTML)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    await unmount()
+  })
+
+  it('the Calendar window mounts by URL with a cleared gate behind it', async () => {
+    await awakenPastIntro()
+    await useApp.getState().startGate('ppl-monday-push-a')
+    await useApp.getState().logSet({ exerciseId: 'incline-barbell-press', weight: 60, reps: 8 })
+    await useApp.getState().finishGate()
+    // The gate-cleared notification takes the overlay slot; this test is about the window under it.
+    useApp.setState({ messages: [] })
+    expect(useApp.getState().trainingLog.daysTrained).toBe(1)
+
+    const { container, unmount } = await mountInteractive('/?window=calendar')
+
+    expectRendered(container.innerHTML)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    await unmount()
+  })
+
   it('a notification window and a summoned window never render together', async () => {
     await awakenPastIntro()
 

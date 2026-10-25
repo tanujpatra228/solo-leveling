@@ -10,6 +10,7 @@ import { detectAdvisories, activeAdvisories, type Advisory } from '../domain/adv
 import { FLAVOUR_TABLE, flavourFor } from '../domain/flavour'
 import { hardSetsPerMuscle } from '../domain/volume'
 import { computeStreak, type StreakState } from '../domain/streak'
+import { EMPTY_TRAINING_LOG, buildTrainingLog, type TrainingLog } from '../domain/trainingCalendar'
 import {
   activePenaltyQuest,
   activeQuestFor,
@@ -110,6 +111,13 @@ export interface AppState extends LoadedData {
   today: DayKey
   projection: Projection | null
   streak: StreakState
+  /**
+   * Which days a gate was cleared, and the totals built from that. Derived
+   * once in `recompute()` from several slices (the session summaries, the
+   * routines and today), so the Calendar window selects it rather than
+   * rebuilding it per render (standards rule 13).
+   */
+  trainingLog: TrainingLog
   advisories: Advisory[]
   dungeonBreaks: DungeonBreak[]
   messages: SystemMessage[]
@@ -572,6 +580,7 @@ export const useApp = create<AppState>((set, get) => ({
   absences: [],
   projection: null,
   streak: { current: 0, longest: 0, forgivenDays: [], todayPending: true, todayIsRest: false },
+  trainingLog: EMPTY_TRAINING_LOG,
   advisories: [],
   dungeonBreaks: [],
   messages: [],
@@ -758,6 +767,11 @@ export const useApp = create<AppState>((set, get) => ({
       today,
       projection,
       streak,
+      trainingLog: buildTrainingLog({
+        sessions: projection.sessionSummaries,
+        routineWeekdays: state.routines.map((r) => r.dayOfWeek),
+        today,
+      }),
       advisories: activeAdvisories(allAdvisories, state.settings.dismissedAdvisories),
       dungeonBreaks: resolveDungeonBreaks(openGates, today),
       activeSessionId: activeSession?.id ?? null,
