@@ -4,7 +4,7 @@
  *
  * The Status Window: a stack of single-purpose `SystemWindow`s for what's
  * read daily (m10-plan commit 2), plus a summon list for the archive —
- * Calendar, Analysis, Shadow Army, Demon Castle, System Shop, Runes, Titles — which
+ * Calendar, Measurements, Analysis, Shadow Army, Demon Castle, System Shop, Runes, Titles — which
  * opens as a `SystemOverlay` over the page rather than growing it (m10-plan
  * commit 3, F14). Which window is open lives in the URL (`?window=`), not in
  * `Settings`, so the hardware back button closes it for free.
@@ -22,6 +22,7 @@ import {
   HelpCircle,
   IdCard,
   Radar,
+  Ruler,
   ShoppingBag,
   Users,
   Wand2,
@@ -41,6 +42,7 @@ import { HelpTopicList } from '../../components/HelpTopicList'
 import { InstallPrompt } from '../../components/InstallPrompt'
 import { JobChangeQuestPanel } from '../../components/JobChangeQuestPanel'
 import { ManaBar } from '../../components/ManaBar'
+import { MeasurementsPanel } from '../../components/MeasurementsPanel'
 import { PenaltyQuestPanel } from '../../components/PenaltyQuestPanel'
 import { RankBadge } from '../../components/RankBadge'
 import { ReawakeningTestPanel } from '../../components/ReawakeningTestPanel'
@@ -68,6 +70,7 @@ import { unlockedRunes } from '../../domain/runes'
 import { dayKeyStart } from '../../domain/time'
 import { TOWER_FLOORS } from '../../domain/tower'
 import type { DayKey, HunterClass, StatKey } from '../../domain/types'
+import { formatWeight } from '../../domain/units'
 import { useApp } from '../state'
 import { rootRoute } from './root'
 
@@ -122,9 +125,10 @@ function HunterLicenseCardSkeleton() {
   )
 }
 
-export type SummonWindowId = 'calendar' | 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles' | 'help'
+export type SummonWindowId = 'calendar' | 'measurements' | 'analysis' | 'army' | 'castle' | 'shop' | 'runes' | 'titles' | 'help'
 const SUMMON_WINDOW_IDS: readonly SummonWindowId[] = [
   'calendar',
+  'measurements',
   'analysis',
   'army',
   'castle',
@@ -202,6 +206,7 @@ const FATIGUE_RING_TONE: Record<FatigueBand, 'system' | 'warn' | 'danger' | 'goo
 
 const SUMMON_ICON: Record<SummonWindowId, LucideIcon> = {
   calendar: CalendarDays,
+  measurements: Ruler,
   analysis: AlertTriangle,
   army: Users,
   castle: Building2,
@@ -213,6 +218,7 @@ const SUMMON_ICON: Record<SummonWindowId, LucideIcon> = {
 
 const SUMMON_TITLE: Record<SummonWindowId, string> = {
   calendar: 'Calendar',
+  measurements: 'Measurements',
   analysis: 'Analysis',
   army: 'Shadow Army',
   castle: 'Demon Castle',
@@ -323,6 +329,11 @@ function HomeScreen() {
 
   const summonRows: SummonRow[] = [
     { id: 'calendar', label: 'Calendar', figure: `${daysTrained} ${daysTrained === 1 ? 'day' : 'days'}` },
+    {
+      id: 'measurements',
+      label: 'Measurements',
+      figure: projection.latestBodyMetric ? formatWeight(projection.latestBodyMetric.weightKg, profile?.unitPref ?? 'metric') : 'none',
+    },
     { id: 'analysis', label: 'Analysis', figure: `${advisories.length} warnings`, warn: advisories.length > 0 },
     { id: 'army', label: 'Shadow Army', figure: `${projection.roster.activeCount}/${projection.roster.cap}` },
     { id: 'castle', label: 'Demon Castle', figure: `${projection.towerFloorCleared}/${TOWER_FLOORS.length}` },
@@ -490,6 +501,7 @@ function HomeScreen() {
                 </div>
               ) : null}
               {openWindow === 'calendar' ? <TrainingCalendar /> : null}
+              {openWindow === 'measurements' ? <MeasurementsPanel /> : null}
               {openWindow === 'runes' ? <RunesPanel level={player.level} /> : null}
               {openWindow === 'titles' ? <TitlesPanel titleIds={earnedTitleIds} /> : null}
               {openWindow === 'army' ? (

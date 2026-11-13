@@ -320,6 +320,35 @@ describe('the summon overlay (m10-plan commit 3, F14)', () => {
     await unmount()
   })
 
+  it('the Measurements window mounts from its summon row, with only the Awakening reading behind it', async () => {
+    await awakenPastIntro()
+
+    const { container, unmount } = await mountInteractive('/')
+    const row = Array.from(container.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('[ Measurements ]'),
+    )
+    await click(row)
+
+    expectRendered(container.innerHTML)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    await unmount()
+  })
+
+  it('the Measurements window mounts by URL after a second measurement', async () => {
+    await awakenPastIntro()
+    await useApp.getState().completeReawakeningTest({ weightKg: 70, waistCm: 80 })
+    // The completion notice takes the overlay slot; this test is about the window under it.
+    useApp.setState({ messages: [] })
+
+    const { container, unmount } = await mountInteractive('/?window=measurements')
+
+    expectRendered(container.innerHTML)
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    await unmount()
+  })
+
   it('a notification window and a summoned window never render together', async () => {
     await awakenPastIntro()
 
